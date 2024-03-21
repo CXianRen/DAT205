@@ -17,6 +17,13 @@ if(WIN32)
     list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_src/glm")
 endif(WIN32)
 
+if(UNIX)
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external/embree2")
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_src/glm")
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_linux/sdl2")
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_linux/glew")
+endif(UNIX)
+
 macro(config_build_output)
     if(MSVC)
         set(DLL_DIRECTORIES "${CMAKE_SOURCE_DIR}/external/bin")
