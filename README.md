@@ -39,3 +39,7 @@ make GLEW_DEST=YOUR_INSTALLING_PATH install
 # how to run
 1. bash run.sh
 
+
+# Demo
++ you should see something like this:
+![figher](./Doc/fighter.gif)
