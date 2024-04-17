@@ -349,6 +349,10 @@ Model* loadModelFromOBJ(std::string path)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	std::cout << "done.\n";
+	std::cout << "  " << model->m_meshes.size() << " meshes\n";
+	std::cout << "  " << model->m_positions.size() << " vertices\n";
+	std::cout << "  " << model->m_materials.size() << " materials\n";
+	
 	return model;
 }
 
@@ -474,6 +478,7 @@ void freeModel(Model* model)
 ///////////////////////////////////////////////////////////////////////
 void render(const Model* model, const bool submitMaterials)
 {
+
 	glBindVertexArray(model->m_vaob);
 	for(auto& mesh : model->m_meshes)
 	{

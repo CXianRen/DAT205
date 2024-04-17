@@ -46,8 +46,10 @@ GLuint backgroundProgram;
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
 ///////////////////////////////////////////////////////////////////////////////
-float environment_multiplier = 1.5f;
+float environment_multiplier = 1.0f;
 GLuint environmentMap;
+GLuint irradianceMap;
+GLuint reflectionMap;
 const std::string envmap_base_name = "001";
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,8 +59,6 @@ vec3 lightPosition;
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
 float point_light_intensity_multiplier = 10000.0f;
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,6 +131,17 @@ void initialize()
 	///////////////////////////////////////////////////////////////////////
 	environmentMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + ".hdr");
 
+	irradianceMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_irradiance.hdr");
+	
+	// Reflection map
+	std::vector<std::string> files;
+	const int roughnesses = 8;
+	for(int i = 0; i < roughnesses; i++)
+	{
+		files.push_back("../scenes/envmaps/" + envmap_base_name + "_dl_" + std::to_string(i) + ".hdr");
+	}
+
+	reflectionMap = labhelper::loadHdrMipmapTexture(files);
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);  // enables backface culling
@@ -185,13 +196,13 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
 
 	// landing pad
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	                          projectionMatrix * viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	                          inverse(transpose(viewMatrix * landingPadModelMatrix)));
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	//                           projectionMatrix * viewMatrix * landingPadModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	//                           inverse(transpose(viewMatrix * landingPadModelMatrix)));
 
-	labhelper::render(landingpadModel);
+	// labhelper::render(landingpadModel);
 
 	// Fighter
 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
@@ -241,8 +252,12 @@ void display(void)
 	///////////////////////////////////////////////////////////////////////////
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, environmentMap);
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE7);
+	glBindTexture(GL_TEXTURE_2D, irradianceMap);
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, reflectionMap);
 
+	glActiveTexture(GL_TEXTURE0);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Draw from camera
