@@ -31,6 +31,7 @@ float currentTime = 0.0f;
 float previousTime = 0.0f;
 float deltaTime = 0.0f;
 int windowWidth, windowHeight;
+std::vector<FboInfo> FBOList;
 
 // Mouse input
 ivec2 g_prevMouseCoords = { -1, -1 };
@@ -143,6 +144,16 @@ void initialize()
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);  // enables backface culling
+
+	// init FBO
+	int w, h;
+	SDL_GetWindowSize(g_window, &w, &h);
+	const int numFBOs = 5;
+	for (int i = 0; i < numFBOs; i++)
+	{
+		FBOList.push_back(FboInfo());
+		FBOList[i].resize(w, h);
+	}
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -242,6 +253,10 @@ void display(void)
 		{
 			windowWidth = w;
 			windowHeight = h;
+			for (auto& fbo : FBOList)
+			{
+				fbo.resize(w, h);
+			}
 		}
 	}
 
@@ -275,8 +290,28 @@ void display(void)
 	glActiveTexture(GL_TEXTURE0);
 
 	///////////////////////////////////////////////////////////////////////////
+	// Draw scene from security camera
+	///////////////////////////////////////////////////////////////////////////
+	FboInfo &securityCamFBO = FBOList[0];
+	glBindFramebuffer(GL_FRAMEBUFFER, securityCamFBO.framebufferId);
+	glViewport(0, 0, securityCamFBO.width, securityCamFBO.height);
+	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	drawBackground(viewMatrix, projMatrix);
+	
+	drawScene( shaderProgram, 
+				securityCamViewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
+	
+	labhelper::Material& tv_screen = landingpadModel->m_materials[8];
+	tv_screen.m_emission_texture.gl_id = securityCamFBO.colorTextureTargets[0];
+
+	///////////////////////////////////////////////////////////////////////////
 	// Draw from camera
 	///////////////////////////////////////////////////////////////////////////
+	// glBindFramebuffer(GL_FRAMEBUFFER, cameraFBO.framebufferId);
+	// glViewport(0, 0, cameraFBO.width, cameraFBO.height);
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, windowWidth, windowHeight);
 	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
@@ -288,9 +323,10 @@ void display(void)
 	}
 	{
 		labhelper::perf::Scope s( "Scene" );
-		drawScene( shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
+		drawScene(shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
 	}
 
+	
 	drawCamera(securityCamViewMatrix, viewMatrix, projMatrix);
 
 	debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
