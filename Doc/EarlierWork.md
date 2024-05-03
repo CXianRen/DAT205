@@ -63,3 +63,80 @@ One more factor that may lead to inaccuracies in the simulation results is that 
 fluid behaviour with Navier-Stokes equations such as incompressibility and Newtonian viscosity. 
 Which may not always hold true for real-world fluids like smoke. 
 
+## Further development by Foster and Metaxas:
+Later, Foster and Metaxas made significant improvement in smoke simulation by simulating smoke motions in three dimensions
+using relatively coarse grids. Instead of needing an extremely fine grid to capture all the details, 
+they could use a more manageable grid resolution while still producing visually convincing results. 
+Their simulations captured the characteristic swirling motions of smoke, adding realism to the simulations. 
+Which was achieved through careful modelling and computation of the fluid dynamics equations.
+
+The limitations of this approach lies partly on limited detail due to the fact that coarse grids inherently limit the
+level of detail that can be captured in simulations. While they were able to produce convincing swirling motions, 
+finer details, such as small-scale vortices typical of smoke, may have been lost due to the coarse resolution.
+
+Additionally, their explicit integration scheme required small time steps to maintain stability, particularly when
+fluid velocities were high. This led to slower simulations, as larger time steps couldn't be used without risking 
+instability even though their simulations produced visually appealing results. Furthermore, like many explicit 
+integration schemes, their simulations suffered from numerical dissipation. This means that small-scale details in
+the flow, such as fine vortices, tended to dissipate too quickly, resulting in a loss of realism in the simulation.
+
+## Stam's Model:
+So far, all the models have stability problems due to different factors. Stam's model made achievement on unconditional stability.
+Unlike previous approaches that required small time steps for stability, Stam's model could maintain stability even with
+larger time steps. This greatly improved the efficiency of simulations, allowing them to run faster without sacrificing
+stability. Stam employed a semi-Lagrangian advection scheme, which involves tracing back the flow of the fluid to advect
+quantities like density and velocity. This method is computationally efficient and helps reduce numerical dissipation 
+compared to some other advection schemes. He even used implicit solvers to solve the equations governing fluid motion. 
+Which are more stable and can handle larger time steps compared to explicit solvers, contributing to the model's stability.
+
+However, it still had limitations, despite its stability, Stam's model suffered from numerical dissipation. 
+This means that small-scale features in the flow, such as fine vortices and details in the smoke, could be overly 
+smoothed out, leading to a loss of realism in the simulation. Stam's model used a first-order integration scheme, 
+which limited its ability to accurately capture the finer details of smoke motion. Higher-order integration schemes 
+could provide better accuracy but might introduce additional complexity and computational cost. Like other named 
+simulation models,  Stam's model required careful tuning of parameters to achieve the desired results. 
+Finding the right balance between stability, accuracy, and computational efficiency could be challenging 
+and time-consuming. For implementing Stam's model, particularly the combination of semi-Lagrangian advection 
+and implicit solvers, could be complex and require expertise in numerical methods and computational fluid dynamics.
+
+
+## Compressible flow equations VS Incompressible flow equations
+compressible flow equations and incompressible flow equations are two fundamental frameworks for modeling fluid dynamics,
+each suitable for different scenarios depending on the magnitude of density variations within the fluid.
+Yngve et al. proposed using compressible equations to model explosions, but these introduced strict time step restrictions.
+Most practitioners prefer using incompressible equations due to their flexibility and avoidance of strict time step 
+restrictions associated with compressible equations. The key distinction between compressible and incompressible flow is
+the treatment of density variation. Compressible flow equations account for density changes, while incompressible flow 
+equations assume constant density. Compressible flow equations require consideration of the speed of sound, 
+whereas incompressible flow equations typically ignore its effects. Compressible flow equations are used in scenarios
+where density changes are significant, such as high-speed aerodynamics and combustion. 
+Incompressible flow equations are used in scenarios where density changes are negligible, 
+such as most everyday fluid flow applications.
+
+## Lattice Gas Solvers (LGS)
+Another alternative Lattice Gas Solvers(LGS), LGS are based on the concept of cellular automata, where the fluid is
+represented as discrete particles moving on a lattice grid. Each cell in the grid represents a small volume of fluid,
+and particles move between neighboring cells according to predefined rules. Unlike continuum-based methods like finite
+difference or finite volume, LGS simulate fluid dynamics at a microscopic level. They track the motion and interactions
+of individual particles to simulate the behavior of the entire fluid.
+
+The simulation proceeds in two main steps: collision and streaming. During collision, particles interact within
+each cell according to collision rules. Then, during streaming, particles move to neighboring cells based on streaming
+rules. Despite the simple rules governing particle motion, complex fluid behavior emerges from the collective
+interactions of the particles. This allows LGS to capture phenomena like turbulence, shock waves, and vortices.
+LGS can be highly parallelized, making them well-suited for implementation on parallel computing architectures like
+GPUs. This enables efficient simulation of large-scale fluid flows.
+
+while Lattice Gas Solvers offer a computationally efficient and conceptually simple approach to simulating fluid dynamics,
+they also have limitations. LGS are inherently less accurate compared to continuum-based methods for fluid dynamics, particularly in modeling complex fluid behaviors or capturing fine-scale details. This is because they rely on simplified rules and discrete particle motion rather than solving the full continuum equations.
+The discrete nature of the lattice grid can introduce artifacts in the simulation results, such as grid-induced
+turbulence or numerical dissipation. These artifacts can affect the accuracy and realism of the simulation, 
+especially in regions of high fluid flow gradients. While LGS can be parallelized, simulating large-scale fluid flows
+with high resolution can still be computationally expensive. The need to track individual particle motion and
+interactions imposes computational overhead, limiting the size and resolution of simulations that can be performed. 
+Despite their conceptual simplicity, implementing and tuning LGS can be complex. Designing appropriate collision and
+streaming rules to accurately represent fluid behavior requires careful consideration, and achieving stable and
+realistic simulations may require extensive parameter tuning. LGS are well-suited for certain types of fluid flow
+problems, such as simulating simple flows or studying emergent phenomena. However, they may not be suitable for all
+types of fluid flows, particularly those involving complex geometries or boundary conditions.
+
