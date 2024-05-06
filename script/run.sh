@@ -6,4 +6,3 @@ cp  project/*.frag build/project/
 cp  project/*.vert build/project/
 
 cd build/project && make && ./project
-
