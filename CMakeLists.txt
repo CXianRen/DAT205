@@ -51,3 +51,4 @@ endif()
 
 add_subdirectory ( labhelper )
 add_subdirectory ( project )
+add_subdirectory( particle_system )
