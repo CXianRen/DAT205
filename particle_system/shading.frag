@@ -134,7 +134,7 @@ void main()
 	vec3 direct_illumination_term = visibility * calculateDirectIllumiunation(wo, n);
 
 	// Indirect illumination
-	vec3 indirect_illumination_term = calculateIndirectIllumination(wo, n);
+	// vec3 indirect_illumination_term = calculateIndirectIllumination(wo, n);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Add emissive term. If emissive texture exists, sample this term.
@@ -145,8 +145,8 @@ void main()
 		emission_term = texture(emissiveMap, texCoord).xyz;
 	}
 
-	vec3 shading = direct_illumination_term + indirect_illumination_term + emission_term;
-
+	// vec3 shading = direct_illumination_term + indirect_illumination_term + emission_term;
+    vec3 shading = direct_illumination_term + emission_term;
 	fragmentColor = vec4(shading, 1.0);
 	return;
 }

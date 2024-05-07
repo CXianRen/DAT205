@@ -192,6 +192,7 @@ Model* loadModelFromOBJ(std::string path)
 	model->m_normals.resize(number_of_vertices);
 	model->m_texture_coordinates.resize(number_of_vertices);
 
+	std::cout<< "\n shapes.size "<< shapes.size()  << std::endl; 
 	///////////////////////////////////////////////////////////////////////
 	// For each vertex _position_ auto generate a normal that will be used
 	// if no normal is supplied.

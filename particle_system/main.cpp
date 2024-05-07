@@ -59,7 +59,7 @@ vec3 lightPosition;
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
 float point_light_intensity_multiplier = 10000.0f;
-bool step_light = false;
+bool step_light = true;
 float light_rotation_step = 0.01f;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -74,26 +74,26 @@ vec3 worldUp(0.0f, 1.0f, 0.0f);
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
-labhelper::Model *fighterModel = nullptr;
-labhelper::Model *landingpadModel = nullptr;
-labhelper::Model *sphereModel = nullptr;
-labhelper::Model *wheatleyModel = nullptr;
 
-mat4 roomModelMatrix;
+labhelper::Model *landingpadModel = nullptr;
+labhelper::Model *pointLight = nullptr;
+labhelper::Model *particleModel = nullptr;
+
 mat4 landingPadModelMatrix;
-mat4 fighterModelMatrix;
+mat4 testModelMatrix;
+
 
 void loadShaders(bool is_reload)
 {
 	GLuint shader;
 
-	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
+	shader = labhelper::loadShaderProgram("./background.vert", "./background.frag", is_reload);
 	if (shader != 0)
 	{
 		backgroundProgram = shader;
 	}
 
-	shader = labhelper::loadShaderProgram("../project/shading.vert", "../project/shading.frag", is_reload);
+	shader = labhelper::loadShaderProgram("./shading.vert", "./shading.frag", is_reload);
 	if (shader != 0)
 	{
 		shaderProgram = shader;
@@ -115,14 +115,16 @@ void initialize()
 	///////////////////////////////////////////////////////////////////////
 	// Load models and set up model matrices
 	///////////////////////////////////////////////////////////////////////
-	fighterModel = labhelper::loadModelFromOBJ("../scenes/NewShip.obj");
-	landingpadModel = labhelper::loadModelFromOBJ("../scenes/landingpad.obj");
-	sphereModel = labhelper::loadModelFromOBJ("../scenes/sphere.obj");
-	wheatleyModel = labhelper::loadModelFromOBJ("../scenes/wheatley.obj");
+	landingpadModel = labhelper::loadModelFromOBJ("../scenes/plane.obj");
+	pointLight = labhelper::loadModelFromOBJ("../scenes/sphere.obj");
+	particleModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
+	
 
-	roomModelMatrix = mat4(1.0f);
-	fighterModelMatrix = translate(15.0f * worldUp);
-	landingPadModelMatrix = mat4(1.0f);
+	testModelMatrix = translate(15.0f * worldUp);
+	testModelMatrix *= scale(vec3(10.0f, 10.0f, 10.0f));
+	// scale the plane
+	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
+	// landingPadModelMatrix = mat4(1.0f);
 
 	///////////////////////////////////////////////////////////////////////
 	// Load environment map
@@ -163,9 +165,9 @@ void debugDrawLight(const glm::mat4 &viewMatrix,
 	glUseProgram(shaderProgram);
 	labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
 							  projectionMatrix * viewMatrix * modelMatrix);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	labhelper::render(sphereModel);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	labhelper::render(pointLight);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
@@ -177,17 +179,7 @@ void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
 	labhelper::drawFullScreenQuad();
 }
 
-void drawCamera(const mat4 &camView, const mat4 &view, const mat4 &projection)
-{
-	glUseProgram(shaderProgram);
-	mat4 invCamView = inverse(camView);
-	mat4 camMatrix = invCamView * scale(vec3(10.0f)) * rotate(float(M_PI), vec3(0.0f, 1.0, 0.0));
-	labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix", projection * view * camMatrix);
-	labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", view * camMatrix);
-	labhelper::setUniformSlow(shaderProgram, "normalMatrix", inverse(transpose(view * camMatrix)));
 
-	labhelper::render(wheatleyModel);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is used to draw the main objects on the scene
@@ -223,14 +215,16 @@ void drawScene(GLuint currentShaderProgram,
 
 	labhelper::render(landingpadModel);
 
-	// Fighter
+	
+	// // draw a particle
 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * fighterModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * fighterModelMatrix);
+							  projectionMatrix * viewMatrix * testModelMatrix);
+	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-							  inverse(transpose(viewMatrix * fighterModelMatrix)));
-	labhelper::render(fighterModel);
+							  inverse(transpose(viewMatrix * testModelMatrix)));
+	labhelper::render(particleModel);
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function will be called once per frame, so the code to set up
@@ -264,12 +258,8 @@ void display(void)
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
 	static vec3 wheatley_position(-35.0f, 35.0f, -35.0f);
-	vec3 wheatley_direction = normalize(vec3(0.0f) - wheatley_position);
-	mat4 securityCamViewMatrix = lookAt(wheatley_position,
-										wheatley_position + wheatley_direction,
-										worldUp);
-
-	static vec4 lightStartPosition = vec4(40.0f, 40.0f, 0.0f, 1.0f);
+	
+	static vec4 lightStartPosition = vec4(80.0f, 80.0f, 80.0f, 1.0f);
 	if (!step_light)
 	{
 
@@ -329,9 +319,7 @@ void display(void)
 		drawScene(shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix);
 	}
 
-	// drawCamera(securityCamViewMatrix, viewMatrix, projMatrix);
-
-	debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
+	// debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -474,11 +462,11 @@ int main(int argc, char *argv[])
 		// Inform imgui of new frame
 		labhelper::newFrame(g_window);
 
-		// render to window
-		display();
-
 		// Render overlay GUI.
 		gui();
+		
+		// render to window
+		display();
 
 		// Finish the frame and render the GUI
 		labhelper::finishFrame();
@@ -487,10 +475,9 @@ int main(int argc, char *argv[])
 		SDL_GL_SwapWindow(g_window);
 	}
 	// Free Models
-	labhelper::freeModel(fighterModel);
 	labhelper::freeModel(landingpadModel);
-	labhelper::freeModel(sphereModel);
-	labhelper::freeModel(wheatleyModel);
+	labhelper::freeModel(pointLight);
+	
 
 	// Shut down everything. This includes the window and all other subsystems.
 	labhelper::shutDown(g_window);
