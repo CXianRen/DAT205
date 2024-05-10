@@ -1,5 +1,5 @@
 # Exported by Chalmers Graphics Group
-mtllib sphere.mtl
+mtllib point_light.mtl
 o pSphere1
 g pSphere1
 usemtl phong1SG

@@ -5,4 +5,8 @@ cp -r scenes build/
 cp  project/*.frag build/project/
 cp  project/*.vert build/project/
 
-cd build/project && make && ./project
+cp  particle_system/*.frag build/particle_system/
+cp  particle_system/*.vert build/particle_system/
+
+# cd build/project && make && ./project
+cd build/particle_system && make && ./particle_system
