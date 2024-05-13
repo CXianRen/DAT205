@@ -4,9 +4,14 @@ project ( particle_system )
 
 # Find *all* shaders.
 file(GLOB_RECURSE SHADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.vert"
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.frag"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
 )
+
+file(GLOB_RECURSE MCPP
+    "${CMAKE_CURRENT_SOURCE_DIR}/*/*"
+)
+
 # Separate filter for shaders.
 source_group("Shaders" FILES ${SHADERS})
 
@@ -14,7 +19,8 @@ source_group("Shaders" FILES ${SHADERS})
 add_executable ( ${PROJECT_NAME}
     main.cpp
     ${SHADERS}
-    )
+    ${MCPP}
+)
 
 target_link_libraries ( ${PROJECT_NAME} labhelper )
 config_build_output()

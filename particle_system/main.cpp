@@ -3,24 +3,7 @@
 extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #endif
 
-#include <GL/glew.h>
-#include <cmath>
-#include <cstdlib>
-#include <algorithm>
-#include <chrono>
-
-#include <labhelper.h>
-#include <imgui.h>
-
-#include <perf.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-using namespace glm;
-
-#include <Model.h>
-#include "hdr.h"
-#include "fbo.h"
+#include "common/globalvar.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -37,11 +20,20 @@ ivec2 g_prevMouseCoords = {-1, -1};
 bool g_isMouseDragging = false;
 
 ///////////////////////////////////////////////////////////////////////////////
+// Camera parameters.
+///////////////////////////////////////////////////////////////////////////////
+vec3 cameraPosition(-70.0f, 50.0f, 70.0f);
+vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+float cameraSpeed = 10.f;
+vec3 worldUp(0.0f, 1.0f, 0.0f);
+
+///////////////////////////////////////////////////////////////////////////////
 // Shader programs
 ///////////////////////////////////////////////////////////////////////////////
 GLuint shaderProgram;		// Shader for rendering the final image
 GLuint simpleShaderProgram; // Shader used to draw the shadow map
 GLuint backgroundProgram;
+GLuint debugLineProgram; // Shader used to draw debug lines
 
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
@@ -63,29 +55,33 @@ bool step_light = true;
 float light_rotation_step = 0.01f;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Camera parameters.
-///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(-70.0f, 50.0f, 70.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-float cameraSpeed = 10.f;
-
-vec3 worldUp(0.0f, 1.0f, 0.0f);
-
-///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
 
 labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
 labhelper::Model *particleModel = nullptr;
+labhelper::Model *cubeModel = nullptr;
 
 mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
+
+///////////////////////////////////////////////////////////////////////////////
+// Particle system
+///////////////////////////////////////////////////////////////////////////////
+Simulator simulator;
+
 
 
 void loadShaders(bool is_reload)
 {
 	GLuint shader;
+
+	shader = labhelper::loadShaderProgram("./simple.vert", "./simple.frag", is_reload);
+	if (shader != 0)
+	{
+		simpleShaderProgram = shader;
+	}
 
 	shader = labhelper::loadShaderProgram("./background.vert", "./background.frag", is_reload);
 	if (shader != 0)
@@ -97,6 +93,12 @@ void loadShaders(bool is_reload)
 	if (shader != 0)
 	{
 		shaderProgram = shader;
+	}
+
+	shader = labhelper::loadShaderProgram("./line.vert", "./line.frag", is_reload);
+	if (shader != 0)
+	{
+		debugLineProgram = shader;
 	}
 }
 
@@ -116,9 +118,9 @@ void initialize()
 	// Load models and set up model matrices
 	///////////////////////////////////////////////////////////////////////
 	landingpadModel = labhelper::loadModelFromOBJ("../scenes/plane.obj");
-	pointLight = labhelper::loadModelFromOBJ("../scenes/sphere.obj");
+	pointLight = labhelper::loadModelFromOBJ("../scenes/point_light.obj");
 	particleModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
-	
+	cubeModel = labhelper::loadModelFromOBJ("../scenes/cube.obj");
 
 	testModelMatrix = translate(15.0f * worldUp);
 	testModelMatrix *= scale(vec3(10.0f, 10.0f, 10.0f));
@@ -179,7 +181,44 @@ void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
 	labhelper::drawFullScreenQuad();
 }
 
+void drawLine(const glm::vec3 start_pos, const glm::vec3 end_pos,
+			  const mat4 &viewMatrix, const mat4 &projectionMatrix, 
+			  const glm::vec3 color = vec3(1.0f, 0.0f, 0.0f))
+{
+	GLuint currentShaderProgram = debugLineProgram;
+	glUseProgram(currentShaderProgram);
+	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+							  projectionMatrix * viewMatrix * mat4(1.0f));
+	labhelper::setUniformSlow(currentShaderProgram, "line_color", color);
 
+	// draw a line
+	static GLuint buffer = 0;
+	static GLuint vertexArrayObject = 0;
+	static int nofVertices = 2;
+	glm::vec3 positions[] = {start_pos, end_pos};
+	// do this initialization first time the function is called...
+	if (vertexArrayObject == 0)
+	{
+		glGenVertexArrays(1, &vertexArrayObject);
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+		CHECK_GL_ERROR();
+
+		// Now attach buffer to vertex array object.
+		glBindVertexArray(vertexArrayObject);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		glEnableVertexAttribArray(0);
+		CHECK_GL_ERROR();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+
+	glBindVertexArray(vertexArrayObject);
+	glDrawArrays(GL_LINES, 0, nofVertices);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is used to draw the main objects on the scene
@@ -215,16 +254,23 @@ void drawScene(GLuint currentShaderProgram,
 
 	labhelper::render(landingpadModel);
 
-	
-	// // draw a particle
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-							  inverse(transpose(viewMatrix * testModelMatrix)));
-	labhelper::render(particleModel);
-}
+	// draw a particle
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 						  projectionMatrix * viewMatrix * testModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 						  inverse(transpose(viewMatrix * testModelMatrix)));
+	// labhelper::render(particleModel);
 
+	// draw a line
+	glDisable(GL_DEPTH_TEST);
+	//
+	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), viewMatrix, projectionMatrix, vec3(1.0f, 0.0f, 0.0f)); 
+	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), viewMatrix, projectionMatrix, vec3(0.0f, 1.0f, 0.0f));
+	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), viewMatrix, projectionMatrix, vec3(0.0f, 0.0f, 1.0f));
+	// 
+	glEnable(GL_DEPTH_TEST);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function will be called once per frame, so the code to set up
@@ -258,7 +304,7 @@ void display(void)
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
 	static vec3 wheatley_position(-35.0f, 35.0f, -35.0f);
-	
+
 	static vec4 lightStartPosition = vec4(80.0f, 80.0f, 80.0f, 1.0f);
 	if (!step_light)
 	{
@@ -445,6 +491,8 @@ int main(int argc, char *argv[])
 
 	initialize();
 
+	simulator.init();
+
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
 
@@ -464,7 +512,7 @@ int main(int argc, char *argv[])
 
 		// Render overlay GUI.
 		gui();
-		
+
 		// render to window
 		display();
 
@@ -477,7 +525,6 @@ int main(int argc, char *argv[])
 	// Free Models
 	labhelper::freeModel(landingpadModel);
 	labhelper::freeModel(pointLight);
-	
 
 	// Shut down everything. This includes the window and all other subsystems.
 	labhelper::shutDown(g_window);

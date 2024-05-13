@@ -13,4 +13,3 @@ https://en.wikipedia.org/wiki/Vorticity
 
 + $\nabla ^2$ = $\nabla \cdot \nabla $: laplace operation https://en.wikipedia.org/wiki/Laplace_operator
   
-
