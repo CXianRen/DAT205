@@ -2,7 +2,8 @@
 #include <cmath>
 #include <random>
 #include <algorithm>
-
+#include "common/globalvar.h"
+#include <chrono>
 void Simulator::addSource()
 {
     // @todo visualize the source
@@ -80,6 +81,7 @@ void Simulator::resetForce()
                         ALPHA * density[ACCESS3D(i, j, k)] - BETA * (temperature[ACCESS3D(i, j, k)] - T_AMBIENT),
                         0.0);
             }
+    
 }
 
 void Simulator::calculateVorticity()
@@ -162,6 +164,7 @@ void Simulator::calculateVorticity()
                 vort[ACCESS3D(i, j, k)] = ft.length();
                 f[ACCESS3D(i, j, k)] = ft;
             }
+   
 }
 
 void Simulator::addForce()
@@ -187,6 +190,7 @@ void Simulator::addForce()
                     u[ACCESS3D(i, j, k + 1)].z += DT * (ft.z + f[ACCESS3D(i, j, k + 1)].z) * 0.5;
                 }
             }
+    
 }
 
 // from paper, pressure term is solved by linear solver
@@ -298,6 +302,7 @@ void Simulator::applyPressureTerm()
                 }
             }
     std::copy(u.begin(), u.end(), u0.begin());
+
 }
 
 float Simulator::linearInterpolation(int dim, const std::array<glm::vec3, gSIZE> &data, const glm::vec3 &pt)
@@ -352,6 +357,8 @@ float Simulator::linearInterpolation(int dim, const std::array<glm::vec3, gSIZE>
 
     // Z
     float tmp = (1 - fractz) * tmp1234 + fractz * tmp5678;
+
+
     return tmp;
 }
 
@@ -460,6 +467,7 @@ void Simulator::advectVelocity()
                 pos_w -= vel_w * DT;
                 u[ACCESS3D(i, j, k)].z = getVelocityZ(pos_w);
             }
+
 }
 
 #define getDensity(pos) linearInterpolation(density0, pos - 0.5f * glm::vec3(gCONST_h, gCONST_h, gCONST_h))
@@ -484,17 +492,79 @@ void Simulator::advectScalar()
                 density[ACCESS3D(i, j, k)] = getDensity(pos_cell);
                 temperature[ACCESS3D(i, j, k)] = getTemperature(pos_cell);
             }
+ 
 }
+
+// void Simulator::update()
+// {
+//     auto start = std::chrono::high_resolution_clock::now();
+//     resetForce();
+//     auto end = std::chrono::high_resolution_clock::now();
+
+//     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+   
+//     std::cout << "Execution time of resetForce(): " << duration << " milliseconds" << std::endl;
+
+//     start = std::chrono::high_resolution_clock::now();
+//     calculateVorticity();
+//     end = std::chrono::high_resolution_clock::now();
+
+//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+//     std::cout << "Execution time of calculateVorticity(): " << duration << " milliseconds" << std::endl;
+
+//     start = std::chrono::high_resolution_clock::now();
+//     addForce();
+//     end = std::chrono::high_resolution_clock::now();
+
+//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+//     std::cout << "Execution time of addForce(): " << duration << " milliseconds" << std::endl;
+
+//     start = std::chrono::high_resolution_clock::now();
+//     calPressure();
+//     end = std::chrono::high_resolution_clock::now();
+
+//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+ 
+//     std::cout << "Execution time of calPressure(): " << duration << " milliseconds" << std::endl;
+
+//     start = std::chrono::high_resolution_clock::now();
+//     applyPressureTerm();
+//     end = std::chrono::high_resolution_clock::now();
+
+//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+//     std::cout << "Execution time of applyPressureTerm(): " << duration << " milliseconds" << std::endl;
+
+//     advectVelocity();
+    
+//     advectScalar();
+
+//     // if (m_time < EMIT_DURATION)
+//     // {
+//     //     addSource();
+//     //     setEmitterVelocity();
+//     // }
+// }
 
 void Simulator::update()
 {
+
     resetForce();
+ 
     calculateVorticity();
+
     addForce();
+
     calPressure();
+
     applyPressureTerm();
+
     advectVelocity();
+
     advectScalar();
+
     // if (m_time < EMIT_DURATION)
     // {
     //     addSource();
