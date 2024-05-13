@@ -20,7 +20,6 @@ using namespace glm;
 #include "hdr.h"
 #include "fbo.h"
 
-#include "../particle/simulator.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Shader programs

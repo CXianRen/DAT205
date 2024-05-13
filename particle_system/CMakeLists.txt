@@ -9,7 +9,8 @@ file(GLOB_RECURSE SHADERS
 )
 
 file(GLOB_RECURSE MCPP
-    "${CMAKE_CURRENT_SOURCE_DIR}/*/*"
+    "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/particle/*.cpp"
 )
 
 # Separate filter for shaders.
@@ -20,6 +21,13 @@ add_executable ( ${PROJECT_NAME}
     main.cpp
     ${SHADERS}
     ${MCPP}
+)
+
+target_include_directories( ${PROJECT_NAME} 
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/particle
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external_src/Eigen
 )
 
 target_link_libraries ( ${PROJECT_NAME} labhelper )

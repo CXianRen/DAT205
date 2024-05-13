@@ -1,16 +1,38 @@
 #ifndef __PARTICLE_CONST_H__
 #define __PARTICLE_CONST_H__
 
+// simulation parameters
+#define DT 0.02f // time step
+
 // grid size
 // a cubic grid is 32x64x32
-#define N  32    
-#define X  N
-#define Y  (2*N)
-#define Z  N
+#define gN 20
+#define gX gN
+#define gY (2 * gN)
+#define gZ gN
 // total number of voxels
-#define SIZE  (X*Y*Z)
+#define gSIZE (gX * gY * gZ)
 
-// voxel size 
-#define CONST_h  1 
+// voxel size
+#define gCONST_h 1
+
+// temperature field
+#define T_AMP 5.0
+#define T_AMBIENT 50.0
+#define ALPHA 9.8
+#define BETA 15.0
+
+// the size of te sorce box
+#define SOURCE_SIZE_X 8   // 8   (int)(gX / 4)
+#define SOURCE_SIZE_Y 3   // 3   (int)(gY / 4)
+#define SOURCE_SIZE_Z 8   // 8
+#define SOURCE_Y_MERGIN 3 // 3
+
+#define INIT_DENSITY 1.0
+
+// velocity field
+#define INIT_VELOCITY glm::vec3(0.0, 80.0, 0.0)
+// vorticity field
+#define VORT_EPS 0.25f // vortex confinement epsilon
 
 #endif // __PARTICLE_CONST_H__
