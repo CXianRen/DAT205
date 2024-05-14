@@ -4,6 +4,8 @@
 #include <algorithm>
 #include "common/globalvar.h"
 #include <chrono>
+#include <cuda.h>
+#include <cuda_runtime.h>
 void Simulator::addSource()
 {
     // @todo visualize the source
@@ -193,92 +195,146 @@ void Simulator::addForce()
     
 }
 
-// from paper, pressure term is solved by linear solver
+// // from paper, pressure term is solved by linear solver
+// void Simulator::calPressure()
+// {
+//     DEBUG_PRINT("Simulator calPressure");
+//     tripletList.clear();
+//     A.setZero();
+//     b.setZero();
+//     x.setZero();
+
+//     float coeff = gCONST_h / DT;
+//     // build laplacian matrix
+//     for (int i = 0; i < gX; i++)
+//         for (int j = 0; j < gY; j++)
+//             for (int k = 0; k < gZ; k++)
+//             {
+//                 float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
+//                               static_cast<float>(i < gX - 1), static_cast<float>(j < gY - 1), static_cast<float>(k < gZ - 1)};
+//                 float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+//                 float U[6];
+
+//                 U[0] = u[ACCESS3D(i, j, k)].z;
+//                 U[1] = u[ACCESS3D(i, j, k)].y;
+//                 U[2] = u[ACCESS3D(i, j, k)].x;
+
+//                 U[3] = u[ACCESS3D(i + 1, j, k)].x;
+//                 U[4] = u[ACCESS3D(i, j + 1, k)].y;
+//                 U[5] = u[ACCESS3D(i, j, k + 1)].z;
+//                 float sum_F = 0.0;
+
+//                 for (int n = 0; n < 6; ++n)
+//                 {
+//                     sum_F += F[n];
+//                     b(ACCESS3D(i, j, k)) += D[n] * F[n] * U[n];
+//                 }
+//                 b(ACCESS3D(i, j, k)) *= coeff;
+
+//                 if (k > 0)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k - 1), F[0]));
+//                 }
+//                 if (j > 0)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j - 1, k), F[1]));
+//                 }
+//                 if (i > 0)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i - 1, j, k), F[2]));
+//                 }
+
+//                 tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k), -sum_F));
+
+//                 if (i < gX - 1)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i + 1, j, k), F[3]));
+//                 }
+//                 if (j < gY - 1)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j + 1, k), F[4]));
+//                 }
+//                 if (k < gZ - 1)
+//                 {
+//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k + 1), F[5]));
+//                 }
+//             }
+
+//     DEBUG_PRINT("Solver build matrix");
+//     A.setFromTriplets(tripletList.begin(), tripletList.end());
+
+//     DEBUG_PRINT("Solver start");
+//     /* solve sparse lenear system by ICCG solver */
+//     solver.compute(A);
+//     if (solver.info() == Eigen::Success)
+//     {
+//         printf("SUCCESS: Convergence\n");
+//     }
+//     else
+//     {
+//         fprintf(stderr, "FAILED: No Convergence\n");
+//     }
+//     DEBUG_PRINT("Solver solve");
+//     x = solver.solve(b);
+//     printf("#iterations:     %d \n", static_cast<int>(solver.iterations()));
+//     printf("estimated error: %e \n", solver.error());
+
+//     // asign x to m_grids->pressure
+//     // Eigen::Map<Eigen::VectorXf>(p.begin(), gSIZE) = x;
+// }
+
+//need to be changed
+__global__ void calPressureKernel(float3* u, float* p, int gX, int gY, int gZ, float gCONST_h, float DT)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if (i < gX && j < gY && k < gZ)
+    {
+        // compute gradient of pressure
+        if (i < gX - 1)
+        {
+            u[ACCESS3D(i + 1, j, k)].x -= DT * (p[ACCESS3D(i + 1, j, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+        }
+        if (j < gY - 1)
+        {
+            u[ACCESS3D(i, j + 1, k)].y -= DT * (p[ACCESS3D(i, j + 1, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+        }
+        if (k < gZ - 1)
+        {
+            u[ACCESS3D(i, j, k + 1)].z -= DT * (p[ACCESS3D(i, j, k + 1)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+        }
+    }
+}
+
 void Simulator::calPressure()
 {
     DEBUG_PRINT("Simulator calPressure");
-    tripletList.clear();
-    A.setZero();
-    b.setZero();
-    x.setZero();
 
-    float coeff = gCONST_h / DT;
-    // build laplacian matrix
-    for (int i = 0; i < gX; i++)
-        for (int j = 0; j < gY; j++)
-            for (int k = 0; k < gZ; k++)
-            {
-                float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
-                              static_cast<float>(i < gX - 1), static_cast<float>(j < gY - 1), static_cast<float>(k < gZ - 1)};
-                float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-                float U[6];
+    // Allocate memory on the GPU
+    float3* devU;
+    float*  devP;
+    cudaMalloc((void**)&devU, sizeof(float3) * gSIZE);
+    cudaMalloc((void**)&devP, sizeof(float) * gSIZE);
 
-                U[0] = u[ACCESS3D(i, j, k)].z;
-                U[1] = u[ACCESS3D(i, j, k)].y;
-                U[2] = u[ACCESS3D(i, j, k)].x;
+    // Copy input data from host to device
+    cudaMemcpy(devU, u.data(), sizeof(float3) * gSIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(devP, p.data(), sizeof(float) * gSIZE, cudaMemcpyHostToDevice);
 
-                U[3] = u[ACCESS3D(i + 1, j, k)].x;
-                U[4] = u[ACCESS3D(i, j + 1, k)].y;
-                U[5] = u[ACCESS3D(i, j, k + 1)].z;
-                float sum_F = 0.0;
+    // grid and block dimensions
+    dim3 blockSize(16, 16, 16);
+    dim3 gridSize((gX + blockSize.x - 1) / blockSize.x, (gY + blockSize.y - 1) / blockSize.y, (gZ + blockSize.z - 1) / blockSize.z);
 
-                for (int n = 0; n < 6; ++n)
-                {
-                    sum_F += F[n];
-                    b(ACCESS3D(i, j, k)) += D[n] * F[n] * U[n];
-                }
-                b(ACCESS3D(i, j, k)) *= coeff;
+    // Launch the CUDA kernel
+    calPressureKernel<<<gridSize, blockSize>>>(devU, devP, gX, gY, gZ, gCONST_h, DT);
 
-                if (k > 0)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k - 1), F[0]));
-                }
-                if (j > 0)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j - 1, k), F[1]));
-                }
-                if (i > 0)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i - 1, j, k), F[2]));
-                }
+    // Copy the result back to the host
+    cudaMemcpy(u.data(), devU, sizeof(float3) * gSIZE, cudaMemcpyDeviceToHost);
 
-                tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k), -sum_F));
-
-                if (i < gX - 1)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i + 1, j, k), F[3]));
-                }
-                if (j < gY - 1)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j + 1, k), F[4]));
-                }
-                if (k < gZ - 1)
-                {
-                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k + 1), F[5]));
-                }
-            }
-
-    DEBUG_PRINT("Solver build matrix");
-    A.setFromTriplets(tripletList.begin(), tripletList.end());
-
-    DEBUG_PRINT("Solver start");
-    /* solve sparse lenear system by ICCG solver */
-    solver.compute(A);
-    if (solver.info() == Eigen::Success)
-    {
-        printf("SUCCESS: Convergence\n");
-    }
-    else
-    {
-        fprintf(stderr, "FAILED: No Convergence\n");
-    }
-    DEBUG_PRINT("Solver solve");
-    x = solver.solve(b);
-    printf("#iterations:     %d \n", static_cast<int>(solver.iterations()));
-    printf("estimated error: %e \n", solver.error());
-
-    // asign x to m_grids->pressure
-    // Eigen::Map<Eigen::VectorXf>(p.begin(), gSIZE) = x;
+    // Free the device memory
+    cudaFree(devU);
+    cudaFree(devP);
 }
 
 void Simulator::applyPressureTerm()
@@ -495,74 +551,50 @@ void Simulator::advectScalar()
  
 }
 
-// void Simulator::update()
-// {
-//     auto start = std::chrono::high_resolution_clock::now();
-//     resetForce();
-//     auto end = std::chrono::high_resolution_clock::now();
-
-//     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-   
-//     std::cout << "Execution time of resetForce(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     calculateVorticity();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of calculateVorticity(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     addForce();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of addForce(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     calPressure();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
- 
-//     std::cout << "Execution time of calPressure(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     applyPressureTerm();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of applyPressureTerm(): " << duration << " milliseconds" << std::endl;
-
-//     advectVelocity();
-    
-//     advectScalar();
-
-//     // if (m_time < EMIT_DURATION)
-//     // {
-//     //     addSource();
-//     //     setEmitterVelocity();
-//     // }
-// }
-
 void Simulator::update()
 {
-
+    auto start = std::chrono::high_resolution_clock::now();
     resetForce();
- 
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+   
+    std::cout << "Execution time of resetForce(): " << duration << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
     calculateVorticity();
+    end = std::chrono::high_resolution_clock::now();
 
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Execution time of calculateVorticity(): " << duration << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
     addForce();
+    end = std::chrono::high_resolution_clock::now();
 
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Execution time of addForce(): " << duration << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
     calPressure();
+    end = std::chrono::high_resolution_clock::now();
 
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+ 
+    std::cout << "Execution time of calPressure(): " << duration << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
     applyPressureTerm();
+    end = std::chrono::high_resolution_clock::now();
+
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Execution time of applyPressureTerm(): " << duration << " milliseconds" << std::endl;
 
     advectVelocity();
-
+    
     advectScalar();
 
     // if (m_time < EMIT_DURATION)
@@ -571,3 +603,27 @@ void Simulator::update()
     //     setEmitterVelocity();
     // }
 }
+
+// void Simulator::update()
+// {
+
+//     resetForce();
+ 
+//     calculateVorticity();
+
+//     addForce();
+
+//     calPressure();
+
+//     applyPressureTerm();
+
+//     advectVelocity();
+
+//     advectScalar();
+
+//     // if (m_time < EMIT_DURATION)
+//     // {
+//     //     addSource();
+//     //     setEmitterVelocity();
+//     // }
+// }

@@ -13,10 +13,13 @@ if("${SDL2_LIBRARIES}" STREQUAL "")
     set(SDL2_LIBRARIES "SDL2::SDL2")
 endif()
 
+set(CUDA_TOOLKIT_ROOT_DIR "/chalmers/sw/sup64/cuda_toolkit-11.2.2")
+
 find_package ( SDL2 REQUIRED )
 find_package ( glm REQUIRED )
 find_package ( GLEW REQUIRED )
 find_package ( OpenGL REQUIRED )
+find_package ( CUDA REQUIRED)
 
 # Build and link library.
 add_library ( ${PROJECT_NAME} 
@@ -53,6 +56,7 @@ target_include_directories( ${PROJECT_NAME}
     ${GLM_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIR}
+    ${CUDA_INCLUDE_DIR}
     )
 
 target_link_libraries ( ${PROJECT_NAME}
@@ -61,5 +65,6 @@ target_link_libraries ( ${PROJECT_NAME}
     ${SDL2_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARY}
+    ${CUDA_LIBRARIES}
     )
 

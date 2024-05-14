@@ -1,6 +1,8 @@
-cmake_minimum_required ( VERSION 3.0.2 )
+cmake_minimum_required ( VERSION 3.8 ) # 3.8 is required for CUDA support
 
-project ( particle_system )
+project ( particle_system LANGUAGES CXX CUDA ) # Enable CUDA as a language
+
+set(CMAKE_CUDA_ARCHITECTURES 60 70 75 80 86)
 
 # Find *all* shaders.
 file(GLOB_RECURSE SHADERS
@@ -8,9 +10,12 @@ file(GLOB_RECURSE SHADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
 )
 
-file(GLOB_RECURSE MCPP
+file(GLOB_RECURSE CPP_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/particle/*.cpp"
+)
+
+file(GLOB_RECURSE CU_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/particle/*.cu"
 )
 
 # Separate filter for shaders.
@@ -20,7 +25,8 @@ source_group("Shaders" FILES ${SHADERS})
 add_executable ( ${PROJECT_NAME}
     main.cpp
     ${SHADERS}
-    ${MCPP}
+    ${CPP_FILES}
+    ${CU_FILES}
 )
 
 target_include_directories( ${PROJECT_NAME} 
