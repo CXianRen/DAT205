@@ -195,147 +195,147 @@ void Simulator::addForce()
     
 }
 
-// // from paper, pressure term is solved by linear solver
-// void Simulator::calPressure()
-// {
-//     DEBUG_PRINT("Simulator calPressure");
-//     tripletList.clear();
-//     A.setZero();
-//     b.setZero();
-//     x.setZero();
-
-//     float coeff = gCONST_h / DT;
-//     // build laplacian matrix
-//     for (int i = 0; i < gX; i++)
-//         for (int j = 0; j < gY; j++)
-//             for (int k = 0; k < gZ; k++)
-//             {
-//                 float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
-//                               static_cast<float>(i < gX - 1), static_cast<float>(j < gY - 1), static_cast<float>(k < gZ - 1)};
-//                 float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-//                 float U[6];
-
-//                 U[0] = u[ACCESS3D(i, j, k)].z;
-//                 U[1] = u[ACCESS3D(i, j, k)].y;
-//                 U[2] = u[ACCESS3D(i, j, k)].x;
-
-//                 U[3] = u[ACCESS3D(i + 1, j, k)].x;
-//                 U[4] = u[ACCESS3D(i, j + 1, k)].y;
-//                 U[5] = u[ACCESS3D(i, j, k + 1)].z;
-//                 float sum_F = 0.0;
-
-//                 for (int n = 0; n < 6; ++n)
-//                 {
-//                     sum_F += F[n];
-//                     b(ACCESS3D(i, j, k)) += D[n] * F[n] * U[n];
-//                 }
-//                 b(ACCESS3D(i, j, k)) *= coeff;
-
-//                 if (k > 0)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k - 1), F[0]));
-//                 }
-//                 if (j > 0)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j - 1, k), F[1]));
-//                 }
-//                 if (i > 0)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i - 1, j, k), F[2]));
-//                 }
-
-//                 tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k), -sum_F));
-
-//                 if (i < gX - 1)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i + 1, j, k), F[3]));
-//                 }
-//                 if (j < gY - 1)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j + 1, k), F[4]));
-//                 }
-//                 if (k < gZ - 1)
-//                 {
-//                     tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k + 1), F[5]));
-//                 }
-//             }
-
-//     DEBUG_PRINT("Solver build matrix");
-//     A.setFromTriplets(tripletList.begin(), tripletList.end());
-
-//     DEBUG_PRINT("Solver start");
-//     /* solve sparse lenear system by ICCG solver */
-//     solver.compute(A);
-//     if (solver.info() == Eigen::Success)
-//     {
-//         printf("SUCCESS: Convergence\n");
-//     }
-//     else
-//     {
-//         fprintf(stderr, "FAILED: No Convergence\n");
-//     }
-//     DEBUG_PRINT("Solver solve");
-//     x = solver.solve(b);
-//     printf("#iterations:     %d \n", static_cast<int>(solver.iterations()));
-//     printf("estimated error: %e \n", solver.error());
-
-//     // asign x to m_grids->pressure
-//     // Eigen::Map<Eigen::VectorXf>(p.begin(), gSIZE) = x;
-// }
-
-//need to be changed
-__global__ void calPressureKernel(float3* u, float* p, int gX, int gY, int gZ, float gCONST_h, float DT)
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
-    int k = blockIdx.z * blockDim.z + threadIdx.z;
-
-    if (i < gX && j < gY && k < gZ)
-    {
-        // compute gradient of pressure
-        if (i < gX - 1)
-        {
-            u[ACCESS3D(i + 1, j, k)].x -= DT * (p[ACCESS3D(i + 1, j, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
-        }
-        if (j < gY - 1)
-        {
-            u[ACCESS3D(i, j + 1, k)].y -= DT * (p[ACCESS3D(i, j + 1, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
-        }
-        if (k < gZ - 1)
-        {
-            u[ACCESS3D(i, j, k + 1)].z -= DT * (p[ACCESS3D(i, j, k + 1)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
-        }
-    }
-}
-
+// from paper, pressure term is solved by linear solver
 void Simulator::calPressure()
 {
     DEBUG_PRINT("Simulator calPressure");
+    tripletList.clear();
+    A.setZero();
+    b.setZero();
+    x.setZero();
 
-    // Allocate memory on the GPU
-    float3* devU;
-    float*  devP;
-    cudaMalloc((void**)&devU, sizeof(float3) * gSIZE);
-    cudaMalloc((void**)&devP, sizeof(float) * gSIZE);
+    float coeff = gCONST_h / DT;
+    // build laplacian matrix
+    for (int i = 0; i < gX; i++)
+        for (int j = 0; j < gY; j++)
+            for (int k = 0; k < gZ; k++)
+            {
+                float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
+                              static_cast<float>(i < gX - 1), static_cast<float>(j < gY - 1), static_cast<float>(k < gZ - 1)};
+                float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+                float U[6];
 
-    // Copy input data from host to device
-    cudaMemcpy(devU, u.data(), sizeof(float3) * gSIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(devP, p.data(), sizeof(float) * gSIZE, cudaMemcpyHostToDevice);
+                U[0] = u[ACCESS3D(i, j, k)].z;
+                U[1] = u[ACCESS3D(i, j, k)].y;
+                U[2] = u[ACCESS3D(i, j, k)].x;
 
-    // grid and block dimensions
-    dim3 blockSize(16, 16, 16);
-    dim3 gridSize((gX + blockSize.x - 1) / blockSize.x, (gY + blockSize.y - 1) / blockSize.y, (gZ + blockSize.z - 1) / blockSize.z);
+                U[3] = u[ACCESS3D(i + 1, j, k)].x;
+                U[4] = u[ACCESS3D(i, j + 1, k)].y;
+                U[5] = u[ACCESS3D(i, j, k + 1)].z;
+                float sum_F = 0.0;
 
-    // Launch the CUDA kernel
-    calPressureKernel<<<gridSize, blockSize>>>(devU, devP, gX, gY, gZ, gCONST_h, DT);
+                for (int n = 0; n < 6; ++n)
+                {
+                    sum_F += F[n];
+                    b(ACCESS3D(i, j, k)) += D[n] * F[n] * U[n];
+                }
+                b(ACCESS3D(i, j, k)) *= coeff;
 
-    // Copy the result back to the host
-    cudaMemcpy(u.data(), devU, sizeof(float3) * gSIZE, cudaMemcpyDeviceToHost);
+                if (k > 0)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k - 1), F[0]));
+                }
+                if (j > 0)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j - 1, k), F[1]));
+                }
+                if (i > 0)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i - 1, j, k), F[2]));
+                }
 
-    // Free the device memory
-    cudaFree(devU);
-    cudaFree(devP);
+                tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k), -sum_F));
+
+                if (i < gX - 1)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i + 1, j, k), F[3]));
+                }
+                if (j < gY - 1)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j + 1, k), F[4]));
+                }
+                if (k < gZ - 1)
+                {
+                    tripletList.push_back(Eigen::Triplet<float>(ACCESS3D(i, j, k), ACCESS3D(i, j, k + 1), F[5]));
+                }
+            }
+
+    DEBUG_PRINT("Solver build matrix");
+    A.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    DEBUG_PRINT("Solver start");
+    /* solve sparse lenear system by ICCG solver */
+    solver.compute(A);
+    if (solver.info() == Eigen::Success)
+    {
+        printf("SUCCESS: Convergence\n");
+    }
+    else
+    {
+        fprintf(stderr, "FAILED: No Convergence\n");
+    }
+    DEBUG_PRINT("Solver solve");
+    x = solver.solve(b);
+    printf("#iterations:     %d \n", static_cast<int>(solver.iterations()));
+    printf("estimated error: %e \n", solver.error());
+
+    // asign x to m_grids->pressure
+    // Eigen::Map<Eigen::VectorXf>(p.begin(), gSIZE) = x;
 }
+
+//need to be changed
+// __global__ void calPressureKernel(float3* u, float* p, int gX, int gY, int gZ, float gCONST_h, float DT)
+// {
+//     int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     int j = blockIdx.y * blockDim.y + threadIdx.y;
+//     int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+//     if (i < gX && j < gY && k < gZ)
+//     {
+//         // compute gradient of pressure
+//         if (i < gX - 1)
+//         {
+//             u[ACCESS3D(i + 1, j, k)].x -= DT * (p[ACCESS3D(i + 1, j, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+//         }
+//         if (j < gY - 1)
+//         {
+//             u[ACCESS3D(i, j + 1, k)].y -= DT * (p[ACCESS3D(i, j + 1, k)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+//         }
+//         if (k < gZ - 1)
+//         {
+//             u[ACCESS3D(i, j, k + 1)].z -= DT * (p[ACCESS3D(i, j, k + 1)] - p[ACCESS3D(i, j, k)]) / gCONST_h;
+//         }
+//     }
+// }
+
+// void Simulator::calPressure()
+// {
+//     DEBUG_PRINT("Simulator calPressure");
+
+//     // Allocate memory on the GPU
+//     float3* devU;
+//     float*  devP;
+//     cudaMalloc((void**)&devU, sizeof(float3) * gSIZE);
+//     cudaMalloc((void**)&devP, sizeof(float) * gSIZE);
+
+//     // Copy input data from host to device
+//     cudaMemcpy(devU, u.data(), sizeof(float3) * gSIZE, cudaMemcpyHostToDevice);
+//     cudaMemcpy(devP, p.data(), sizeof(float) * gSIZE, cudaMemcpyHostToDevice);
+
+//     // grid and block dimensions
+//     dim3 blockSize(16, 16, 16);
+//     dim3 gridSize((gX + blockSize.x - 1) / blockSize.x, (gY + blockSize.y - 1) / blockSize.y, (gZ + blockSize.z - 1) / blockSize.z);
+
+//     // Launch the CUDA kernel
+//     calPressureKernel<<<gridSize, blockSize>>>(devU, devP, gX, gY, gZ, gCONST_h, DT);
+
+//     // Copy the result back to the host
+//     cudaMemcpy(u.data(), devU, sizeof(float3) * gSIZE, cudaMemcpyDeviceToHost);
+
+//     // Free the device memory
+//     cudaFree(devU);
+//     cudaFree(devP);
+// }
 
 void Simulator::applyPressureTerm()
 {
