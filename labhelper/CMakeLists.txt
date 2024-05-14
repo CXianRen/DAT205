@@ -13,7 +13,7 @@ if("${SDL2_LIBRARIES}" STREQUAL "")
     set(SDL2_LIBRARIES "SDL2::SDL2")
 endif()
 
-set(CUDA_TOOLKIT_ROOT_DIR "/chalmers/sw/sup64/cuda_toolkit-11.2.2")
+set(CUDA_TOOLKIT_ROOT_DIR "/chalmers/sw/sup64/cuda_toolkit-12.1.1")
 
 find_package ( SDL2 REQUIRED )
 find_package ( glm REQUIRED )

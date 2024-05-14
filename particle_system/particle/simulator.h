@@ -11,6 +11,7 @@
 
 #define ACCESS3D(x, y, z) ((x) + (y) * gX + (z) * gX * gY)
 
+
 class Simulator
 {
 
