@@ -21,7 +21,8 @@ public:
     void init();
     void update();
     void render() {};
-
+    float m_time = 0.0f;
+    
 private:
     void addSource();          // can be seen as a heater, will generate density
     void setEmitterVelocity(); // set the velocity of the emitter

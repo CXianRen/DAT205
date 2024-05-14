@@ -28,11 +28,16 @@
 #define SOURCE_SIZE_Z 8   // 8
 #define SOURCE_Y_MERGIN 3 // 3
 
+#define EMIT_DURATION 2.0f // 2.0f
+
 #define INIT_DENSITY 1.0
+
 
 // velocity field
 #define INIT_VELOCITY glm::vec3(0.0, 80.0, 0.0)
 // vorticity field
 #define VORT_EPS 0.25f // vortex confinement epsilon
+
+
 
 #endif // __PARTICLE_CONST_H__

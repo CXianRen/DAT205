@@ -495,9 +495,9 @@ void Simulator::update()
     applyPressureTerm();
     advectVelocity();
     advectScalar();
-    // if (m_time < EMIT_DURATION)
-    // {
-    //     addSource();
-    //     setEmitterVelocity();
-    // }
+    if (m_time < EMIT_DURATION)
+    {
+        addSource();
+        setEmitterVelocity();
+    }
 }
