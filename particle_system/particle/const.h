@@ -8,7 +8,7 @@
 
 // grid size
 // a cubic grid is 32x64x32
-#define gN 20
+#define gN 32
 #define gX gN
 #define gY (2 * gN)
 #define gZ gN

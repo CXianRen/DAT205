@@ -37,8 +37,7 @@ GLuint shaderProgram;		// Shader for rendering the final image
 GLuint simpleShaderProgram; // Shader used to draw the shadow map
 GLuint backgroundProgram;
 GLuint debugLineProgram; // Shader used to draw debug lines
-
-
+GLuint smokeProgram;	 // Shader used to draw smoke
 
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
@@ -67,7 +66,7 @@ labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
 labhelper::Model *particleModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
-SmokeRenderer* mmRender = nullptr; 
+SmokeRenderer *mmRender = nullptr;
 mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
 
@@ -75,8 +74,6 @@ mat4 testModelMatrix;
 // Particle system
 ///////////////////////////////////////////////////////////////////////////////
 Simulator simulator;
-
-
 
 void loadShaders(bool is_reload)
 {
@@ -104,6 +101,11 @@ void loadShaders(bool is_reload)
 	if (shader != 0)
 	{
 		debugLineProgram = shader;
+	}
+	shader = labhelper::loadShaderProgram("./smoke.vert", "./smoke.frag", is_reload);
+	if (shader != 0)
+	{
+		smokeProgram = shader;
 	}
 }
 
@@ -188,8 +190,6 @@ void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
 	labhelper::drawFullScreenQuad();
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is used to draw the main objects on the scene
 ///////////////////////////////////////////////////////////////////////////////
@@ -231,20 +231,27 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
 							  inverse(transpose(viewMatrix * testModelMatrix)));
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// glDisable(GL_DEPTH_TEST);
+	// glDisable(GL_CULL_FACE);
 	// labhelper::render(cubeModel);
 	// glEnable(GL_CULL_FACE);
 	// glEnable(GL_DEPTH_TEST);
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-
-	glUseProgram(debugLineProgram);
-	labhelper::setUniformSlow(debugLineProgram, "modelViewProjectionMatrix",
+	glUseProgram(smokeProgram);
+	labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
 							  projectionMatrix * viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(debugLineProgram, "line_color", vec3(1.0f, 0.0f, 0.0f));
+	labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
+	labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
+	labhelper::setUniformSlow(smokeProgram, "pointLightIntensity",point_light_intensity_multiplier);
+	labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
+
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	mmRender->render(generateSphereDensity());
+	glDisable(GL_BLEND);
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
@@ -253,10 +260,10 @@ void drawScene(GLuint currentShaderProgram,
 	// draw a line
 	glDisable(GL_DEPTH_TEST);
 	//
-	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), viewMatrix, projectionMatrix, vec3(1.0f, 0.0f, 0.0f)); 
+	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), viewMatrix, projectionMatrix, vec3(1.0f, 0.0f, 0.0f));
 	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), viewMatrix, projectionMatrix, vec3(0.0f, 1.0f, 0.0f));
 	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), viewMatrix, projectionMatrix, vec3(0.0f, 0.0f, 1.0f));
-	// 
+	//
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -487,10 +494,10 @@ int main(int argc, char *argv[])
 
 	while (!stopRendering)
 	{
-		
+
 		//@tood using multithread to update the particle system
 		// simulator.update();
-		
+
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;

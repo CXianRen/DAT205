@@ -4,6 +4,9 @@
 #include <algorithm>
 #include "common/globalvar.h"
 #include <chrono>
+
+#include "common/debug.h"
+
 void Simulator::addSource()
 {
     // @todo visualize the source
@@ -573,26 +576,30 @@ void Simulator::update()
 
 std::array<float, gSIZE> generateSphereDensity(){
     std::array<float, gSIZE> density;
+    int count = 0;
     for (int i = 0; i < gX; i++)
     {
         for (int j = 0; j < gY; j++)
         {
             for (int k = 0; k < gZ; k++)
             {
-                float x = (i - gX / 2) * gCONST_h;
-                float y = (j - gY / 2) * gCONST_h;
-                float z = (k - gZ / 2) * gCONST_h;
+                float x = (i - gX / 2);
+                float y = (j - gY / 2);
+                float z = (k - gZ / 2);
                 float r = sqrt(x * x + y * y + z * z);
-                if (r < 0.5)
+                if (r <=  gX / 4.0)
                 {
                     density[ACCESS3D(i, j, k)] = INIT_DENSITY;
+                    count ++ ;
                 }
                 else
                 {
                     density[ACCESS3D(i, j, k)] = 0.0;
                 }
+                // density[ACCESS3D(i, j, k)] = INIT_DENSITY;
             }
         }
     }
+    // DEBUG_PRINT("Sphere density count:" << count);
     return density;
 }
