@@ -1,7 +1,6 @@
 #ifndef __PARTICLE_SIMULATOR_H__
 #define __PARTICLE_SIMULATOR_H__
 
-#include "common/debug.h"
 #include <array>
 #include <glm/glm.hpp>
 #include <Eigen/Core>
@@ -26,7 +25,7 @@ public:
     
     float m_time = 0.0f;
     
-private:
+protected:
     void addSource();          // can be seen as a heater, will generate density
     void setEmitterVelocity(); // set the velocity of the emitter
 

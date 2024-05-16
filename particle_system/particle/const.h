@@ -8,10 +8,19 @@
 
 // grid size
 // a cubic grid is 32x64x32
-#define gN 32
+
+// #define gN 16
+// #define gX gN
+// #define gY (2 * gN)
+// #define gZ gN
+
+// for testing
+#define gN 4
 #define gX gN
-#define gY (2 * gN)
+#define gY (1 * gN)
 #define gZ gN
+
+
 // total number of voxels
 #define gSIZE (gX * gY * gZ)
 

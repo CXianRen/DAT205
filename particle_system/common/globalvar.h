@@ -28,5 +28,5 @@ extern GLuint shaderProgram;	   // Shader for rendering the final image
 extern GLuint simpleShaderProgram; // Shader used to draw the shadow map
 extern GLuint backgroundProgram;
 extern GLuint debugLineProgram;    // Shader used to draw debug lines
-
+extern GLuint smokeProgram;       // Shader used to draw smoke
 #endif // __M_GLOBALVAR_H__

@@ -19,10 +19,10 @@ layout(location = 0) out vec4 fragmentColor;
 void main()
 {
  
-    float numSamples = 16;
+    float numSamples = 64;
     float numLightSamples = numSamples;
 
-    float scale = 2.0 / 16;
+    float scale = 2.0 / 64;
     float lscale = scale;
  
     vec3 pos = vertexTextureSpacePos; 

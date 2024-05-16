@@ -32,3 +32,5 @@ target_include_directories( ${PROJECT_NAME}
 
 target_link_libraries ( ${PROJECT_NAME} labhelper )
 config_build_output()
+
+add_subdirectory( test)

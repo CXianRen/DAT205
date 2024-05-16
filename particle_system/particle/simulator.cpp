@@ -4,8 +4,19 @@
 #include <algorithm>
 #include "common/globalvar.h"
 #include <chrono>
+#include <labhelper.h>
 
 #include "common/debug.h"
+
+#define FOR_EACH_CELL                \
+    for (int i = 0; i < gX; i++)     \
+        for (int j = 0; j < gY; j++) \
+            for (int k = 0; k < gZ; k++)
+
+#define FOR_EACH_NON_BOUNDARY_CELL       \
+    for (int i = 1; i < gX - 1; i++)     \
+        for (int j = 1; j < gY - 1; j++) \
+            for (int k = 1; k < gZ - 1; k++)
 
 void Simulator::addSource()
 {
@@ -45,6 +56,7 @@ void Simulator::init()
     DEBUG_PRINT("Simulator init");
     // init solver
     tripletList.reserve(7 * gSIZE);
+    
     solver.setTolerance(1e-6);
 
     // init temperature field
@@ -52,18 +64,13 @@ void Simulator::init()
     std::mt19937 engine(rnd());
     std::uniform_real_distribution<float> dist(0, T_AMP);
 
-    for (int i = 0; i < gX; i++)
+    FOR_EACH_CELL
     {
-        for (int j = 0; j < gY; j++)
-        {
-            for (int k = 0; k < gZ; k++)
-            {
-                //@todo: why temprature is higher at the top?
-                temperature[ACCESS3D(i, j, k)] =
-                    (j / (float)gY) * T_AMP + dist(engine) + T_AMBIENT;
-            }
-        }
+        //@todo: why temprature is higher at the top?
+        temperature[ACCESS3D(i, j, k)] =
+            (j / (float)gY) * T_AMP + dist(engine) + T_AMBIENT;
     }
+
     // init density field
     DEBUG_PRINT("Simulator init density field");
     addSource();
@@ -74,126 +81,98 @@ void Simulator::init()
 
 void Simulator::resetForce()
 {
-    for (int i = 0; i < gX; i++)
-        for (int j = 0; j < gY; j++)
-            for (int k = 0; k < gZ; k++)
-            {
-                f[ACCESS3D(i, j, k)] =
-                    glm::vec3(
-                        0.0,
-                        ALPHA * density[ACCESS3D(i, j, k)] - BETA * (temperature[ACCESS3D(i, j, k)] - T_AMBIENT),
-                        0.0);
-            }
-    
+    FOR_EACH_CELL
+    {
+        f[ACCESS3D(i, j, k)] =
+            glm::vec3(
+                0.0,
+                ALPHA * density[ACCESS3D(i, j, k)] - BETA * (temperature[ACCESS3D(i, j, k)] - T_AMBIENT),
+                0.0);
+    }
 }
 
 void Simulator::calculateVorticity()
 {
     // average velocity
-    for (int i = 1; i < gX; i++)
-        for (int j = 1; j < gY; j++)
-            for (int k = 1; k < gZ; k++)
-            {
-                auto &p_u = u[ACCESS3D(i, j, k)];
-                auto &p_i1 = u[ACCESS3D(i + 1, j, k)].x;
-                auto &p_j1 = u[ACCESS3D(i, j + 1, k)].y;
-                auto &p_k1 = u[ACCESS3D(i, j, k + 1)].z;
+    FOR_EACH_NON_BOUNDARY_CELL
+    {
+        auto &p_u = u[ACCESS3D(i, j, k)];
+        auto &p_i1 = u[ACCESS3D(i + 1, j, k)].x;
+        auto &p_j1 = u[ACCESS3D(i, j + 1, k)].y;
+        auto &p_k1 = u[ACCESS3D(i, j, k + 1)].z;
 
-                avg_u[ACCESS3D(i, j, k)] =
-                    glm::vec3(p_u.x + p_i1, p_u.y + p_j1, p_u.z + p_k1) * 0.5f;
-            }
+        avg_u[ACCESS3D(i, j, k)] =
+            glm::vec3(p_u.x + p_i1, p_u.y + p_j1, p_u.z + p_k1) * 0.5f;
+    }
 
-    // compute omega (vorticity field)
-    for (int i = 1; i < gX; i++)
-        for (int j = 1; j < gY; j++)
-            for (int k = 1; k < gZ; k++)
-            {
-                // ignore boundary cells
-                if (i == 0 || j == 0 || k == 0)
-                {
-                    continue;
-                }
-                if (i == gX - 1 || j == gY - 1 || k == gZ - 1)
-                {
-                    continue;
-                }
-                auto &p_omg = omg[ACCESS3D(i, j, k)];
+    // compute omega (vorticity field) (cross product)
+    // ignore boundary cells
+    FOR_EACH_NON_BOUNDARY_CELL
+    {
+        auto omg_x = (avg_u[ACCESS3D(i, j + 1, k)].z - avg_u[ACCESS3D(i, j - 1, k)].z - (avg_u[ACCESS3D(i, j, k + 1)].y - avg_u[ACCESS3D(i, j, k - 1)].y)) * 0.5f / gCONST_h;
 
-                auto omg_x = (avg_u[ACCESS3D(i, j + 1, k)].z - avg_u[ACCESS3D(i, j - 1, k)].z - (avg_u[ACCESS3D(i, j, k + 1)].y - avg_u[ACCESS3D(i, j, k - 1)].y)) * 0.5f / gCONST_h;
+        auto omg_y = (avg_u[ACCESS3D(i, j, k + 1)].x - avg_u[ACCESS3D(i, j, k - 1)].x - (avg_u[ACCESS3D(i + 1, j, k)].z - avg_u[ACCESS3D(i - 1, j, k)].z)) * 0.5f / gCONST_h;
 
-                auto omg_y = (avg_u[ACCESS3D(i, j, k + 1)].x - avg_u[ACCESS3D(i, j, k - 1)].x - (avg_u[ACCESS3D(i + 1, j, k)].z - avg_u[ACCESS3D(i - 1, j, k)].z)) * 0.5f / gCONST_h;
+        auto omg_z = (avg_u[ACCESS3D(i + 1, j, k)].y - avg_u[ACCESS3D(i - 1, j, k)].y - (avg_u[ACCESS3D(i, j + 1, k)].x - avg_u[ACCESS3D(i, j - 1, k)].x)) * 0.5f / gCONST_h;
+        omg[ACCESS3D(i, j, k)] = glm::vec3(omg_x, omg_y, omg_z);
+    }
 
-                auto omg_z = (avg_u[ACCESS3D(i + 1, j, k)].y - avg_u[ACCESS3D(i - 1, j, k)].y - (avg_u[ACCESS3D(i, j + 1, k)].x - avg_u[ACCESS3D(i, j - 1, k)].x)) * 0.5f / gCONST_h;
-                p_omg = glm::vec3(omg_x, omg_y, omg_z);
-            }
     // compute vorticity force
-    for (int i = 1; i < gX; i++)
-        for (int j = 1; j < gY; j++)
-            for (int k = 1; k < gZ; k++)
-            {
-                // ignore boundary cells
-                if (i == 0 || j == 0 || k == 0)
-                    continue;
+    // ignore boundary cells
+    FOR_EACH_NON_BOUNDARY_CELL
+    {
+        // compute gradient of vorticity
+        float p, q;
+        p = omg[ACCESS3D(i + 1, j, k)].length();
+        q = omg[ACCESS3D(i - 1, j, k)].length();
+        float grad1 = (p - q) * 0.5 / gCONST_h;
 
-                if (i == gX - 1 || j == gY - 1 || k == gZ - 1)
-                    continue;
+        p = omg[ACCESS3D(i, j + 1, k)].length();
+        q = omg[ACCESS3D(i, j - 1, k)].length();
+        float grad2 = (p - q) * 0.5 / gCONST_h;
 
-                // compute gradient of vorticity
-                float p, q;
-                p = omg[ACCESS3D(i + 1, j, k)].length();
-                q = omg[ACCESS3D(i - 1, j, k)].length();
-                float grad1 = (p - q) * 0.5 / gCONST_h;
+        p = omg[ACCESS3D(i, j, k + 1)].length();
+        q = omg[ACCESS3D(i, j, k - 1)].length();
+        float grad3 = (p - q) * 0.5 / gCONST_h;
 
-                p = omg[ACCESS3D(i, j + 1, k)].length();
-                q = omg[ACCESS3D(i, j - 1, k)].length();
-                float grad2 = (p - q) * 0.5 / gCONST_h;
+        glm::vec3 gradVort(grad1, grad2, grad3);
+        // compute N vector
+        glm::vec3 N_ijk(0, 0, 0);
+        float norm = gradVort.length();
+        if (norm != 0)
+        {
+            N_ijk = gradVort / norm;
+        }
 
-                p = omg[ACCESS3D(i, j, k + 1)].length();
-                q = omg[ACCESS3D(i, j, k - 1)].length();
-                float grad3 = (p - q) * 0.5 / gCONST_h;
+        glm::vec3 vorticity = omg[ACCESS3D(i, j, k)];
 
-                glm::vec3 gradVort(grad1, grad2, grad3);
-                // compute N vector
-                glm::vec3 N_ijk(0, 0, 0);
-                float norm = gradVort.length();
-                if (norm != 0)
-                {
-                    N_ijk = gradVort / norm;
-                }
-
-                glm::vec3 vorticity = omg[ACCESS3D(i, j, k)];
-
-                glm::vec3 ft = glm::cross(vorticity, N_ijk) * VORT_EPS * (float)gCONST_h;
-                vort[ACCESS3D(i, j, k)] = ft.length();
-                f[ACCESS3D(i, j, k)] = ft;
-            }
-   
+        glm::vec3 ft = glm::cross(vorticity, N_ijk) * VORT_EPS * (float)gCONST_h;
+        vort[ACCESS3D(i, j, k)] = ft.length();
+        f[ACCESS3D(i, j, k)] += ft;
+    }
 }
 
 void Simulator::addForce()
 {
     // u = dt * df * 0.5
     // F=ma, a = F/m, dv = a * dt, m=1 => dv = F * dt
-    for (int i = 0; i < gX; i++)
-        for (int j = 0; j < gY; j++)
-            for (int k = 0; k < gZ; k++)
-            {
-                auto &ft = f[ACCESS3D(i, j, k)];
+    FOR_EACH_CELL
+    {
+        auto &ft = f[ACCESS3D(i, j, k)];
 
-                if (i < gX - 1)
-                {
-                    u[ACCESS3D(i + 1, j, k)].x += DT * (ft.x + f[ACCESS3D(i + 1, j, k)].x) * 0.5;
-                }
-                if (j < gY - 1)
-                {
-                    u[ACCESS3D(i, j + 1, k)].y += DT * (ft.y + f[ACCESS3D(i, j + 1, k)].y) * 0.5;
-                }
-                if (k < gZ - 1)
-                {
-                    u[ACCESS3D(i, j, k + 1)].z += DT * (ft.z + f[ACCESS3D(i, j, k + 1)].z) * 0.5;
-                }
-            }
-    
+        if (i < gX - 1)
+        {
+            u[ACCESS3D(i + 1, j, k)].x += DT * (ft.x + f[ACCESS3D(i + 1, j, k)].x) * 0.5;
+        }
+        if (j < gY - 1)
+        {
+            u[ACCESS3D(i, j + 1, k)].y += DT * (ft.y + f[ACCESS3D(i, j + 1, k)].y) * 0.5;
+        }
+        if (k < gZ - 1)
+        {
+            u[ACCESS3D(i, j, k + 1)].z += DT * (ft.z + f[ACCESS3D(i, j, k + 1)].z) * 0.5;
+        }
+    }
 }
 
 // from paper, pressure term is solved by linear solver
@@ -305,7 +284,6 @@ void Simulator::applyPressureTerm()
                 }
             }
     std::copy(u.begin(), u.end(), u0.begin());
-
 }
 
 float Simulator::linearInterpolation(int dim, const std::array<glm::vec3, gSIZE> &data, const glm::vec3 &pt)
@@ -360,7 +338,6 @@ float Simulator::linearInterpolation(int dim, const std::array<glm::vec3, gSIZE>
 
     // Z
     float tmp = (1 - fractz) * tmp1234 + fractz * tmp5678;
-
 
     return tmp;
 }
@@ -470,12 +447,10 @@ void Simulator::advectVelocity()
                 pos_w -= vel_w * DT;
                 u[ACCESS3D(i, j, k)].z = getVelocityZ(pos_w);
             }
-
 }
 
 #define getDensity(pos) linearInterpolation(density0, pos - 0.5f * glm::vec3(gCONST_h, gCONST_h, gCONST_h))
 #define getTemperature(pos) linearInterpolation(temperature0, pos - 0.5f * glm::vec3(gCONST_h, gCONST_h, gCONST_h))
-
 
 void Simulator::advectScalar()
 {
@@ -497,84 +472,57 @@ void Simulator::advectScalar()
             }
 }
 
-// void Simulator::update()
-// {
-//     auto start = std::chrono::high_resolution_clock::now();
-//     resetForce();
-//     auto end = std::chrono::high_resolution_clock::now();
-
-//     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-   
-//     std::cout << "Execution time of resetForce(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     calculateVorticity();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of calculateVorticity(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     addForce();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of addForce(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     calPressure();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
- 
-//     std::cout << "Execution time of calPressure(): " << duration << " milliseconds" << std::endl;
-
-//     start = std::chrono::high_resolution_clock::now();
-//     applyPressureTerm();
-//     end = std::chrono::high_resolution_clock::now();
-
-//     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-//     std::cout << "Execution time of applyPressureTerm(): " << duration << " milliseconds" << std::endl;
-
-//     advectVelocity();
-    
-//     advectScalar();
-
-//     // if (m_time < EMIT_DURATION)
-//     // {
-//     //     addSource();
-//     //     setEmitterVelocity();
-//     // }
-// }
-
 void Simulator::update()
 {
+    {
+        labhelper::perf::Scope s("resetForce");
+        resetForce();
+    }
 
-    // resetForce();
- 
-    // calculateVorticity();
+    {
+        labhelper::perf::Scope s("calculateVorticity");
+        calculateVorticity();
+    }
 
-    // addForce();
+    {
+        labhelper::perf::Scope s("addForce");
 
-    // calPressure();
+        addForce();
+    }
 
-    // applyPressureTerm();
+    {
+        labhelper::perf::Scope s("calPressure");
 
-    // advectVelocity();
+        calPressure();
+    }
 
-    // advectScalar();
-    // if (m_time < EMIT_DURATION)
-    // {
-    //     addSource();
-    //     setEmitterVelocity();
-    // }
+    {
+        labhelper::perf::Scope s("applyPressureTerm");
+
+        applyPressureTerm();
+    }
+
+    {
+        labhelper::perf::Scope s("advectVelocity");
+
+        advectVelocity();
+    }
+
+    {
+        labhelper::perf::Scope s("advectScalar");
+
+        advectScalar();
+    }
+
+    if (m_time < EMIT_DURATION)
+    {
+        addSource();
+        setEmitterVelocity();
+    }
 }
 
-
-std::array<float, gSIZE> generateSphereDensity(){
+std::array<float, gSIZE> generateSphereDensity()
+{
     std::array<float, gSIZE> density;
     int count = 0;
     for (int i = 0; i < gX; i++)
@@ -587,10 +535,10 @@ std::array<float, gSIZE> generateSphereDensity(){
                 float y = (j - gY / 2);
                 float z = (k - gZ / 2);
                 float r = sqrt(x * x + y * y + z * z);
-                if (r <=  gX / 4.0)
+                if (r <= gX / 4.0)
                 {
                     density[ACCESS3D(i, j, k)] = INIT_DENSITY;
-                    count ++ ;
+                    count++;
                 }
                 else
                 {
