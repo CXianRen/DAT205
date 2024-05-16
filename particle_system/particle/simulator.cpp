@@ -553,24 +553,24 @@ void Simulator::advectScalar()
 void Simulator::update()
 {
 
-    resetForce();
+    // resetForce();
  
-    calculateVorticity();
+    // calculateVorticity();
 
-    addForce();
+    // addForce();
 
-    calPressure();
+    // calPressure();
 
-    applyPressureTerm();
+    // applyPressureTerm();
 
-    advectVelocity();
+    // advectVelocity();
 
-    advectScalar();
-    if (m_time < EMIT_DURATION)
-    {
-        addSource();
-        setEmitterVelocity();
-    }
+    // advectScalar();
+    // if (m_time < EMIT_DURATION)
+    // {
+    //     addSource();
+    //     setEmitterVelocity();
+    // }
 }
 
 

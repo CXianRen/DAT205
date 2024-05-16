@@ -19,7 +19,11 @@ public:
 
     void init();
     void update();
-    void render() {};
+    // void render() {};
+    std::array<float, gSIZE> getDensity() const {
+        return density;
+    };
+    
     float m_time = 0.0f;
     
 private:

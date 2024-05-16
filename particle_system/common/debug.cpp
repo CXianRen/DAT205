@@ -4,13 +4,13 @@
 #include "common/globalvar.h"
 
 void drawLine(const glm::vec3 start_pos, const glm::vec3 end_pos,
-			  const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix, 
+			  const glm::mat4 &projectionViewModelMatrix,
 			  const glm::vec3 color)
 {
 	GLuint currentShaderProgram = debugLineProgram;
 	glUseProgram(currentShaderProgram);
 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * mat4(1.0f));
+							  projectionViewModelMatrix);
 	labhelper::setUniformSlow(currentShaderProgram, "line_color", color);
 
 	// draw a line

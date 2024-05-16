@@ -25,7 +25,7 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(-70.0f, 50.0f, 70.0f);
+vec3 cameraPosition(45.0f, 45.0f, 45.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
 float cameraSpeed = 10.f;
 vec3 worldUp(0.0f, 1.0f, 0.0f);
@@ -54,7 +54,7 @@ const std::string envmap_base_name = "001";
 vec3 lightPosition;
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
-float point_light_intensity_multiplier = 10000.0f;
+float point_light_intensity_multiplier = 100000.0f;
 bool step_light = true;
 float light_rotation_step = 0.01f;
 
@@ -244,25 +244,25 @@ void drawScene(GLuint currentShaderProgram,
 							  projectionMatrix * viewMatrix * testModelMatrix);
 	labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
 	labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
-	labhelper::setUniformSlow(smokeProgram, "pointLightIntensity",point_light_intensity_multiplier);
+	labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", point_light_intensity_multiplier);
 	labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
-
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	mmRender->render(generateSphereDensity());
+	// mmRender->render(generateSphereDensity());
+	mmRender->render(simulator.getDensity());
 	glDisable(GL_BLEND);
 
-	glEnable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	mmRender->render_frame(projectionMatrix * viewMatrix* testModelMatrix);
 	glEnable(GL_DEPTH_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+	
 	// draw a line
 	glDisable(GL_DEPTH_TEST);
 	//
-	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), viewMatrix, projectionMatrix, vec3(1.0f, 0.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), viewMatrix, projectionMatrix, vec3(0.0f, 1.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), viewMatrix, projectionMatrix, vec3(0.0f, 0.0f, 1.0f));
+	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
+	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
+	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
 	//
 	glEnable(GL_DEPTH_TEST);
 }
@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
 	{
 
 		//@tood using multithread to update the particle system
-		// simulator.update();
+		simulator.update();
 
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
