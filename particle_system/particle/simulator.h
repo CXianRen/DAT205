@@ -9,7 +9,6 @@
 
 #include "const.h"
 
-#define ACCESS3D(x, y, z) ((x) + (y) * gX + (z) * gX * gY)
 
 class Simulator
 {
@@ -64,5 +63,9 @@ private:
     Eigen::VectorXf b;
     Eigen::VectorXf x;
 };
+
+
+// for debug 
+std::array<float, gSIZE> generateSphereDensity(); 
 
 #endif

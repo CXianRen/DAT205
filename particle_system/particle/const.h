@@ -1,6 +1,8 @@
 #ifndef __PARTICLE_CONST_H__
 #define __PARTICLE_CONST_H__
 
+#define ACCESS3D(x, y, z) ((x) + (y) * gX + (z) * gX * gY)
+
 // simulation parameters
 #define DT 0.02f // time step
 

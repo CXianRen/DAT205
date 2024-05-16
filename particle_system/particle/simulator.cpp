@@ -492,7 +492,6 @@ void Simulator::advectScalar()
                 density[ACCESS3D(i, j, k)] = getDensity(pos_cell);
                 temperature[ACCESS3D(i, j, k)] = getTemperature(pos_cell);
             }
- 
 }
 
 // void Simulator::update()
@@ -569,4 +568,31 @@ void Simulator::update()
         addSource();
         setEmitterVelocity();
     }
+}
+
+
+std::array<float, gSIZE> generateSphereDensity(){
+    std::array<float, gSIZE> density;
+    for (int i = 0; i < gX; i++)
+    {
+        for (int j = 0; j < gY; j++)
+        {
+            for (int k = 0; k < gZ; k++)
+            {
+                float x = (i - gX / 2) * gCONST_h;
+                float y = (j - gY / 2) * gCONST_h;
+                float z = (k - gZ / 2) * gCONST_h;
+                float r = sqrt(x * x + y * y + z * z);
+                if (r < 0.5)
+                {
+                    density[ACCESS3D(i, j, k)] = INIT_DENSITY;
+                }
+                else
+                {
+                    density[ACCESS3D(i, j, k)] = 0.0;
+                }
+            }
+        }
+    }
+    return density;
 }

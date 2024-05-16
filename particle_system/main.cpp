@@ -5,8 +5,8 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include "common/debug.h"
 #include "common/globalvar.h"
+#include "particle/render.h"
 #include "particle/simulator.h"
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -38,6 +38,8 @@ GLuint simpleShaderProgram; // Shader used to draw the shadow map
 GLuint backgroundProgram;
 GLuint debugLineProgram; // Shader used to draw debug lines
 
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,7 +67,7 @@ labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
 labhelper::Model *particleModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
-
+SmokeRenderer* mmRender = nullptr; 
 mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
 
@@ -130,6 +132,8 @@ void initialize()
 	// scale the plane
 	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
 	// landingPadModelMatrix = mat4(1.0f);
+
+	mmRender = new SmokeRenderer();
 
 	///////////////////////////////////////////////////////////////////////
 	// Load environment map
@@ -221,12 +225,30 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::render(landingpadModel);
 
 	// draw a particle
-	// labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 						  projectionMatrix * viewMatrix * testModelMatrix);
-	// labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
-	// labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 						  inverse(transpose(viewMatrix * testModelMatrix)));
-	// labhelper::render(particleModel);
+	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+							  projectionMatrix * viewMatrix * testModelMatrix);
+	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
+	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+							  inverse(transpose(viewMatrix * testModelMatrix)));
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	// labhelper::render(cubeModel);
+	// glEnable(GL_CULL_FACE);
+	// glEnable(GL_DEPTH_TEST);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
+	glUseProgram(debugLineProgram);
+	labhelper::setUniformSlow(debugLineProgram, "modelViewProjectionMatrix",
+							  projectionMatrix * viewMatrix * testModelMatrix);
+	labhelper::setUniformSlow(debugLineProgram, "line_color", vec3(1.0f, 0.0f, 0.0f));
+	mmRender->render(generateSphereDensity());
+
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// draw a line
 	glDisable(GL_DEPTH_TEST);
@@ -456,6 +478,7 @@ int main(int argc, char *argv[])
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
 	initialize();
+	// mmRender.init();
 
 	simulator.init();
 
@@ -464,7 +487,9 @@ int main(int argc, char *argv[])
 
 	while (!stopRendering)
 	{
-		simulator.update();
+		
+		//@tood using multithread to update the particle system
+		// simulator.update();
 		
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
