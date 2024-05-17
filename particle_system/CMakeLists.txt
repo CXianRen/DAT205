@@ -13,13 +13,9 @@ file(GLOB_RECURSE MCPP
     "${CMAKE_CURRENT_SOURCE_DIR}/particle/*.cpp"
 )
 
-# Separate filter for shaders.
-source_group("Shaders" FILES ${SHADERS})
-
 # Build and link executable.
 add_executable ( ${PROJECT_NAME}
     main.cpp
-    ${SHADERS}
     ${MCPP}
 )
 
@@ -33,4 +29,4 @@ target_include_directories( ${PROJECT_NAME}
 target_link_libraries ( ${PROJECT_NAME} labhelper )
 config_build_output()
 
-add_subdirectory( test)
+# add_subdirectory(test)

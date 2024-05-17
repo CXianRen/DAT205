@@ -82,7 +82,7 @@ SmokeRenderer::~SmokeRenderer()
     glDeleteTextures(1, &textureID);
 }
 
-void SmokeRenderer::render(const std::array<float, gSIZE> &density)
+void SmokeRenderer::render(const std::array<double, gSIZE> &density)
 {
     // update the texture
     // Bind the texture
@@ -108,7 +108,7 @@ void SmokeRenderer::render(const std::array<float, gSIZE> &density)
         {
             for (int x = 0; x < gX; ++x)
             {
-                float f = density[ACCESS3D(x, y, z)];
+                auto f = density[ACCESS3D(x, y, z)];
                 *ptr++ = std::max(0, std::min(255, (int)std::floor(f * 256.0)));
             }
         }
