@@ -7,12 +7,9 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include "common/globalvar.h"
 #include "particle/render.h"
 #include "particle/Simulator.h"
-#include "particle/MACGrid.h"
 
-
-std::shared_ptr<MACGrid> grids = std::make_shared<MACGrid>();
 double ttime = 0.0;
-std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(grids, ttime);
+std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -247,7 +244,7 @@ void drawScene(GLuint currentShaderProgram,
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// mmRender->render(generateSphereDensity());
-	mmRender->render(grids->density.m_data);
+	mmRender->render(simulator->getDensity());
 	glDisable(GL_BLEND);
 
 	glDisable(GL_DEPTH_TEST);

@@ -21,18 +21,18 @@ enum E_EMITTER_POS
 
 constexpr int N = 16;
 constexpr int ratio[3] = {1, 2, 1}; // X, Y, Z
-constexpr E_METHOD INTERPOLATION_METHOD = E_MONOTONIC_CUBIC;
-constexpr E_ADVECTION ADVECTION_METHOD = E_MAC_CORMACK;
+constexpr E_METHOD INTERPOLATION_METHOD = E_LINEAR;
+constexpr E_ADVECTION ADVECTION_METHOD = E_SEMI_LAGRANGE;
 constexpr E_EMITTER_POS EMITTER_POS = E_TOP;
 constexpr bool OFFSCREEN_MODE = false;
 
 // 32, 64, 32
 constexpr int Nx = ratio[0] * N, Ny = ratio[1] * N, Nz = ratio[2] * N;
 // the size of te sorce box
-constexpr int SOURCE_SIZE_X = (int)(Nx / 4);  // 8
-constexpr int SOURCE_SIZE_Y = (int)(Ny / 20); // 3
-constexpr int SOURCE_SIZE_Z = (int)(Nz / 4);  // 8
-constexpr int SOURCE_Y_MERGIN = (int)(Ny / 20); // 3 
+constexpr int SOURCE_SIZE_X = (int)(Nx / 4);    // 8
+constexpr int SOURCE_SIZE_Y = (int)(Ny / 20);   // 3
+constexpr int SOURCE_SIZE_Z = (int)(Nz / 4);    // 8
+constexpr int SOURCE_Y_MERGIN = (int)(Ny / 20); // 3
 
 constexpr int SIZE = Nx * Ny * Nz;
 
@@ -48,25 +48,18 @@ constexpr double T_AMBIENT = 50.0;
 constexpr double EMIT_DURATION = 2.0;
 constexpr double FINISH_TIME = 6.0;
 
-/* Scene Constants */
-constexpr int WIN_WIDTH = 800;
-constexpr int WIN_HEIGHT = 800;
-static const char *WIN_TITLE = "Visual Simulation of Smoke";
+// render 
 constexpr float ABSORPTION = 5.0f;
-constexpr bool SAVE_MOVIE = true;
 
 /* other definitions */
-constexpr int POS(int i, int j, int k)
-{
-    assert((i >= 0 || i < Nx) || (j >= 0 || j < Ny) || (k >= 0 || k < Nz));
-    return i + Nx * j + Nx * Ny * k;
-}
 
-#ifdef _OPENMP
-#include <omp.h>
-#define OPENMP_FOR _Pragma("omp parallel for")
-#define OPENMP_FOR_COLLAPSE _Pragma("omp parallel for collapse(3)")
-#else
-#define OPENMP_FOR
-#define OPENMP_FOR_COLLAPSE
-#endif
+#define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
+#define POS_X(x, y, z) ((x) + (y) * (Nx + 1) + (z) * (Nx + 1) * Ny)
+#define POS_Y(x, y, z) ((x) + (y) * Nx + (z) * Nx * (Ny + 1))
+#define POS_Z(x, y, z) ((x) + (y) * Nx + (z) * Nx * Ny)
+
+
+#define FOR_EACH_CELL                \
+    for (int k = 0; k < Nz; ++k)     \
+        for (int j = 0; j < Ny; ++j) \
+            for (int i = 0; i < Nx; ++i)
