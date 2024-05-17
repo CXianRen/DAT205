@@ -7,7 +7,6 @@
 #include "Simulator.h"
 #include "common/mmath.h"
 
-
 Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
     // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
@@ -260,76 +259,93 @@ void Simulator::calPressure()
     tripletList.clear();
     A.setZero();
     b.setZero();
-    x.setZero();
+    // x.setZero();
 
     double coeff = VOXEL_SIZE / DT;
 
-    FOR_EACH_CELL
     {
-        double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
-                       static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
-        double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-        double U[6];
-        U[0] = m_w[POS_Z(i, j, k)];
-        U[1] = m_v[POS_Y(i, j, k)];
-        U[2] = m_u[POS_X(i, j, k)];
-        U[3] = m_u[POS_X(i + 1, j, k)];
-        U[4] = m_v[POS_Y(i, j + 1, k)];
-        U[5] = m_w[POS_Z(i, j, k + 1)];
-        double sum_F = 0.0;
+        labhelper::perf::Scope s("build matrix A and vector b");
 
-        for (int n = 0; n < 6; ++n)
+        FOR_EACH_CELL
         {
-            sum_F += F[n];
-            b(POS(i, j, k)) += D[n] * F[n] * U[n];
-        }
-        b(POS(i, j, k)) *= coeff;
-        {
-            if (k > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j, k - 1), F[0]));
-            }
-            if (j > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j - 1, k), F[1]));
-            }
-            if (i > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i - 1, j, k), F[2]));
-            }
+            double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
+                           static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
+            double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+            double U[6];
+            U[0] = m_w[POS_Z(i, j, k)];
+            U[1] = m_v[POS_Y(i, j, k)];
+            U[2] = m_u[POS_X(i, j, k)];
+            U[3] = m_u[POS_X(i + 1, j, k)];
+            U[4] = m_v[POS_Y(i, j + 1, k)];
+            U[5] = m_w[POS_Z(i, j, k + 1)];
+            double sum_F = 0.0;
 
-            tripletList.push_back(T(POS(i, j, k), POS(i, j, k), -sum_F));
+            for (int n = 0; n < 6; ++n)
+            {
+                sum_F += F[n];
+                b(POS(i, j, k)) += D[n] * F[n] * U[n];
+            }
+            b(POS(i, j, k)) *= coeff;
+            {
+                if (k > 0)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i, j, k - 1), F[0]));
+                }
+                if (j > 0)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i, j - 1, k), F[1]));
+                }
+                if (i > 0)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i - 1, j, k), F[2]));
+                }
 
-            if (i < Nx - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i + 1, j, k), F[3]));
-            }
-            if (j < Ny - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j + 1, k), F[4]));
-            }
-            if (k < Nz - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j, k + 1), F[5]));
+                tripletList.push_back(T(POS(i, j, k), POS(i, j, k), -sum_F));
+
+                if (i < Nx - 1)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i + 1, j, k), F[3]));
+                }
+                if (j < Ny - 1)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i, j + 1, k), F[4]));
+                }
+                if (k < Nz - 1)
+                {
+                    tripletList.push_back(T(POS(i, j, k), POS(i, j, k + 1), F[5]));
+                }
             }
         }
+
+        A.setFromTriplets(tripletList.begin(), tripletList.end());
     }
-
-    A.setFromTriplets(tripletList.begin(), tripletList.end());
 
     /* solve sparse lenear system by ICCG */
     ICCG.compute(A);
-    if (ICCG.info() == Eigen::Success)
+    // if (ICCG.info() == Eigen::Success)
+    // {
+    //     printf("SUCCESS: Convergence\n");
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "FAILED: No Convergence\n");
+    // }
     {
-        printf("SUCCESS: Convergence\n");
+        labhelper::perf::Scope s2("solve");
+        static bool first = true;
+        if (first)
+        {
+            first = false;
+            x = ICCG.solve(b);
+        }
+        else
+        {
+            x = ICCG.solveWithGuess(b, x);
+        }
     }
-    else
-    {
-        fprintf(stderr, "FAILED: No Convergence\n");
-    }
-    x = ICCG.solve(b);
-    printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
-    printf("estimated error: %e \n", ICCG.error());
+
+    // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
+    // printf("estimated error: %e \n", ICCG.error());
 
     // asign x to m_grids->pressure
     Eigen::Map<Eigen::VectorXd>(m_pressure.begin(), SIZE) = x;
