@@ -1,5 +1,4 @@
 #include "particle/render.h"
-#include "const.h"
 #include "common/debug.h"
 #include <glm/glm.hpp>
 #include <GL/glew.h>
@@ -82,7 +81,7 @@ SmokeRenderer::~SmokeRenderer()
     glDeleteTextures(1, &textureID);
 }
 
-void SmokeRenderer::render(const std::array<double, gSIZE> &density)
+void SmokeRenderer::render(const std::array<double, SIZE> &density)
 {
     // update the texture
     // Bind the texture
@@ -99,16 +98,16 @@ void SmokeRenderer::render(const std::array<double, gSIZE> &density)
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    GLubyte *data = new GLubyte[gSIZE];
+    GLubyte *data = new GLubyte[SIZE];
     GLubyte *ptr = data;
 
-    for (int z = 0; z < gZ; ++z)
+    for (int z = 0; z < Nz; ++z)
     {
-        for (int y = 0; y < gY; ++y)
+        for (int y = 0; y < Ny; ++y)
         {
-            for (int x = 0; x < gX; ++x)
+            for (int x = 0; x < Nx; ++x)
             {
-                auto f = density[ACCESS3D(x, y, z)];
+                auto f = density[POS(x, y, z)];
                 *ptr++ = std::max(0, std::min(255, (int)std::floor(f * 256.0)));
             }
         }
@@ -116,9 +115,9 @@ void SmokeRenderer::render(const std::array<double, gSIZE> &density)
     glTexImage3D(GL_TEXTURE_3D,
                  0,                // mip map level, 0 means no mip map
                  GL_RED,           // internal format, single channel, 8-bit data, red
-                 gX,               // width
-                 gY,               // height
-                 gZ,               // depth
+                 Nx,               // width
+                 Ny,               // height
+                 Nz,               // depth
                  0,                // border size
                  GL_RED,           // format of the pixel data
                  GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
@@ -140,10 +139,9 @@ void SmokeRenderer::render(const std::array<double, gSIZE> &density)
 void SmokeRenderer::render_frame(const glm::mat4 &projectionViewMatrix)
 {
     // render the frame
-
     float ratio_x = 1.f * 0.5f;
-    float ratio_y = gY / gX * 0.5f;
-    float ratio_z = gZ / gX * 0.5f;
+    float ratio_y = Ny / Nx * 0.5f;
+    float ratio_z = Nz / Nx * 0.5f;
 
     float vertices[8][3] = {
         {-1.0f, -1.0f, -1.0f},

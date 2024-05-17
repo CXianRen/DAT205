@@ -4,12 +4,8 @@
 
 #include <glm/glm.hpp>
 
-#include "const.h"
+#include "constants.h"
 
-#define gX 16
-#define gY 32
-#define gZ 16
-#define gSIZE (gX * gY * gZ)
 
 class SmokeRenderer{
 
@@ -17,7 +13,7 @@ public:
     SmokeRenderer();
     ~SmokeRenderer();
 
-    void render(const std::array<double, gSIZE>& density);
+    void render(const std::array<double, SIZE>& density);
     void render_frame(const glm::mat4& projectionViewMatrix);
 private:
     uint32_t vaoID; // vertex array object id
