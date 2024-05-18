@@ -8,8 +8,14 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include "particle/render.h"
 #include "particle/Simulator.h"
 
+#include <thread>
+#include <mutex>
+
 double ttime = 0.0;
 std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
+// lock for simulator
+std::mutex simLock;
+std::array<double, SIZE> density;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -210,20 +216,22 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
 
 	// landing pad
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-							  inverse(transpose(viewMatrix * landingPadModelMatrix)));
-
-	labhelper::render(landingpadModel);
+	{
+		labhelper::perf::Scope s("Landing pad");
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+								  projectionMatrix * viewMatrix * landingPadModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+								  inverse(transpose(viewMatrix * landingPadModelMatrix)));
+		labhelper::render(landingpadModel);
+	}
 
 	// draw a particle
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-							  inverse(transpose(viewMatrix * testModelMatrix)));
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 						  projectionMatrix * viewMatrix * testModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
+	// labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 						  inverse(transpose(viewMatrix * testModelMatrix)));
 
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	// glDisable(GL_DEPTH_TEST);
@@ -232,33 +240,42 @@ void drawScene(GLuint currentShaderProgram,
 	// glEnable(GL_CULL_FACE);
 	// glEnable(GL_DEPTH_TEST);
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	{
+		labhelper::perf::Scope s("render smoke");
 
-	glUseProgram(smokeProgram);
-	labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * testModelMatrix);
-	labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
-	labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
-	labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", point_light_intensity_multiplier);
-	labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
+		glUseProgram(smokeProgram);
+		labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
+								  projectionMatrix * viewMatrix * testModelMatrix);
+		labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
+		labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
+		labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", point_light_intensity_multiplier);
+		labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	// mmRender->render(generateSphereDensity());
-	mmRender->render(simulator->getDensity());
-	glDisable(GL_BLEND);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		// mmRender->render(generateSphereDensity());
 
-	glDisable(GL_DEPTH_TEST);
-	mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
-	glEnable(GL_DEPTH_TEST);
+		// try to lock the simulator
+		{
+			std::lock_guard<std::mutex> lock(simLock);
+			mmRender->render(density);
+		}
 
-	// draw a line
-	glDisable(GL_DEPTH_TEST);
-	//
-	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
-	//
-	glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+
+		glDisable(GL_DEPTH_TEST);
+		mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
+		glEnable(GL_DEPTH_TEST);
+
+		// draw a line
+		glDisable(GL_DEPTH_TEST);
+		//
+		drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
+		drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
+		drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
+		//
+		glEnable(GL_DEPTH_TEST);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -481,15 +498,30 @@ int main(int argc, char *argv[])
 	initialize();
 	// mmRender.init();
 
-
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
 
+	// thred to run simulation
+	std::thread simThread([&]()
+						  {
+		DEBUG_PRINT("Simulation thread started");
+		while (!stopRendering)
+		{
+			simulator->update();
+			// update the simulator
+			{
+				std::lock_guard<std::mutex> lock(simLock);
+				// copy the density
+				std::copy(
+					simulator->getDensity().begin(), 
+					simulator->getDensity().end(), 
+					density.begin()
+				);
+			}
+		} });
+
 	while (!stopRendering)
 	{
-
-		//@tood using multithread to update the particle system
-		simulator->update();
 
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
@@ -514,6 +546,16 @@ int main(int argc, char *argv[])
 
 		// Swap front and back buffer. This frame will now been displayed.
 		SDL_GL_SwapWindow(g_window);
+
+		// limit the frame rate: 30
+		std::chrono::duration<float> endTime = std::chrono::system_clock::now() - startTime;
+		auto frame_time = endTime.count() - previousTime;
+		if (frame_time < 1.0f / 30.0f)
+		{
+			std::this_thread::sleep_for(
+				std::chrono::milliseconds(
+					(int)(1000.0f / 30.0f - frame_time * 1000.0f)));
+		}
 	}
 	// Free Models
 	labhelper::freeModel(landingpadModel);
