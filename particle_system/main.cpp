@@ -496,17 +496,32 @@ int main(int argc, char *argv[])
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
 	initialize();
-	// mmRender.init();
 
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
 
 	// thred to run simulation
-	std::thread simThread([&]()
-						  {
-		DEBUG_PRINT("Simulation thread started");
-		while (!stopRendering)
-		{
+	// std::thread simThread([&]()
+	// 					  {
+	// 	DEBUG_PRINT("Simulation thread started");
+	// 	while (!stopRendering)
+	// 	{
+	// 		simulator->update();
+	// 		// update the simulator
+	// 		{
+	// 			std::lock_guard<std::mutex> lock(simLock);
+	// 			// copy the density
+	// 			std::copy(
+	// 				simulator->getDensity().begin(), 
+	// 				simulator->getDensity().end(), 
+	// 				density.begin()
+	// 			);
+	// 		}
+	// 	} });
+
+	while (!stopRendering)
+	{
+
 			simulator->update();
 			// update the simulator
 			{
@@ -518,10 +533,7 @@ int main(int argc, char *argv[])
 					density.begin()
 				);
 			}
-		} });
 
-	while (!stopRendering)
-	{
 
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
