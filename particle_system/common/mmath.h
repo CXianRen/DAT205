@@ -82,9 +82,9 @@ T inline linearInterpolation(const Vec3 &pt, T *src, const std::vector<int> &dim
 {
     Vec3 pos;
     // clamp position
-    pos[0] = std::min(std::max(0.0, pt[0]), (T)(dims[0] - 1) * h - 1e-6);
-    pos[1] = std::min(std::max(0.0, pt[1]), (T)(dims[1] - 1) * h - 1e-6);
-    pos[2] = std::min(std::max(0.0, pt[2]), (T)(dims[2] - 1) * h - 1e-6);
+    pos[0] = std::min(std::max((T)0.0, pt[0]), (T)(dims[0] - 1) * h - (T)1e-6);
+    pos[1] = std::min(std::max((T)0.0, pt[1]), (T)(dims[1] - 1) * h - (T)1e-6);
+    pos[2] = std::min(std::max((T)0.0, pt[2]), (T)(dims[2] - 1) * h - (T)1e-6);
 
     int i = (int)(pos[0] / h);
     int j = (int)(pos[1] / h);

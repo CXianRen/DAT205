@@ -15,7 +15,7 @@ double ttime = 0.0;
 std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
 // lock for simulator
 std::mutex simLock;
-std::array<double, SIZE> density;
+std::array<float, SIZE> density;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals

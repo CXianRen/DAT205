@@ -7,25 +7,18 @@
 #include "Simulator.h"
 #include "common/mmath.h"
 
-#include "Solver.h"
 
 Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
 
-    	
-	{
-		labhelper::perf::Scope s("cuda Solver");
-		cudaSolve();
-	}
-
     // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
     tripletList.reserve(7 * SIZE);
-    ICCG.setTolerance(1e-8);
+    ICCG.setTolerance(1e-5);
 
     /*set temperature */
     std::random_device rnd;
     std::mt19937 engine(rnd());
-    std::uniform_real_distribution<double> dist(0, T_AMP);
+    std::uniform_real_distribution<float> dist(0, T_AMP);
 
     FOR_EACH_CELL
     {
@@ -176,22 +169,22 @@ void Simulator::calVorticity()
 {
     {
         labhelper::perf::Scope s("calculate_3D_Field_average");
-        calculate_3D_Field_average<double>(
-            std::vector<double *>{m_u.data(), m_v.data(), m_w.data()},
-            std::vector<double *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
+        calculate_3D_Field_average<float>(
+            std::vector<float *>{m_u.data(), m_v.data(), m_w.data()},
+            std::vector<float *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
             std::vector<int>{Nx, Ny, Nz});
     }
     {
         labhelper::perf::Scope s2("calculate_3D_Field_vorticity");
-        calculate_3D_Field_vorticity<double>(
-            std::vector<double *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
-            std::vector<double *>{m_omg_x.data(), m_omg_y.data(), m_omg_z.data()},
+        calculate_3D_Field_vorticity<float>(
+            std::vector<float *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
+            std::vector<float *>{m_omg_x.data(), m_omg_y.data(), m_omg_z.data()},
             std::vector<int>{Nx, Ny, Nz}, VOXEL_SIZE);
     }
-    static double vorticity_len[SIZE];
-    static double vorticity_len_gradient_x[SIZE];
-    static double vorticity_len_gradient_y[SIZE];
-    static double vorticity_len_gradient_z[SIZE];
+    static float vorticity_len[SIZE];
+    static float vorticity_len_gradient_x[SIZE];
+    static float vorticity_len_gradient_y[SIZE];
+    static float vorticity_len_gradient_z[SIZE];
 
     {
         labhelper::perf::Scope s3("calculate vorticity length");
@@ -210,9 +203,9 @@ void Simulator::calVorticity()
     }
     {
         labhelper::perf::Scope s4("calculate vorticity length gradient");
-        calculate_Scalar_Field_gradient<double>(
+        calculate_Scalar_Field_gradient<float>(
             vorticity_len,
-            std::vector<double *>{vorticity_len_gradient_x, vorticity_len_gradient_y, vorticity_len_gradient_z},
+            std::vector<float *>{vorticity_len_gradient_x, vorticity_len_gradient_y, vorticity_len_gradient_z},
             std::vector<int>{Nx, Ny, Nz}, VOXEL_SIZE);
     }
     {
@@ -228,7 +221,7 @@ void Simulator::calVorticity()
                         vorticity_len_gradient_z[POS(i, j, k)]);
                     // compute N vector
                     Vec3 N_ijk(0, 0, 0);
-                    double norm = gradVort.norm();
+                    float norm = gradVort.norm();
                     if (norm != 0)
                     {
                         N_ijk = gradVort / gradVort.norm();
@@ -270,24 +263,24 @@ void Simulator::calPressure()
     b.setZero();
     // x.setZero();
 
-    double coeff = VOXEL_SIZE / DT;
+    float coeff = VOXEL_SIZE / DT;
 
     {
         labhelper::perf::Scope s("build matrix A and vector b");
 
         FOR_EACH_CELL
         {
-            double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
-                           static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
-            double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-            double U[6];
+            float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
+                           static_cast<float>(i < Nx - 1), static_cast<float>(j < Ny - 1), static_cast<float>(k < Nz - 1)};
+            float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+            float U[6];
             U[0] = m_w[POS_Z(i, j, k)];
             U[1] = m_v[POS_Y(i, j, k)];
             U[2] = m_u[POS_X(i, j, k)];
             U[3] = m_u[POS_X(i + 1, j, k)];
             U[4] = m_v[POS_Y(i, j + 1, k)];
             U[5] = m_w[POS_Z(i, j, k + 1)];
-            double sum_F = 0.0;
+            float sum_F = 0.0;
 
             for (int n = 0; n < 6; ++n)
             {
@@ -329,16 +322,14 @@ void Simulator::calPressure()
         A.setFromTriplets(tripletList.begin(), tripletList.end());
     }
 
+    // {
+    //     labhelper::perf::Scope s("cuda solve");
+    //     cudaSolve(A, b, x);
+    // }
+   
+
     /* solve sparse lenear system by ICCG */
     ICCG.compute(A);
-    // if (ICCG.info() == Eigen::Success)
-    // {
-    //     printf("SUCCESS: Convergence\n");
-    // }
-    // else
-    // {
-    //     fprintf(stderr, "FAILED: No Convergence\n");
-    // }
     {
         labhelper::perf::Scope s2("solve");
         static bool first = true;
@@ -357,7 +348,7 @@ void Simulator::calPressure()
     // printf("estimated error: %e \n", ICCG.error());
 
     // asign x to m_grids->pressure
-    Eigen::Map<Eigen::VectorXd>(m_pressure.begin(), SIZE) = x;
+    Eigen::Map<Eigen::VectorXf>(m_pressure.begin(), SIZE) = x;
 }
 
 void Simulator::applyPressureTerm()
@@ -382,19 +373,19 @@ void Simulator::applyPressureTerm()
     std::copy(m_w.begin(), m_w.end(), m_w0.begin());
 }
 
-double inline getVelocityX(Vec3 pos, double *u_x, const std::vector<int> &dims)
+float inline getVelocityX(Vec3 pos, float *u_x, const std::vector<int> &dims)
 {
     switch (INTERPOLATION_METHOD)
     {
     case E_LINEAR:
-        return linearInterpolation<double>(
+        return linearInterpolation<float>(
             pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE),
             u_x,
             {dims[0] + 1, dims[1], dims[2]},
             VOXEL_SIZE);
 
     case E_MONOTONIC_CUBIC:
-        return monotonicCubicInterpolation<double>(
+        return monotonicCubicInterpolation<float>(
             pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE),
             u_x,
             {dims[0] + 1, dims[1], dims[2]},
@@ -402,19 +393,19 @@ double inline getVelocityX(Vec3 pos, double *u_x, const std::vector<int> &dims)
     }
 }
 
-double inline getVelocityY(Vec3 pos, double *u_y, const std::vector<int> &dims)
+float inline getVelocityY(Vec3 pos, float *u_y, const std::vector<int> &dims)
 {
     switch (INTERPOLATION_METHOD)
     {
     case E_LINEAR:
-        return linearInterpolation<double>(
+        return linearInterpolation<float>(
             pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE),
             u_y,
             {dims[0], dims[1] + 1, dims[2]},
             VOXEL_SIZE);
 
     case E_MONOTONIC_CUBIC:
-        return monotonicCubicInterpolation<double>(
+        return monotonicCubicInterpolation<float>(
             pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE),
             u_y,
             {dims[0], dims[1] + 1, dims[2]},
@@ -422,19 +413,19 @@ double inline getVelocityY(Vec3 pos, double *u_y, const std::vector<int> &dims)
     }
 }
 
-double inline getVelocityZ(Vec3 pos, double *u_z, const std::vector<int> &dims)
+float inline getVelocityZ(Vec3 pos, float *u_z, const std::vector<int> &dims)
 {
     switch (INTERPOLATION_METHOD)
     {
     case E_LINEAR:
-        return linearInterpolation<double>(
+        return linearInterpolation<float>(
             pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0),
             u_z,
             {dims[0], dims[1], dims[2] + 1},
             VOXEL_SIZE);
 
     case E_MONOTONIC_CUBIC:
-        return monotonicCubicInterpolation<double>(
+        return monotonicCubicInterpolation<float>(
             pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0),
             u_z,
             {dims[0], dims[1], dims[2] + 1},
@@ -442,21 +433,21 @@ double inline getVelocityZ(Vec3 pos, double *u_z, const std::vector<int> &dims)
     }
 }
 
-Vec3 inline getVelocity(const Vec3 &pos, const std::vector<double *> src, const std::vector<int> &dims)
+Vec3 inline getVelocity(const Vec3 &pos, const std::vector<float *> src, const std::vector<int> &dims)
 {
-    double vel_u = getVelocityX(pos, src[0], dims);
-    double vel_v = getVelocityY(pos, src[1], dims);
-    double vel_w = getVelocityZ(pos, src[2], dims);
+    float vel_u = getVelocityX(pos, src[0], dims);
+    float vel_v = getVelocityY(pos, src[1], dims);
+    float vel_w = getVelocityZ(pos, src[2], dims);
     return Vec3(vel_u, vel_v, vel_w);
 }
 
 Vec3 inline getCenter(int i, int j, int k)
 {
-    double half_dx = 0.5 * VOXEL_SIZE;
+    float half_dx = 0.5 * VOXEL_SIZE;
 
-    double x = half_dx + i * VOXEL_SIZE;
-    double y = half_dx + j * VOXEL_SIZE;
-    double z = half_dx + k * VOXEL_SIZE;
+    float x = half_dx + i * VOXEL_SIZE;
+    float y = half_dx + j * VOXEL_SIZE;
+    float z = half_dx + k * VOXEL_SIZE;
     return Vec3(x, y, z);
 }
 
@@ -468,7 +459,7 @@ void Simulator::advectVelocity()
         Vec3 vel_u =
             getVelocity(
                 pos_u,
-                std::vector<double *>{m_u0.data(), m_v0.data(), m_w0.data()},
+                std::vector<float *>{m_u0.data(), m_v0.data(), m_w0.data()},
                 std::vector<int>{Nx, Ny, Nz});
 
         pos_u -= DT * vel_u;
@@ -482,7 +473,7 @@ void Simulator::advectVelocity()
         Vec3 vel_v =
             getVelocity(
                 pos_v,
-                std::vector<double *>{m_u0.data(), m_v0.data(), m_w0.data()},
+                std::vector<float *>{m_u0.data(), m_v0.data(), m_w0.data()},
                 std::vector<int>{Nx, Ny, Nz});
         pos_v -= DT * vel_v;
         // m_v[POS_Y(i, j, k)] = m_grids->getVelocityY(pos_v);
@@ -496,7 +487,7 @@ void Simulator::advectVelocity()
         Vec3 vel_w =
             getVelocity(
                 pos_w,
-                std::vector<double *>{m_u0.data(), m_v0.data(), m_w0.data()},
+                std::vector<float *>{m_u0.data(), m_v0.data(), m_w0.data()},
                 std::vector<int>{Nx, Ny, Nz});
         pos_w -= DT * vel_w;
         // m_w[POS_Z(i, j, k)] = m_grids->getVelocityZ(pos_w);
@@ -516,20 +507,20 @@ void Simulator::advectScalar()
         // Vec3 vel_cell = m_grids->getVelocity(pos_cell);
         Vec3 vel_cell = getVelocity(
             pos_cell,
-            std::vector<double *>{m_u0.data(), m_v0.data(), m_w0.data()},
+            std::vector<float *>{m_u0.data(), m_v0.data(), m_w0.data()},
             std::vector<int>{Nx, Ny, Nz});
 
         pos_cell -= DT * vel_cell;
 
         m_density[POS(i, j, k)] =
-            linearInterpolation<double>(
+            linearInterpolation<float>(
                 pos_cell - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE),
                 m_density0.data(),
                 std::vector<int>{Nx, Ny, Nz},
                 VOXEL_SIZE);
 
         m_temperature[POS(i, j, k)] =
-            linearInterpolation<double>(
+            linearInterpolation<float>(
                 pos_cell - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE),
                 m_temperature0.data(),
                 std::vector<int>{Nx, Ny, Nz},

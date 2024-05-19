@@ -37,7 +37,20 @@ target_include_directories( ${PROJECT_NAME}
     ${CUDA_INCLUDE_DIR}
 )
 
-target_link_libraries ( ${PROJECT_NAME} labhelper ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
+message(STATUS "CUDA_INCLUDE_DIR: ${CUDA_INCLUDE_DIR}")
+message(STATUS "CUDA_LIBRARIES: ${CUDA_LIBRARIES}")
+message(STATUS "CUDA_cusolver_LIBRARY: ${CUDA_cusolver_LIBRARY}")
+message(STATUS "CUDA_cusparse_LIBRARY: ${CUDA_cusparse_LIBRARY}")
+message(STATUS "CUDA_cublas_LIBRARY: ${CUDA_cublas_LIBRARY}")
+
+target_link_libraries ( 
+    ${PROJECT_NAME} 
+    labhelper 
+    ${CUDA_LIBRARIES}
+    ${CUDA_cusolver_LIBRARY} 
+    ${CUDA_cusparse_LIBRARY}
+    ${CUDA_cublas_LIBRARY}
+)
 config_build_output()
 
 # add_subdirectory(test)
