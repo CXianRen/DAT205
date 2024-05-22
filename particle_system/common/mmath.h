@@ -221,4 +221,33 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
     return axis_monotonicCubicInterpolation(arr_z, fractz);
 }
 
+
+
+#define ACC3D(x,y,z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
+
+#define ACC2D(x,y, cols) ACC3D(x,y,0,0,cols) 
+
+/*
+    middle difference
+    du(i,j) = (u(i+1,j) - u(i-1,j)) / 2
+*/ 
+
+#define GET_GRADIANT_3D_X(i,j,k, data, rows, cols, dx) \
+    (data[ACC3D(i+1,j,k, rows, cols)] - data[ACC3D(i-1,j,k, rows, cols)]) / 2 / dx
+
+#define GET_GRADIANT_3D_Y(i,j,k, data, rows, cols, dy) \
+    (data[ACC3D(i,j+1,k, rows, cols)] - data[ACC3D(i,j-1,k, rows, cols)]) / 2 / dy
+
+#define GET_GRADIANT_3D_Z(i,j,k, data, rows, cols, dz) \
+    (data[ACC3D(i,j,k+1, rows, cols)] - data[ACC3D(i,j,k-1, rows, cols)]) / 2 / dz
+
+#define GET_GRADIANT_2D_X(i,j, data, cols, dx) \
+    GET_GRADIANT_3D_X(i,j,0, data, 0, cols, dx)
+
+#define GET_GRADIANT_2D_Y(i,j, data, cols, dy) \
+    GET_GRADIANT_3D_Y(i,j,0, data, 0, cols, dy)
+
+#define GET_GRADIANT_2D_Z(i,j, data, cols, dz) \
+    GET_GRADIANT_3D_Z(i,j,0, data, 0, cols, dz) 
+
 #endif // __MMATH_H__

@@ -53,4 +53,4 @@ target_link_libraries (
 )
 config_build_output()
 
-# add_subdirectory(test)
+add_subdirectory(test)
