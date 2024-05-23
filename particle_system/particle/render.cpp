@@ -81,7 +81,7 @@ SmokeRenderer::~SmokeRenderer()
     glDeleteTextures(1, &textureID);
 }
 
-void SmokeRenderer::render(const std::array<float, SIZE> &density)
+void SmokeRenderer::render(std::array<double, SIZE> &density)
 {
     // update the texture
     // Bind the texture

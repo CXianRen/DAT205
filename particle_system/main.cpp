@@ -11,11 +11,18 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <thread>
 #include <mutex>
 
+#include "particle/MACGrid.h"
+
 double ttime = 0.0;
-std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
+
+// std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
+std::shared_ptr<MACGrid> grids = std::make_shared<MACGrid>();
+std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(grids, ttime);
+
+
 // lock for simulator
 std::mutex simLock;
-std::array<float, SIZE> density;
+std::array<double, SIZE> density;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals

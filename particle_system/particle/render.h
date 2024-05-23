@@ -13,7 +13,7 @@ public:
     SmokeRenderer();
     ~SmokeRenderer();
 
-    void render(const std::array<float, SIZE>& density);
+    void render(std::array<double, SIZE>& density);
     void render_frame(const glm::mat4& projectionViewMatrix);
 private:
     uint32_t vaoID; // vertex array object id

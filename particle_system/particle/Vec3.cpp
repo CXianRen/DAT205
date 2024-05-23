@@ -6,7 +6,7 @@ Vec3::Vec3()
 {
 }
 
-Vec3::Vec3(const float x, const float y, const float z)
+Vec3::Vec3(const double x, const double y, const double z)
 {
     n[0] = x;
     n[1] = y;
@@ -46,7 +46,7 @@ Vec3 &Vec3::operator-=(const Vec3 &v)
     return *this;
 }
 
-Vec3 &Vec3::operator*=(const float d)
+Vec3 &Vec3::operator*=(const double d)
 {
     n[0] *= d;
     n[1] *= d;
@@ -54,28 +54,28 @@ Vec3 &Vec3::operator*=(const float d)
     return *this;
 }
 
-Vec3 &Vec3::operator/=(const float d)
+Vec3 &Vec3::operator/=(const double d)
 {
-    float d_inv = 1.0f / d;
+    double d_inv = 1.0f / d;
     n[0] *= d_inv;
     n[1] *= d_inv;
     n[2] *= d_inv;
     return *this;
 }
 
-float &Vec3::operator[](int i)
+double &Vec3::operator[](int i)
 {
     assert(!(i < 0 || i > 2));
     return n[i];
 }
 
-float Vec3::operator[](int i) const
+double Vec3::operator[](int i) const
 {
     assert(!(i < 0 || i > 2));
     return n[i];
 }
 
-void Vec3::set(const float x, const float y, const float z)
+void Vec3::set(const double x, const double y, const double z)
 {
     n[0] = x;
     n[1] = y;
@@ -84,19 +84,19 @@ void Vec3::set(const float x, const float y, const float z)
 
 // SPECIAL FUNCTIONS
 
-float Vec3::norm() const
+double Vec3::norm() const
 {
     return std::sqrt(sqrLength());
 }
 
-float Vec3::sqrLength() const
+double Vec3::sqrLength() const
 {
     return n[0] * n[0] + n[1] * n[1] + n[2] * n[2];
 }
 
 Vec3 &Vec3::normalize() // it is up to caller to avoid divide-by-zero
 {
-    float len = norm();
+    double len = norm();
     if (len > 0.000001)
         *this /= norm();
     return *this;
@@ -126,12 +126,12 @@ Vec3 operator-(const Vec3 &a, const Vec3 &b)
     return Vec3(a.n[0] - b.n[0], a.n[1] - b.n[1], a.n[2] - b.n[2]);
 }
 
-Vec3 operator*(const Vec3 &a, const float d)
+Vec3 operator*(const Vec3 &a, const double d)
 {
     return Vec3(d * a.n[0], d * a.n[1], d * a.n[2]);
 }
 
-Vec3 operator*(const float d, const Vec3 &a)
+Vec3 operator*(const double d, const Vec3 &a)
 {
     return a * d;
 }
@@ -141,9 +141,9 @@ Vec3 operator*(const Vec3 &a, const Vec3 &b)
     return Vec3(a.n[0] * b.n[0], a.n[1] * b.n[1], a.n[2] * b.n[2]);
 }
 
-Vec3 operator/(const Vec3 &a, const float d)
+Vec3 operator/(const Vec3 &a, const double d)
 {
-    float d_inv = 1.0f / d;
+    double d_inv = 1.0f / d;
     return Vec3(a.n[0] * d_inv, a.n[1] * d_inv, a.n[2] * d_inv);
 }
 
@@ -169,19 +169,19 @@ Vec3 prod(const Vec3 &a, const Vec3 &b)
     return Vec3(a.n[0] * b.n[0], a.n[1] * b.n[1], a.n[2] * b.n[2]);
 }
 
-float dot(const Vec3 &a, const Vec3 &b)
+double dot(const Vec3 &a, const Vec3 &b)
 {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-float distance(const Vec3 &a, const Vec3 &b) // distance
+double distance(const Vec3 &a, const Vec3 &b) // distance
 {
     return std::sqrt((b[0] - a[0]) * (b[0] - a[0]) +
                      (b[1] - a[1]) * (b[1] - a[1]) +
                      (b[2] - a[2]) * (b[2] - a[2]));
 }
 
-float distanceSqr(const Vec3 &a, const Vec3 &b) // distance
+double distanceSqr(const Vec3 &a, const Vec3 &b) // distance
 {
     return ((b[0] - a[0]) * (b[0] - a[0]) +
             (b[1] - a[1]) * (b[1] - a[1]) +

@@ -63,3 +63,13 @@ constexpr float ABSORPTION = 5.0f;
     for (int k = 0; k < Nz; ++k)     \
         for (int j = 0; j < Ny; ++j) \
             for (int i = 0; i < Nx; ++i)
+
+
+#ifdef _OPENMP
+#include <omp.h>
+#define OPENMP_FOR _Pragma("omp parallel for")
+#define OPENMP_FOR_COLLAPSE _Pragma("omp parallel for collapse(3)")
+#else
+#define OPENMP_FOR
+#define OPENMP_FOR_COLLAPSE
+#endif
