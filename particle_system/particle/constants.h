@@ -19,9 +19,9 @@ enum E_EMITTER_POS
     E_BOTTOM = 1
 };
 
-constexpr int N = 20;
+constexpr int N = 32;
 constexpr int ratio[3] = {1, 2, 1}; // X, Y, Z
-constexpr E_METHOD INTERPOLATION_METHOD = E_LINEAR;
+constexpr E_METHOD INTERPOLATION_METHOD = E_MONOTONIC_CUBIC;
 constexpr E_ADVECTION ADVECTION_METHOD = E_SEMI_LAGRANGE;
 constexpr E_EMITTER_POS EMITTER_POS = E_TOP;
 constexpr bool OFFSCREEN_MODE = false;

@@ -12,7 +12,7 @@ Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZ
 
     // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
     tripletList.reserve(7 * SIZE);
-    ICCG.setTolerance(1e-5);
+    ICCG.setTolerance(1e-6);
 
     /*set temperature */
     std::random_device rnd;
@@ -23,6 +23,7 @@ Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZ
     {
         // m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
         m_temperature[POS(i, j, k)] = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
+        // m_temperature[POS(i, j, k)] = T_AMBIENT + dist(engine);
     }
 
     addSource();
@@ -35,47 +36,47 @@ Simulator::~Simulator()
 
 void Simulator::update()
 {
-    labhelper::perf::Scope s("update");
+    //labhelper::perf::Scope s("update");
     {
-        labhelper::perf::Scope s("resetForce");
+        //labhelper::perf::Scope s("resetForce");
         resetForce();
     }
     {
-        labhelper::perf::Scope s("calVorticity");
+        //labhelper::perf::Scope s("calVorticity");
         calVorticity();
     }
 
     {
-        labhelper::perf::Scope s("addForce");
+        //labhelper::perf::Scope s("addForce");
         addForce();
     }
 
     {
-        labhelper::perf::Scope s("calPressure");
+        //labhelper::perf::Scope s("calPressure");
         calPressure();
     }
     {
-        labhelper::perf::Scope s("applyPressureTerm");
+        //labhelper::perf::Scope s("applyPressureTerm");
         applyPressureTerm();
     }
 
+
     {
-        labhelper::perf::Scope s("advectVelocity");
+        //labhelper::perf::Scope s("advectVelocity");
         advectVelocity();
     }
 
-
     {
-        labhelper::perf::Scope s("advectScalar");
+        //labhelper::perf::Scope s("advectScalar");
         advectScalar();
     }
-    // static int frame = 0;
-    // if (frame < 40)
-    // {
-        // frame++;
+    static int frame = 0;
+    if (frame < 80)
+    {
+        frame++;
         addSource();
         setEmitterVelocity();
-    // }
+    }
 }
 
 /* private */
@@ -172,14 +173,14 @@ void Simulator::resetForce()
 void Simulator::calVorticity()
 {
     {
-        labhelper::perf::Scope s("calculate_3D_Field_average");
+        //labhelper::perf::Scope s("calculate_3D_Field_average");
         calculate_3D_Field_average<float>(
             std::vector<float *>{m_u.data(), m_v.data(), m_w.data()},
             std::vector<float *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
             std::vector<int>{Nx, Ny, Nz});
     }
     {
-        labhelper::perf::Scope s2("calculate_3D_Field_vorticity");
+        //labhelper::perf::Scope s2("calculate_3D_Field_vorticity");
         calculate_3D_Field_vorticity<float>(
             std::vector<float *>{m_avg_u.data(), m_avg_v.data(), m_avg_w.data()},
             std::vector<float *>{m_omg_x.data(), m_omg_y.data(), m_omg_z.data()},
@@ -191,7 +192,7 @@ void Simulator::calVorticity()
     static float vorticity_len_gradient_z[SIZE];
 
     {
-        labhelper::perf::Scope s3("calculate vorticity length");
+        //labhelper::perf::Scope s3("calculate vorticity length");
 
         for (int k = 1; k < Nz - 1; ++k)
             for (int j = 1; j < Ny - 1; ++j)
@@ -206,14 +207,14 @@ void Simulator::calVorticity()
                 }
     }
     {
-        labhelper::perf::Scope s4("calculate vorticity length gradient");
+        //labhelper::perf::Scope s4("calculate vorticity length gradient");
         calculate_Scalar_Field_gradient<float>(
             vorticity_len,
             std::vector<float *>{vorticity_len_gradient_x, vorticity_len_gradient_y, vorticity_len_gradient_z},
             std::vector<int>{Nx, Ny, Nz}, VOXEL_SIZE);
     }
     {
-        labhelper::perf::Scope s5("calculate vorticity force");
+        //labhelper::perf::Scope s5("calculate vorticity force");
         for (int k = 1; k < Nz - 1; ++k)
             for (int j = 1; j < Ny - 1; ++j)
                 for (int i = 1; i < Nx - 1; ++i)
@@ -267,11 +268,11 @@ void Simulator::calPressure()
     b.setZero();
     x.setZero();
 
-    // float coeff = VOXEL_SIZE / DT;
-    float coeff = 1.0;
+    float coeff = VOXEL_SIZE / DT;
+    // float coeff = 1.0;
 
     {
-        labhelper::perf::Scope s("build matrix A and vector b");
+        //labhelper::perf::Scope s("build matrix A and vector b");
 
         FOR_EACH_CELL
         {
@@ -326,7 +327,7 @@ void Simulator::calPressure()
     }
 
     // {
-    //     labhelper::perf::Scope s("cuda solve");
+    //     //labhelper::perf::Scope s("cuda solve");
     // cudaSolve(A, b, x);
     // }
 
@@ -344,23 +345,23 @@ void Simulator::calPressure()
     }
 
     {
-        labhelper::perf::Scope s2("solve");
-        // static bool first = true;
-        // if (first)
-        // {
-        //     first = false;
-        //     x = ICCG.solve(b);
-        // }
-        // else
-        // {
-        //     printf("solve with guess");
-        //     x = ICCG.solveWithGuess(b, x);
-        // }
+        //labhelper::perf::Scope s2("solve");
+        static bool first = true;
+        if (first)
+        {
+            first = false;
+            x = ICCG.solve(b);
+        }
+        else
+        {
+            printf("solve with guess");
+            x = ICCG.solveWithGuess(b, x);
+        }
 
         // std::cout << "b:\n"
         //           << b.head(10).transpose() << std::endl;
 
-        cudaSolver.solve(x, b);
+        // cudaSolver.solve(x, b);
         // std::cout << "x:\n"
         //           << x.head(10).transpose() << std::endl;
         // exit(0);

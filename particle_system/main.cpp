@@ -474,6 +474,24 @@ void ControlPanel()
 	{
 		light_rotation_step += 0.01f;
 	}
+	// set camera position
+	if (ImGui::Button("View Front"))
+	{
+		cameraPosition = vec3(30.f, 15.0f, 0.f);
+		cameraDirection = normalize(-vec3(1.0f,0.f, 0.f));
+	}
+	// set camera position
+	if (ImGui::Button("View Top"))
+	{
+		cameraPosition = vec3(0.f, 40.0f, 0.1f);
+		cameraDirection = normalize(vec3(0.0f,0.0f, 0.f) - cameraPosition);
+	}
+	// set camera position
+	if (ImGui::Button("View Side"))
+	{
+		cameraPosition = vec3(0.f, 15.0f, 30.f);
+		cameraDirection = normalize(-vec3(0.0f,0.f, 1.f));
+	}
 	// select the light color
 	ImGui::ColorEdit3("Light color", &point_light_color[0]);
 
@@ -501,27 +519,11 @@ int main(int argc, char *argv[])
 	auto startTime = std::chrono::system_clock::now();
 
 	// thred to run simulation
-	// std::thread simThread([&]()
-	// 					  {
-	// 	DEBUG_PRINT("Simulation thread started");
-	// 	while (!stopRendering)
-	// 	{
-	// 		simulator->update();
-	// 		// update the simulator
-	// 		{
-	// 			std::lock_guard<std::mutex> lock(simLock);
-	// 			// copy the density
-	// 			std::copy(
-	// 				simulator->getDensity().begin(), 
-	// 				simulator->getDensity().end(), 
-	// 				density.begin()
-	// 			);
-	// 		}
-	// 	} });
-
-	while (!stopRendering)
-	{
-
+	std::thread simThread([&]()
+						  {
+		DEBUG_PRINT("Simulation thread started");
+		while (!stopRendering)
+		{
 			simulator->update();
 			// update the simulator
 			{
@@ -533,6 +535,22 @@ int main(int argc, char *argv[])
 					density.begin()
 				);
 			}
+		} });
+
+	while (!stopRendering)
+	{
+
+			// simulator->update();
+			// // update the simulator
+			// {
+			// 	std::lock_guard<std::mutex> lock(simLock);
+			// 	// copy the density
+			// 	std::copy(
+			// 		simulator->getDensity().begin(), 
+			// 		simulator->getDensity().end(), 
+			// 		density.begin()
+			// 	);
+			// }
 
 
 		// update currentTime
