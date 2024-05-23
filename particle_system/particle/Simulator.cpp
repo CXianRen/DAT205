@@ -30,6 +30,10 @@ Simulator::~Simulator()
 
 void Simulator::update()
 {
+    if (m_time > FINISH_TIME)
+    {
+        return;
+    }
     resetForce();
     calVorticity();
     addForce();
@@ -38,7 +42,8 @@ void Simulator::update()
     advectVelocity();
     advectScalar();
     if (m_time < EMIT_DURATION)
-    {
+    {   
+        m_time += DT;
         addSource();
         setEmitterVelocity();
     }
