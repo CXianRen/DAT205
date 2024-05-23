@@ -51,6 +51,24 @@ void test_acc2d(){
         TEST_LOG("ACC2D failed, " << "expected: " << 10 << ", got: " << ACC2D(10, 0, 20));
         return;
     }
+    
+    int * arr = new int[4*4];
+    int count = 0;
+    for(int i = 0; i < 4; i++)
+    {
+        for(int j = 0; j < 4; j++)
+        {
+            arr[ACC2D(i,j,4)] = count++;
+        }
+    }
+
+    for(int i = 0;i<16;i++){
+        if (arr[i] != i)
+        {
+            TEST_LOG("ACC2D failed, " << "expected: " << i << ", got: " << arr[i]);
+            return;
+        }
+    }
 
     TEST_LOG("\t\tACC2D passed");
 
@@ -119,7 +137,6 @@ void test_get_gradiant_3d_z(){
     TEST_LOG("\t\tGET_GRADIANT_3D_Z passed");
 }
 
-
 void test_get_gradiant_2d_x(){
     TEST_LOG("Test GET_GRADIANT_2D_X");
 
@@ -163,6 +180,48 @@ void test_get_gradiant_2d_y(){
     TEST_LOG("\t\tGET_GRADIANT_2D_Y passed");
 }
 
+void test_2d_lapalace(){
+    TEST_LOG("Test build_2d_laplace");
+    int diag[9] = {2,3,2,3,4,3,2,3,2};
+    auto L = build_2d_laplace<float>(3,3);
+    for (int i = 0; i < 9; i++)
+    {
+        if (L.coeff(i,i) != diag[i])
+        {
+            TEST_LOG("build_2d_laplace failed, " << "expected: " << diag[i] << ", got: " << L.coeff(i,i));
+            return;
+        }
+    }
+    TEST_LOG("\n" << L.toDense());
+    TEST_LOG("\t\tbuild_2d_laplace passed");
+}
+
+void test_2d_divergence(){
+    TEST_LOG("Test build_2d_divergence");
+    float u[9] = {1,1,1,
+                  1,2,1,
+                  1,1,1
+                };
+    float v[9] = {1,1,1,
+                  1,2,1,
+                  1,1,1
+                };
+
+    auto d = GET_DIVERGENCE_2D(1,1,u,v,3,1.0,1.0);
+    // d = u(i,j+1)- u (i,j) + v(i+1,j) - v(i,j)
+    if (d != -2.f)
+    {
+        TEST_LOG("GET_DIVERGENCE_2D failed, " << "expected: " << -2.f << ", got: " << d
+            << "\n u(2,1): " << u[ACC2D(2,1,3)]
+            << "\n u(1,1): " << u[ACC2D(1,1,3)]
+            << "\n v(1,1): " << v[ACC2D(1,1,3)]
+            << "\n v(1,2): " << v[ACC2D(1,2,3)]);
+        return;
+    }
+    TEST_LOG("\t\tGET_DIVERGENCE_2D passed");
+
+}
+
 void test_mmath()
 {
     test_acc3d();
@@ -171,4 +230,6 @@ void test_mmath()
     test_get_gradiant_3d_y();
     test_get_gradiant_3d_z();
     test_get_gradiant_2d_y();
+    test_2d_lapalace();
+    test_2d_divergence();
 }

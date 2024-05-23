@@ -61,9 +61,18 @@ private:
 
   // solver
   std::vector<T> tripletList;
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<float>, Eigen::Lower | Eigen::Upper> ICCG;
+  Eigen::ConjugateGradient<
+    Eigen::SparseMatrix<float>, 
+    Eigen::Lower | Eigen::Upper
+    // Eigen::IncompleteLUT<float>
+    // Eigen::DiagonalPreconditioner<float>
+    > ICCG;
 
+  // Eigen::SparseMatrix<float, > A;
   Eigen::SparseMatrix<float, Eigen::RowMajor> A;
+
   Eigen::VectorXf b;
   Eigen::VectorXf x;
+
+  CudaSolver cudaSolver;
 };

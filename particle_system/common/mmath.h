@@ -2,7 +2,13 @@
 #define __MMATH_H__
 
 #include <vector>
+#include <math.h>
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+
 #include "Vec3.h"
+
+#include <iostream>
 
 #define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 #define ACCESS3D_X(x, y, z) ((x) + (y) * (dims[0] + 1) + (z) * (dims[0] + 1) * dims[1])
@@ -156,7 +162,7 @@ int inline sign(const T a)
     return (a > (T)(0)) - (a < (T)(0));
 }
 
-template <typename T> 
+template <typename T>
 T inline axis_monotonicCubicInterpolation(const T *f, const T t)
 {
     // f[0]:f_k-1, f[1]:f_k, f[2]:f_k+1, f[3]:f_k+2
@@ -180,9 +186,9 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
 {
     Vec3 pos;
     // clamp position
-    pos[0] = std::min(std::max((T)(0.0), pt[0]), (T)(dims[0]-1) * h - (T)(1e-6));
-    pos[1] = std::min(std::max((T)(0.0), pt[1]), (T)(dims[1]-1) * h - (T)(1e-6));
-    pos[2] = std::min(std::max((T)(0.0), pt[2]), (T)(dims[2]-1) * h - (T)(1e-6));
+    pos[0] = std::min(std::max((T)(0.0), pt[0]), (T)(dims[0] - 1) * h - (T)(1e-6));
+    pos[1] = std::min(std::max((T)(0.0), pt[1]), (T)(dims[1] - 1) * h - (T)(1e-6));
+    pos[2] = std::min(std::max((T)(0.0), pt[2]), (T)(dims[2] - 1) * h - (T)(1e-6));
 
     int i = (int)(pos[0] / h);
     int j = (int)(pos[1] / h);
@@ -206,11 +212,11 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
         for (int x = 0; x < 4; ++x)
         {
             // Y @ X_(x-1), Z_(z-1):
-            int i1 = constrainIndex(i + x - 1, dims[0]-1);
-            int j1 = constrainIndex(j - 1, dims[1]-1);
-            int j2 = constrainIndex(j + 1, dims[1]-1);
-            int j3 = constrainIndex(j + 2, dims[1]-1);
-            int k1 = constrainIndex(k + z - 1, dims[2]-1);
+            int i1 = constrainIndex(i + x - 1, dims[0] - 1);
+            int j1 = constrainIndex(j - 1, dims[1] - 1);
+            int j2 = constrainIndex(j + 1, dims[1] - 1);
+            int j3 = constrainIndex(j + 2, dims[1] - 1);
+            int k1 = constrainIndex(k + z - 1, dims[2] - 1);
 
             T arr_y[4] = {src[ACCESS3D(i1, j1, k1)], src[ACCESS3D(i1, j, k1)], src[ACCESS3D(i1, j2, k1)], src[ACCESS3D(i1, j3, k1)]};
             arr_x[x] = axis_monotonicCubicInterpolation(arr_y, fracty);
@@ -222,32 +228,103 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
 }
 
 
+#define ACC3D(x, y, z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
 
-#define ACC3D(x,y,z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
-
-#define ACC2D(x,y, cols) ACC3D(x,y,0,0,cols) 
+#define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
 
 /*
     middle difference
     du(i,j) = (u(i+1,j) - u(i-1,j)) / 2
-*/ 
+*/
 
-#define GET_GRADIANT_3D_X(i,j,k, data, rows, cols, dx) \
-    (data[ACC3D(i+1,j,k, rows, cols)] - data[ACC3D(i-1,j,k, rows, cols)]) / 2 / dx
+#define GET_GRADIANT_3D_X(i, j, k, data, rows, cols, dx) \
+    (data[ACC3D(i + 1, j, k, rows, cols)] - data[ACC3D(i - 1, j, k, rows, cols)]) / 2 / dx
 
-#define GET_GRADIANT_3D_Y(i,j,k, data, rows, cols, dy) \
-    (data[ACC3D(i,j+1,k, rows, cols)] - data[ACC3D(i,j-1,k, rows, cols)]) / 2 / dy
+#define GET_GRADIANT_3D_Y(i, j, k, data, rows, cols, dy) \
+    (data[ACC3D(i, j + 1, k, rows, cols)] - data[ACC3D(i, j - 1, k, rows, cols)]) / 2 / dy
 
-#define GET_GRADIANT_3D_Z(i,j,k, data, rows, cols, dz) \
-    (data[ACC3D(i,j,k+1, rows, cols)] - data[ACC3D(i,j,k-1, rows, cols)]) / 2 / dz
+#define GET_GRADIANT_3D_Z(i, j, k, data, rows, cols, dz) \
+    (data[ACC3D(i, j, k + 1, rows, cols)] - data[ACC3D(i, j, k - 1, rows, cols)]) / 2 / dz
 
-#define GET_GRADIANT_2D_X(i,j, data, cols, dx) \
-    GET_GRADIANT_3D_X(i,j,0, data, 0, cols, dx)
+#define GET_GRADIANT_2D_X(i, j, data, cols, dx) \
+    GET_GRADIANT_3D_X(i, j, 0, data, 0, cols, dx)
 
-#define GET_GRADIANT_2D_Y(i,j, data, cols, dy) \
-    GET_GRADIANT_3D_Y(i,j,0, data, 0, cols, dy)
+#define GET_GRADIANT_2D_Y(i, j, data, cols, dy) \
+    GET_GRADIANT_3D_Y(i, j, 0, data, 0, cols, dy)
 
-#define GET_GRADIANT_2D_Z(i,j, data, cols, dz) \
-    GET_GRADIANT_3D_Z(i,j,0, data, 0, cols, dz) 
+#define GET_GRADIANT_2D_Z(i, j, data, cols, dz) \
+    GET_GRADIANT_3D_Z(i, j, 0, data, 0, cols, dz)
+
+// calculate divergence \nobal /dot u
+
+#define GET_DIVERGENCE_2D_X(i,j, u, cols, dx) \
+    (u[ACC2D(i+1,j,cols)] - u[ACC2D(i,j,cols)] / dx)
+
+#define GET_DIVERGENCE_2D_Y(i,j, v, cols, dy) \
+    (v[ACC2D(i,j+1,cols)] - v[ACC2D(i,j,cols)] / dy)
+
+#define GET_DIVERGENCE_2D(i, j, u, v, cols, dx, dy) \
+    (GET_DIVERGENCE_2D_X(i,j,u,cols,dx) + GET_DIVERGENCE_2D_Y(i,j,v,cols,dy))
+
+
+// build 2d laplace matrix
+// dirichlet boundary condition
+// N: number of grid points
+// return: laplace matrix
+/*
+    a example of laplace matrix:
+
+    2 -1  0 -1  0  0  0  0  0
+   -1  3 -1  0 -1  0  0  0  0
+    0 -1  2  0  0 -1  0  0  0
+   -1  0  0  3 -1  0 -1  0  0
+    0 -1  0 -1  4 -1  0 -1  0
+    0  0 -1  0 -1  3  0  0 -1
+    0  0  0 -1  0  0  2 -1  0
+    0  0  0  0 -1  0 -1  3 -1
+    0  0  0  0  0 -1  0 -1  2
+*/
+template <typename T>
+Eigen::SparseMatrix<T, Eigen::RowMajor> build_2d_laplace(int Nx, int Ny)
+{
+    std::vector<Eigen::Triplet<T>> tripletList;
+    tripletList.reserve(Nx * Ny * 5);
+
+    for (int i = 0; i < Nx; i++)
+    {
+        for (int j = 0; j < Ny; j++)
+        {
+            int idx = ACC2D(i, j, Nx);
+            T sum = 0.0;
+
+            if (i > 0)
+            {
+                tripletList.push_back(Eigen::Triplet<T>(idx, ACC2D(i - 1, j, Nx), -1.0));
+                sum += 1.0f;
+            }
+            if (i < Nx - 1)
+            {
+                tripletList.push_back(Eigen::Triplet<T>(idx, ACC2D(i + 1, j, Nx), -1.0));
+                sum += 1.0f;
+            }
+            if (j > 0)
+            {
+                tripletList.push_back(Eigen::Triplet<T>(idx, ACC2D(i, j - 1, Nx), -1.0));
+                sum += 1.0f;
+            }
+            if (j < Ny - 1)
+            {
+                tripletList.push_back(Eigen::Triplet<T>(idx, ACC2D(i, j + 1, Nx), -1.0));
+                sum += 1.0f;
+            }
+            tripletList.push_back(Eigen::Triplet<T>(idx, ACC2D(i, j, Nx), sum));
+        }
+    }
+
+    Eigen::SparseMatrix<T, Eigen::RowMajor> A(Nx * Ny, Nx * Ny);
+    A.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    return A;
+}
 
 #endif // __MMATH_H__

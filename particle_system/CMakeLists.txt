@@ -7,11 +7,6 @@ project ( particle_system LANGUAGES CXX CUDA )
 
 set(CMAKE_CUDA_ARCHITECTURES 61 75)
 
-# Find *all* shaders.
-file(GLOB_RECURSE SHADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
-    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
-)
 
 file(GLOB_RECURSE CPP_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp"
@@ -34,10 +29,10 @@ target_include_directories( ${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/particle
     ${CMAKE_CURRENT_SOURCE_DIR}/../external_src/Eigen
-    ${CUDA_INCLUDE_DIR}
+    ${CUDA_INCLUDE_DIRS}
 )
 
-message(STATUS "CUDA_INCLUDE_DIR: ${CUDA_INCLUDE_DIR}")
+message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
 message(STATUS "CUDA_LIBRARIES: ${CUDA_LIBRARIES}")
 message(STATUS "CUDA_cusolver_LIBRARY: ${CUDA_cusolver_LIBRARY}")
 message(STATUS "CUDA_cusparse_LIBRARY: ${CUDA_cusparse_LIBRARY}")

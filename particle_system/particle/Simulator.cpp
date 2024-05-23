@@ -7,7 +7,6 @@
 #include "Simulator.h"
 #include "common/mmath.h"
 
-
 Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
 
@@ -59,19 +58,24 @@ void Simulator::update()
         labhelper::perf::Scope s("applyPressureTerm");
         applyPressureTerm();
     }
+
     {
         labhelper::perf::Scope s("advectVelocity");
         advectVelocity();
     }
+
+
     {
         labhelper::perf::Scope s("advectScalar");
         advectScalar();
     }
-    if (m_time < EMIT_DURATION)
-    {
+    // static int frame = 0;
+    // if (frame < 40)
+    // {
+        // frame++;
         addSource();
         setEmitterVelocity();
-    }
+    // }
 }
 
 /* private */
@@ -261,9 +265,10 @@ void Simulator::calPressure()
     tripletList.clear();
     A.setZero();
     b.setZero();
-    // x.setZero();
+    x.setZero();
 
-    float coeff = VOXEL_SIZE / DT;
+    // float coeff = VOXEL_SIZE / DT;
+    float coeff = 1.0;
 
     {
         labhelper::perf::Scope s("build matrix A and vector b");
@@ -271,7 +276,7 @@ void Simulator::calPressure()
         FOR_EACH_CELL
         {
             float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
-                           static_cast<float>(i < Nx - 1), static_cast<float>(j < Ny - 1), static_cast<float>(k < Nz - 1)};
+                          static_cast<float>(i < Nx - 1), static_cast<float>(j < Ny - 1), static_cast<float>(k < Nz - 1)};
             float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
             float U[6];
             U[0] = m_w[POS_Z(i, j, k)];
@@ -318,34 +323,51 @@ void Simulator::calPressure()
                 }
             }
         }
-
-        A.setFromTriplets(tripletList.begin(), tripletList.end());
     }
 
     // {
     //     labhelper::perf::Scope s("cuda solve");
-    //     cudaSolve(A, b, x);
+    // cudaSolve(A, b, x);
     // }
-   
 
     /* solve sparse lenear system by ICCG */
-    ICCG.compute(A);
     {
-        labhelper::perf::Scope s2("solve");
         static bool first = true;
         if (first)
         {
             first = false;
-            x = ICCG.solve(b);
-        }
-        else
-        {
-            x = ICCG.solveWithGuess(b, x);
+            A.setFromTriplets(tripletList.begin(), tripletList.end());
+            A.makeCompressed();
+            ICCG.compute(A);
+            cudaSolver.compute(A);
         }
     }
 
-    // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
-    // printf("estimated error: %e \n", ICCG.error());
+    {
+        labhelper::perf::Scope s2("solve");
+        // static bool first = true;
+        // if (first)
+        // {
+        //     first = false;
+        //     x = ICCG.solve(b);
+        // }
+        // else
+        // {
+        //     printf("solve with guess");
+        //     x = ICCG.solveWithGuess(b, x);
+        // }
+
+        // std::cout << "b:\n"
+        //           << b.head(10).transpose() << std::endl;
+
+        cudaSolver.solve(x, b);
+        // std::cout << "x:\n"
+        //           << x.head(10).transpose() << std::endl;
+        // exit(0);
+    }
+
+    printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
+    printf("estimated error: %e \n", ICCG.error());
 
     // asign x to m_grids->pressure
     Eigen::Map<Eigen::VectorXf>(m_pressure.begin(), SIZE) = x;
