@@ -37,7 +37,7 @@ void Simulator::update()
         return;
     }
 
-    std::cout << "m_time:"  << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
+    std::cout << "m_time:" << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
 
     resetForce();
     calVorticity();
@@ -48,7 +48,7 @@ void Simulator::update()
     advectScalar();
     if (m_time < 1.2)
     {
-        
+
         addSource();
         setEmitterVelocity();
     }
@@ -247,22 +247,23 @@ void Simulator::calPressure()
     b.setZero();
     x.setZero();
 
-    double coeff = VOXEL_SIZE / DT;
+    // float coeff = VOXEL_SIZE / DT;
+    float coeff = 1.0;
 
 #pragma omp parallel for collapse(3) ordered
     FOR_EACH_CELL
     {
-        double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
-                       static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
-        double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-        double U[6];
-        U[0] = m_grids->w(i, j, k);
-        U[1] = m_grids->v(i, j, k);
-        U[2] = m_grids->u(i, j, k);
-        U[3] = m_grids->u(i + 1, j, k);
-        U[4] = m_grids->v(i, j + 1, k);
-        U[5] = m_grids->w(i, j, k + 1);
-        double sum_F = 0.0;
+        float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
+                      static_cast<float>(i < Nx - 1), static_cast<float>(j < Ny - 1), static_cast<float>(k < Nz - 1)};
+        float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+        float U[6];
+        U[0] = (float)(m_grids->w(i, j, k));
+        U[1] = (float)(m_grids->v(i, j, k));
+        U[2] = (float)(m_grids->u(i, j, k));
+        U[3] = (float)(m_grids->u(i + 1, j, k));
+        U[4] = (float)(m_grids->v(i, j + 1, k));
+        U[5] = (float)(m_grids->w(i, j, k + 1));
+        float sum_F = 0.0;
 
         for (int n = 0; n < 6; ++n)
         {
@@ -303,24 +304,54 @@ void Simulator::calPressure()
         }
     }
 
-    A.setFromTriplets(tripletList.begin(), tripletList.end());
-
-    /* solve sparse lenear system by ICCG */
-    ICCG.compute(A);
-    if (ICCG.info() == Eigen::Success)
     {
-        printf("SUCCESS: Convergence\n");
+        static bool first = true;
+        if (first)
+        {
+            first = false;
+            A.setFromTriplets(tripletList.begin(), tripletList.end());
+            ICCG.compute(A);
+            m_solver.compute(A);
+        }
+        /* solve sparse lenear system by ICCG */
     }
-    else
-    {
-        fprintf(stderr, "FAILED: No Convergence\n");
-    }
-    x = ICCG.solve(b);
-    printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
-    printf("estimated error: %e \n", ICCG.error());
+    // if (ICCG.info() == Eigen::Success)
+    // {
+    //     printf("SUCCESS: Convergence\n");
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "FAILED: No Convergence\n");
+    // }
+    // x = ICCG.solve(b);
 
+    m_solver.solve(x, b);
+
+    static float err = 0.0;
+    m_solver.getError(err);
+    printf("solver error: %f\n",err);
+    static int it = 0;
+    m_solver.getIterations(it);
+    printf("solver iterations: %d\n", it );
+
+    // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
+    // printf("estimated error: %e \n", ICCG.error());
+
+    // convert x to double
+    // x = x.cast<double>();
     // asign x to m_grids->pressure
-    Eigen::Map<Eigen::VectorXd>(m_grids->pressure.begin(), SIZE) = x;
+
+    // Eigen::Map<Eigen::VectorXd>(m_grids->pressure.begin(), SIZE) = x;
+    for (int k = 0; k < Nz; ++k)
+    {
+        for (int j = 0; j < Ny; ++j)
+        {
+            for (int i = 0; i < Nx; ++i)
+            {
+                m_grids->pressure(i, j, k) = x(POS(i, j, k))* (VOXEL_SIZE / DT);
+            }
+        }
+    }
 }
 
 void Simulator::applyPressureTerm()

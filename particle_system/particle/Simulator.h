@@ -6,7 +6,9 @@
 
 #include "MACGrid.h"
 
-typedef Eigen::Triplet<double> T;
+#include "Solver.h"
+
+typedef Eigen::Triplet<float> T;
 
 class Simulator
 {
@@ -37,9 +39,11 @@ private:
 
   // solver
   std::vector<T> tripletList;
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<float>, Eigen::Lower | Eigen::Upper> ICCG;
 
-  Eigen::SparseMatrix<double, Eigen::RowMajor> A;
-  Eigen::VectorXd b;
-  Eigen::VectorXd x;
+  Eigen::SparseMatrix<float, Eigen::RowMajor> A;
+  Eigen::VectorXf b;
+  Eigen::VectorXf x;
+
+  CudaSolver m_solver;
 };
