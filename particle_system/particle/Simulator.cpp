@@ -2,11 +2,13 @@
 #include <random>
 #include "Simulator.h"
 
+#include <iostream>
+
 Simulator::Simulator(std::shared_ptr<MACGrid> grids, double &time) : m_grids(grids), m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
     // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
     tripletList.reserve(7 * SIZE);
-    ICCG.setTolerance(1e-8);
+    ICCG.setTolerance(1e-6);
 
     /*set temperature */
     std::random_device rnd;
@@ -30,10 +32,13 @@ Simulator::~Simulator()
 
 void Simulator::update()
 {
-    if (m_time > FINISH_TIME)
+    if (m_time > 1.6)
     {
         return;
     }
+
+    std::cout << "m_time:"  << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
+
     resetForce();
     calVorticity();
     addForce();
@@ -41,12 +46,13 @@ void Simulator::update()
     applyPressureTerm();
     advectVelocity();
     advectScalar();
-    if (m_time < EMIT_DURATION)
-    {   
-        m_time += DT;
+    if (m_time < 1.2)
+    {
+        
         addSource();
         setEmitterVelocity();
     }
+    m_time += DT;
 }
 
 /* private */
@@ -78,7 +84,7 @@ void Simulator::addSource()
         {
             // 64-3-3 = 58, 64-3 = 61
             for (int j = Ny - SOURCE_Y_MERGIN - SOURCE_SIZE_Y; j < Ny - SOURCE_Y_MERGIN; ++j)
-            {   
+            {
                 // (32-8) / 2 = 12, (32+8) / 2 = 20
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
