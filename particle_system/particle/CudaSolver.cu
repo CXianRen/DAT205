@@ -90,7 +90,7 @@ void __genLaplace(int *row_ptr, int *col_ind, float *val, int M, int N, int nz,
 }
 
 void CudaSolver::compute(
-    Eigen::SparseMatrix<float, Eigen::RowMajor> &A)
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &A)
 {
     N = A.rows();
     nz = A.nonZeros();
@@ -106,25 +106,25 @@ void CudaSolver::compute(
 
     checkCudaErrors(cudaMalloc((void **)&d_col, nz * sizeof(int)));
     checkCudaErrors(cudaMalloc((void **)&d_row, (N + 1) * sizeof(int)));
-    checkCudaErrors(cudaMalloc((void **)&d_val, nz * sizeof(float)));
-    checkCudaErrors(cudaMalloc((void **)&d_x, N * sizeof(float)));
-    checkCudaErrors(cudaMalloc((void **)&d_r, N * sizeof(float)));
-    checkCudaErrors(cudaMalloc((void **)&d_p, N * sizeof(float)));
-    checkCudaErrors(cudaMalloc((void **)&d_Ax, N * sizeof(float)));
+    checkCudaErrors(cudaMalloc((void **)&d_val, nz * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&d_x, N * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&d_r, N * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&d_p, N * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&d_Ax, N * sizeof(double)));
 
     /* Wrap raw data into cuSPARSE generic API objects */
     checkCudaErrors(cusparseCreateCsr(&matA, N, N, nz, d_row, d_col, d_val,
                                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F));
+                                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
 
-    checkCudaErrors(cusparseCreateDnVec(&vecx, N, d_x, CUDA_R_32F));
-    checkCudaErrors(cusparseCreateDnVec(&vecp, N, d_p, CUDA_R_32F));
-    checkCudaErrors(cusparseCreateDnVec(&vecAx, N, d_Ax, CUDA_R_32F));
+    checkCudaErrors(cusparseCreateDnVec(&vecx, N, d_x, CUDA_R_64F));
+    checkCudaErrors(cusparseCreateDnVec(&vecp, N, d_p, CUDA_R_64F));
+    checkCudaErrors(cusparseCreateDnVec(&vecAx, N, d_Ax, CUDA_R_64F));
 
     /* Initialize problem data */
     cudaMemcpy(d_col, J, nz * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_row, I, (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_val, val, nz * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_val, val, nz * sizeof(double), cudaMemcpyHostToDevice);
 }
 
 void CudaSolver::getIterations(int &iter)
@@ -132,9 +132,9 @@ void CudaSolver::getIterations(int &iter)
     iter = k;
 }
 
-void CudaSolver::getError(float &error)
+void CudaSolver::getError(double &error)
 {
-    float rsum, diff, err = 0.0;
+    double rsum, diff, err = 0.0;
 
     for (int i = 0; i < N; i++)
     {
@@ -156,14 +156,14 @@ void CudaSolver::getError(float &error)
 }
 
 void CudaSolver::solve(
-    Eigen::VectorXf &xt,
-    Eigen::VectorXf &bt)
+    Eigen::VectorXd &xt,
+    Eigen::VectorXd &bt)
 {
     x = xt.data();
     rhs = bt.data();
     /* Initialize problem data */
-    cudaMemcpy(d_x, x, N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_r, rhs, N * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, N * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_r, rhs, N * sizeof(double), cudaMemcpyHostToDevice);
 
     alpha = 1.0;
     alpham1 = -1.0;
@@ -180,7 +180,7 @@ void CudaSolver::solve(
             size_t bufferSize = 0;
             checkCudaErrors(cusparseSpMV_bufferSize(
                 cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecx,
-                &beta, vecAx, CUDA_R_32F, CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize));
+                &beta, vecAx, CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize));
 
             checkCudaErrors(cudaMalloc(&buffer, bufferSize));
         }
@@ -188,11 +188,11 @@ void CudaSolver::solve(
 
     /* Begin CG */
     checkCudaErrors(cusparseSpMV(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                 &alpha, matA, vecx, &beta, vecAx, CUDA_R_32F,
+                                 &alpha, matA, vecx, &beta, vecAx, CUDA_R_64F,
                                  CUSPARSE_SPMV_ALG_DEFAULT, buffer));
 
-    cublasSaxpy(cublasHandle, N, &alpham1, d_Ax, 1, d_r, 1);
-    cublasStatus = cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+    cublasDaxpy(cublasHandle, N, &alpham1, d_Ax, 1, d_r, 1);
+    cublasStatus = cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 
     k = 1;
     printf("tol * tol = %e\n", tol * tol);
@@ -202,26 +202,26 @@ void CudaSolver::solve(
         if (k > 1)
         {
             b = r1 / r0;
-            cublasStatus = cublasSscal(cublasHandle, N, &b, d_p, 1);
-            cublasStatus = cublasSaxpy(cublasHandle, N, &alpha, d_r, 1, d_p, 1);
+            cublasStatus = cublasDscal(cublasHandle, N, &b, d_p, 1);
+            cublasStatus = cublasDaxpy(cublasHandle, N, &alpha, d_r, 1, d_p, 1);
         }
         else
         {
-            cublasStatus = cublasScopy(cublasHandle, N, d_r, 1, d_p, 1);
+            cublasStatus = cublasDcopy(cublasHandle, N, d_r, 1, d_p, 1);
         }
 
         checkCudaErrors(cusparseSpMV(
             cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecp,
-            &beta, vecAx, CUDA_R_32F, CUSPARSE_SPMV_ALG_DEFAULT, buffer));
-        cublasStatus = cublasSdot(cublasHandle, N, d_p, 1, d_Ax, 1, &dot);
+            &beta, vecAx, CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, buffer));
+        cublasStatus = cublasDdot(cublasHandle, N, d_p, 1, d_Ax, 1, &dot);
         a = r1 / dot;
 
-        cublasStatus = cublasSaxpy(cublasHandle, N, &a, d_p, 1, d_x, 1);
+        cublasStatus = cublasDaxpy(cublasHandle, N, &a, d_p, 1, d_x, 1);
         na = -a;
-        cublasStatus = cublasSaxpy(cublasHandle, N, &na, d_Ax, 1, d_r, 1);
+        cublasStatus = cublasDaxpy(cublasHandle, N, &na, d_Ax, 1, d_r, 1);
 
         r0 = r1;
-        cublasStatus = cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+        cublasStatus = cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
         cudaDeviceSynchronize();
         // printf("iteration = %3d, residual = %e\n", k, sqrt(r1));
         if (sqrt(r1) < lowest)
@@ -235,7 +235,7 @@ void CudaSolver::solve(
     printf("iteration = %3d, residual = %e\n", k, sqrt(r1));
 
     // copy result back to host
-    cudaMemcpy(x, d_x, N * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(x, d_x, N * sizeof(double), cudaMemcpyDeviceToHost);
 }
 
 CudaSolver::~CudaSolver()

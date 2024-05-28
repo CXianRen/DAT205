@@ -8,7 +8,7 @@
 
 #include "Solver.h"
 
-typedef Eigen::Triplet<float> T;
+typedef Eigen::Triplet<double> T;
 
 class Simulator
 {
@@ -39,11 +39,11 @@ private:
 
   // solver
   std::vector<T> tripletList;
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<float>, Eigen::Lower | Eigen::Upper> ICCG;
+  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;
 
-  Eigen::SparseMatrix<float, Eigen::RowMajor> A;
-  Eigen::VectorXf b;
-  Eigen::VectorXf x;
+  Eigen::SparseMatrix<double, Eigen::RowMajor> A;
+  Eigen::VectorXd b;
+  Eigen::VectorXd x;
 
   CudaSolver m_solver;
 };

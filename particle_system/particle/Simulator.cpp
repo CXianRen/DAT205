@@ -13,13 +13,14 @@ Simulator::Simulator(std::shared_ptr<MACGrid> grids, double &time) : m_grids(gri
     /*set temperature */
     std::random_device rnd;
     std::mt19937 engine(rnd());
-    std::uniform_real_distribution<double> dist(0, T_AMP);
+    std::uniform_real_distribution<double> dist(800, 1000);
 
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         // m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
-        m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
+        // m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
+        m_grids->temperature(i, j, k) = dist(engine);
     }
 
     addSource();
@@ -32,7 +33,7 @@ Simulator::~Simulator()
 
 void Simulator::update()
 {
-    if (m_time > 1.6)
+    if (m_time > FINISH_TIME)
     {
         return;
     }
@@ -42,16 +43,18 @@ void Simulator::update()
     resetForce();
     calVorticity();
     addForce();
+    advectVelocity();
     calPressure();
     applyPressureTerm();
-    advectVelocity();
+    
     advectScalar();
-    if (m_time < 1.2)
+    if (m_time < EMIT_DURATION)
     {
 
         addSource();
         setEmitterVelocity();
     }
+    
     m_time += DT;
 }
 
@@ -143,7 +146,7 @@ void Simulator::resetForce()
     FOR_EACH_CELL
     {
         m_grids->fx[POS(i, j, k)] = 0.0;
-        m_grids->fy[POS(i, j, k)] = ALPHA * m_grids->density(i, j, k) - BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
+        m_grids->fy[POS(i, j, k)] = -ALPHA * m_grids->density(i, j, k) + BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
         m_grids->fz[POS(i, j, k)] = 0.0;
     }
 }
@@ -248,22 +251,22 @@ void Simulator::calPressure()
     x.setZero();
 
     // float coeff = VOXEL_SIZE / DT;
-    float coeff = 1.0;
+    double coeff = 1.0;
 
 #pragma omp parallel for collapse(3) ordered
     FOR_EACH_CELL
     {
-        float F[6] = {static_cast<float>(k > 0), static_cast<float>(j > 0), static_cast<float>(i > 0),
-                      static_cast<float>(i < Nx - 1), static_cast<float>(j < Ny - 1), static_cast<float>(k < Nz - 1)};
-        float D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-        float U[6];
-        U[0] = (float)(m_grids->w(i, j, k));
-        U[1] = (float)(m_grids->v(i, j, k));
-        U[2] = (float)(m_grids->u(i, j, k));
-        U[3] = (float)(m_grids->u(i + 1, j, k));
-        U[4] = (float)(m_grids->v(i, j + 1, k));
-        U[5] = (float)(m_grids->w(i, j, k + 1));
-        float sum_F = 0.0;
+        double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
+                      static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
+        double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+        double U[6];
+        U[0] = (double)(m_grids->w(i, j, k));
+        U[1] = (double)(m_grids->v(i, j, k));
+        U[2] = (double)(m_grids->u(i, j, k));
+        U[3] = (double)(m_grids->u(i + 1, j, k));
+        U[4] = (double)(m_grids->v(i, j + 1, k));
+        U[5] = (double)(m_grids->w(i, j, k + 1));
+        double sum_F = 0.0;
 
         for (int n = 0; n < 6; ++n)
         {
@@ -327,7 +330,7 @@ void Simulator::calPressure()
 
     m_solver.solve(x, b);
 
-    static float err = 0.0;
+    static double err = 0.0;
     m_solver.getError(err);
     printf("solver error: %f\n",err);
     static int it = 0;
@@ -373,13 +376,14 @@ void Simulator::applyPressureTerm()
             m_grids->w(i, j, k + 1) -= DT * (m_grids->pressure(i, j, k + 1) - m_grids->pressure(i, j, k)) / VOXEL_SIZE;
         }
     }
-    std::copy(m_grids->u.begin(), m_grids->u.end(), m_grids->u0.begin());
-    std::copy(m_grids->v.begin(), m_grids->v.end(), m_grids->v0.begin());
-    std::copy(m_grids->w.begin(), m_grids->w.end(), m_grids->w0.begin());
 }
 
 void Simulator::advectVelocity()
 {
+    std::copy(m_grids->u.begin(), m_grids->u.end(), m_grids->u0.begin());
+    std::copy(m_grids->v.begin(), m_grids->v.end(), m_grids->v0.begin());
+    std::copy(m_grids->w.begin(), m_grids->w.end(), m_grids->w0.begin());
+
     switch (ADVECTION_METHOD)
     {
     case E_SEMI_LAGRANGE:
