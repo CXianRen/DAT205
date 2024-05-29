@@ -18,6 +18,7 @@ public:
   ~Simulator();
 
   void update();
+
   const std::array<double, SIZE> &getDensity()
   {
     return density.m_data;
@@ -30,13 +31,13 @@ private:
   // a cube in the center of the domain
   void setOccupiedVoxels();
 
-  void resetForce();
-  void calVorticity();
-  void addForce();
-  void calPressure();
-  void applyPressureTerm();
-  void advectVelocity();
-  void advectScalar();
+  void calculate_external_force();
+  void calculate_vorticity();
+  void apply_external_force();
+  void calculate_pressure();
+  void apply_pressure();
+  void advect_velocity();
+  void advect_scalar_field();
 
   double &m_time;
 

@@ -40,14 +40,14 @@ void Simulator::update()
 
     std::cout << "m_time:" << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
 
-    resetForce();
-    calVorticity();
-    addForce();
-    advectVelocity();
-    calPressure();
-    applyPressureTerm();
+    calculate_external_force();
+    calculate_vorticity();
+    apply_external_force();
+    advect_velocity();
+    calculate_pressure();
+    apply_pressure();
 
-    advectScalar();
+    advect_scalar_field();
     if (m_time < EMIT_DURATION)
     {
 
@@ -150,7 +150,7 @@ void Simulator::setEmitterVelocity()
     }
 }
 
-void Simulator::resetForce()
+void Simulator::calculate_external_force()
 {
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
@@ -163,7 +163,7 @@ void Simulator::resetForce()
     }
 }
 
-void Simulator::calVorticity()
+void Simulator::calculate_vorticity()
 {
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
@@ -235,7 +235,7 @@ void Simulator::calVorticity()
     }
 }
 
-void Simulator::addForce()
+void Simulator::apply_external_force()
 {
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
@@ -255,7 +255,7 @@ void Simulator::addForce()
     }
 }
 
-void Simulator::calPressure()
+void Simulator::calculate_pressure()
 {
     tripletList.clear();
     A.setZero();
@@ -369,7 +369,7 @@ void Simulator::calPressure()
     }
 }
 
-void Simulator::applyPressureTerm()
+void Simulator::apply_pressure()
 {
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
@@ -390,7 +390,7 @@ void Simulator::applyPressureTerm()
     }
 }
 
-void Simulator::advectVelocity()
+void Simulator::advect_velocity()
 {
     std::copy(u.begin(), u.end(), u0.begin());
     std::copy(v.begin(), v.end(), v0.begin());
@@ -424,7 +424,7 @@ void Simulator::advectVelocity()
     }
 }
 
-void Simulator::advectScalar()
+void Simulator::advect_scalar_field()
 {
     std::copy(density.begin(), density.end(), density0.begin());
     std::copy(temperature.begin(), temperature.end(), temperature0.begin());
