@@ -75,6 +75,7 @@ void Simulator::update()
 
         addSource();
         setEmitterVelocity();
+        ;
     }
 
     m_time += DT;

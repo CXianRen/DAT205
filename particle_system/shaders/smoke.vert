@@ -15,7 +15,7 @@ void main()
 	vec3 pos = position - vec3(0.5);
 
 	//  stretch the cube in y direction 
-  	pos = vec3(1.0,2.0,1.0) * pos.xyz;
+  	pos = vec3(1.0,1.0,1.0) * pos.xyz;
 
 	gl_Position = modelViewProjectionMatrix * vec4(pos, 1.0);
 	vertexWorldSpacePos = (modelMatrix * vec4(pos, 1.0)).xyz; 

@@ -18,7 +18,9 @@ double ttime = 0.0;
 
 std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
 std::string simulator_info;
-std::array<bool, SIZE> occupied_voxels = generate_vexelized_sphere(8);
+std::array<bool, SIZE> occupied_voxels = generate_vexelized_sphere((int)(8));
+std::array<bool, SIZE> occupied_voxels_cube = generate_vexelized_cube((int)(12));
+
 
 // lock for simulator
 std::mutex simLock;
@@ -71,11 +73,13 @@ float light_rotation_step = 0.01f;
 
 labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
-labhelper::Model *particleModel = nullptr;
+labhelper::Model *sphereModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
 SmokeRenderer *mmRender = nullptr;
 mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
+mat4 sphereModelMatrix;
+mat4 cubeModelMatrix;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Particle system
@@ -133,11 +137,22 @@ void initialize()
 	///////////////////////////////////////////////////////////////////////
 	landingpadModel = labhelper::loadModelFromOBJ("../scenes/plane.obj");
 	pointLight = labhelper::loadModelFromOBJ("../scenes/point_light.obj");
-	particleModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
+	sphereModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
 	cubeModel = labhelper::loadModelFromOBJ("../scenes/cube.obj");
 
-	testModelMatrix = translate(15.0f * worldUp);
-	testModelMatrix *= scale(vec3(10.0f, 10.0f, 10.0f));
+	float scale_factor = 10.f;
+	testModelMatrix = translate(scale_factor * worldUp);
+	testModelMatrix *= scale(vec3(scale_factor, scale_factor, scale_factor));
+
+	sphereModelMatrix = translate(scale_factor * worldUp);
+	sphereModelMatrix *= scale(scale_factor * vec3(8.0/Nx,8.0/Nx, 8.0/Nx));
+
+	cubeModelMatrix = translate(vec3(-1.0, -1.0, -1.0));
+	cubeModelMatrix *= translate(scale_factor * worldUp);
+
+	cubeModelMatrix *= scale(scale_factor * vec3(12.0/Nx,12.0/Nx, 12.0/Nx));
+
+
 	// scale the plane
 	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
 	// landingPadModelMatrix = mat4(1.0f);
@@ -167,7 +182,7 @@ void initialize()
 	// init FBO
 	int w, h;
 	SDL_GetWindowSize(g_window, &w, &h);
-	const int numFBOs = 5;
+	const int numFBOs = 1;
 	for (int i = 0; i < numFBOs; i++)
 	{
 		FBOList.push_back(FboInfo());
@@ -233,20 +248,25 @@ void drawScene(GLuint currentShaderProgram,
 		labhelper::render(landingpadModel);
 	}
 
-	// draw a particle
-	// labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 						  projectionMatrix * viewMatrix * testModelMatrix);
-	// labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * testModelMatrix);
-	// labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 						  inverse(transpose(viewMatrix * testModelMatrix)));
+	// draw an object
+	// {
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 							  projectionMatrix * viewMatrix * sphereModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * sphereModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 							  inverse(transpose(viewMatrix * sphereModelMatrix)));
+	// 	labhelper::render(sphereModel);
+	// }
+	{
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+								  projectionMatrix * viewMatrix * cubeModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * cubeModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+								  inverse(transpose(viewMatrix * cubeModelMatrix)));
+		labhelper::render(cubeModel);
+	
+	}
 
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	// glDisable(GL_DEPTH_TEST);
-	// glDisable(GL_CULL_FACE);
-	// labhelper::render(cubeModel);
-	// glEnable(GL_CULL_FACE);
-	// glEnable(GL_DEPTH_TEST);
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	{
 		labhelper::perf::Scope s("render smoke");
 
@@ -528,7 +548,8 @@ int main(int argc, char *argv[])
 	auto startTime = std::chrono::system_clock::now();
 
 	// thred to run simulation
-	simulator->setOccupiedVoxels(occupied_voxels);
+	// simulator->setOccupiedVoxels(occupied_voxels);
+	simulator->setOccupiedVoxels(occupied_voxels_cube);
 	std::thread simThread([&]()
 						  {
 		DEBUG_PRINT("Simulation thread started");

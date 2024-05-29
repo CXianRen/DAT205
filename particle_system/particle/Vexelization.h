@@ -17,4 +17,9 @@ std::array<bool,SIZE>
 generate_vexelized_sphere(int radius);
 
 
+/* generate a cube in gird center*/
+std::array<bool,SIZE>
+generate_vexelized_cube(int length);
+
+
 #endif
