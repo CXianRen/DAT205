@@ -1,14 +1,18 @@
 #ifndef __MMATH_H__
 #define __MMATH_H__
-
+#include <iostream>
 #include <vector>
 #include <math.h>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
+#include "constants.h"
 #include "Vec3.h"
 
-#include <iostream>
+
+
+
+#define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
 
 #define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 #define ACCESS3D_X(x, y, z) ((x) + (y) * (dims[0] + 1) + (z) * (dims[0] + 1) * dims[1])

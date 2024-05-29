@@ -3,6 +3,7 @@
 #include "Simulator.h"
 
 #include <iostream>
+#include "mmath.h"
 
 Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
@@ -15,7 +16,6 @@ Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZ
     std::mt19937 engine(rnd());
     std::uniform_real_distribution<double> dist(800, 1000);
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         // temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
@@ -65,7 +65,7 @@ void Simulator::addSource()
     {
     case E_TOP:
     {
-        OPENMP_FOR_COLLAPSE
+
         for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
         {
             for (int j = SOURCE_Y_MERGIN; j < SOURCE_Y_MERGIN + SOURCE_SIZE_Y; ++j)
@@ -81,7 +81,7 @@ void Simulator::addSource()
 
     case E_BOTTOM:
     {
-        OPENMP_FOR_COLLAPSE
+
         // (32-8) / 2 = 12, (32+8) / 2 = 20
         for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
         {
@@ -106,7 +106,7 @@ void Simulator::setEmitterVelocity()
     {
     case E_TOP:
     {
-        OPENMP_FOR_COLLAPSE
+
         for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
         {
             for (int j = SOURCE_Y_MERGIN; j < SOURCE_Y_MERGIN + SOURCE_SIZE_Y; ++j)
@@ -133,7 +133,7 @@ void Simulator::setEmitterVelocity()
 
     case E_BOTTOM:
     {
-        OPENMP_FOR_COLLAPSE
+
         for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
         {
             for (int j = Ny - SOURCE_Y_MERGIN - SOURCE_SIZE_Y; j < Ny - SOURCE_Y_MERGIN + 1; ++j)
@@ -152,7 +152,6 @@ void Simulator::setEmitterVelocity()
 
 void Simulator::calculate_external_force()
 {
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         fx[POS(i, j, k)] = 0.0;
@@ -165,7 +164,7 @@ void Simulator::calculate_external_force()
 
 void Simulator::calculate_vorticity()
 {
-    OPENMP_FOR_COLLAPSE
+
     FOR_EACH_CELL
     {
         avg_u[POS(i, j, k)] = (u(i, j, k) + u(i + 1, j, k)) * 0.5;
@@ -173,7 +172,6 @@ void Simulator::calculate_vorticity()
         avg_w[POS(i, j, k)] = (w(i, j, k) + w(i, j, k + 1)) * 0.5;
     }
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         // ignore boundary cells
@@ -191,7 +189,6 @@ void Simulator::calculate_vorticity()
         omg_z[POS(i, j, k)] = (avg_v[POS(i + 1, j, k)] - avg_v[POS(i - 1, j, k)] - avg_u[POS(i, j + 1, k)] + avg_u[POS(i, j - 1, k)]) * 0.5 / VOXEL_SIZE;
     }
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         // ignore boundary cells
@@ -237,7 +234,6 @@ void Simulator::calculate_vorticity()
 
 void Simulator::apply_external_force()
 {
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         if (i < Nx - 1)
@@ -262,10 +258,8 @@ void Simulator::calculate_pressure()
     b.setZero();
     x.setZero();
 
-    // float coeff = VOXEL_SIZE / DT;
     double coeff = 1.0;
 
-#pragma omp parallel for collapse(3) ordered
     FOR_EACH_CELL
     {
         double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
@@ -328,7 +322,6 @@ void Simulator::calculate_pressure()
             ICCG.compute(A);
             m_solver.compute(A);
         }
-        /* solve sparse lenear system by ICCG */
     }
     // if (ICCG.info() == Eigen::Success)
     // {
@@ -352,26 +345,15 @@ void Simulator::calculate_pressure()
     // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
     // printf("estimated error: %e \n", ICCG.error());
 
-    // convert x to double
-    // x = x.cast<double>();
-    // asign x to pressure
-
-    // Eigen::Map<Eigen::VectorXd>(pressure.begin(), SIZE) = x;
-    for (int k = 0; k < Nz; ++k)
+    FOR_EACH_CELL
     {
-        for (int j = 0; j < Ny; ++j)
-        {
-            for (int i = 0; i < Nx; ++i)
-            {
-                pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
-            }
-        }
+        pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
     }
 }
 
 void Simulator::apply_pressure()
 {
-    OPENMP_FOR_COLLAPSE
+
     FOR_EACH_CELL
     {
         // compute gradient of pressure
@@ -396,7 +378,6 @@ void Simulator::advect_velocity()
     std::copy(v.begin(), v.end(), v0.begin());
     std::copy(w.begin(), w.end(), w0.begin());
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_X
     {
         Vec3 pos_u = getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
@@ -405,7 +386,6 @@ void Simulator::advect_velocity()
         u(i, j, k) = getVelocityX(pos_u);
     }
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Y
     {
         Vec3 pos_v = getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
@@ -414,7 +394,6 @@ void Simulator::advect_velocity()
         v(i, j, k) = getVelocityY(pos_v);
     }
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Z
     {
         Vec3 pos_w = getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
@@ -429,7 +408,6 @@ void Simulator::advect_scalar_field()
     std::copy(density.begin(), density.end(), density0.begin());
     std::copy(temperature.begin(), temperature.end(), temperature0.begin());
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
         Vec3 pos_cell = getCenter(i, j, k);
@@ -450,7 +428,7 @@ void Simulator::setOccupiedVoxels()
     // int z0 = Nz / 2 - 4;
     // int z1 = Nz / 2 + 4;
 
-    // OPENMP_FOR_COLLAPSE
+    //
     // FOR_EACH_CELL
     // {
     //     if (i >= x0 && i <= x1 && j >= y0 && j <= y1 && k >= z0 && k <= z1)
@@ -477,10 +455,13 @@ void Simulator::setOccupiedVoxels()
     int z0 = Nz / 2 - 8;
     int z1 = Nz / 2 + 8;
 
-    OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
-        if ((i - Nx / 2) * (i - Nx / 2) + (j - Ny / 2) * (j - Ny / 2) + (k - Nz / 2) * (k - Nz / 2) <= 64)
+        if (
+            (i - Nx / 2) * (i - Nx / 2) +
+                (j - Ny / 2) * (j - Ny / 2) +
+                (k - Nz / 2) * (k - Nz / 2) <=
+            64)
         {
             // velocity is zero
             u(i, j, k) = 0.0;

@@ -36,6 +36,7 @@ constexpr double VOXEL_SIZE = 1.0;
 constexpr double INIT_DENSITY = 1.0;
 constexpr double INIT_VELOCITY = 0.0;
 constexpr double VORT_EPS = 1.0;
+
 constexpr double ALPHA = 0.1;
 constexpr double BETA = 5.0; 
 constexpr double T_AMP = 5.0;
@@ -46,25 +47,3 @@ constexpr double FINISH_TIME = 10.0;
 // render 
 constexpr float ABSORPTION = 5.0f;
 
-/* other definitions */
-
-#define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
-#define POS_X(x, y, z) ((x) + (y) * (Nx + 1) + (z) * (Nx + 1) * Ny)
-#define POS_Y(x, y, z) ((x) + (y) * Nx + (z) * Nx * (Ny + 1))
-#define POS_Z(x, y, z) ((x) + (y) * Nx + (z) * Nx * Ny)
-
-
-#define FOR_EACH_CELL                \
-    for (int k = 0; k < Nz; ++k)     \
-        for (int j = 0; j < Ny; ++j) \
-            for (int i = 0; i < Nx; ++i)
-
-
-#ifdef _OPENMP
-#include <omp.h>
-#define OPENMP_FOR _Pragma("omp parallel for")
-#define OPENMP_FOR_COLLAPSE _Pragma("omp parallel for collapse(3)")
-#else
-#define OPENMP_FOR
-#define OPENMP_FOR_COLLAPSE
-#endif

@@ -31,6 +31,16 @@ private:
   // a cube in the center of the domain
   void setOccupiedVoxels();
 
+  /*
+   * is to calculate the external force field
+    * which is the buoyancy force and the gravity force
+    * and store the result in fx, fy, fz
+    * fx, fy, fz are the external force field
+    * fx, fy, fz are the same size as the grid
+    * fx, fy, fz are the force field in x, y, z direction
+    * fx, fy, fz are the force field at the center of the grid
+    * f_buoyancy = alpha * density * (0, 1, 0) + beta * (T - T_ambient) * (0, 1, 0)
+  */
   void calculate_external_force();
   void calculate_vorticity();
   void apply_external_force();
