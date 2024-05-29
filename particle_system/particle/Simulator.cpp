@@ -354,16 +354,16 @@ void Simulator::calPressure()
 
     // convert x to double
     // x = x.cast<double>();
-    // asign x to m_grids->pressure
+    // asign x to pressure
 
-    // Eigen::Map<Eigen::VectorXd>(m_grids->pressure.begin(), SIZE) = x;
+    // Eigen::Map<Eigen::VectorXd>(pressure.begin(), SIZE) = x;
     for (int k = 0; k < Nz; ++k)
     {
         for (int j = 0; j < Ny; ++j)
         {
             for (int i = 0; i < Nx; ++i)
             {
-                m_grids->pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
+                pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
             }
         }
     }
@@ -377,15 +377,15 @@ void Simulator::applyPressureTerm()
         // compute gradient of pressure
         if (i < Nx - 1)
         {
-            m_grids->u(i + 1, j, k) -= DT * (m_grids->pressure(i + 1, j, k) - m_grids->pressure(i, j, k)) / VOXEL_SIZE;
+            m_grids->u(i + 1, j, k) -= DT * (pressure(i + 1, j, k) - pressure(i, j, k)) / VOXEL_SIZE;
         }
         if (j < Ny - 1)
         {
-            m_grids->v(i, j + 1, k) -= DT * (m_grids->pressure(i, j + 1, k) - m_grids->pressure(i, j, k)) / VOXEL_SIZE;
+            m_grids->v(i, j + 1, k) -= DT * (pressure(i, j + 1, k) - pressure(i, j, k)) / VOXEL_SIZE;
         }
         if (k < Nz - 1)
         {
-            m_grids->w(i, j, k + 1) -= DT * (m_grids->pressure(i, j, k + 1) - m_grids->pressure(i, j, k)) / VOXEL_SIZE;
+            m_grids->w(i, j, k + 1) -= DT * (pressure(i, j, k + 1) - pressure(i, j, k)) / VOXEL_SIZE;
         }
     }
 }

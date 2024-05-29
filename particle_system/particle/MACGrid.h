@@ -37,17 +37,16 @@ public:
     double getVelocityZ(const Vec3 &pos);
     double getDensity(const Vec3 &pos);
     double getTemperature(const Vec3 &pos);
-    double getPressure(const Vec3 &pos);
-
+    
     GridDataX u, u0;
     GridDataY v, v0;
     GridDataZ w, w0;
     GridDataScalar density, density0;
     GridDataScalar temperature0, temperature;
-    GridDataScalar pressure;
+    
 
     
    
-    double vort[SIZE];
+    
     
 };

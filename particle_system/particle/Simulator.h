@@ -18,7 +18,8 @@ public:
   ~Simulator();
 
   void update();
-  const std::array<double, SIZE>&  getDensity(){
+  const std::array<double, SIZE> &getDensity()
+  {
     return m_grids->density.m_data;
   }
 
@@ -42,14 +43,20 @@ private:
 
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
-  // velocity field 
+  // velocity field
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
-  
-  // vorticity field 
+
+  // vorticity field
   double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE];
   double vort[SIZE];
 
-
+  // pressure field
+  GridDataScalar pressure;
+  // double getPressure(const Vec3 &pos)
+  // {
+  //   return pressure.interp(
+  //       pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+  // }
 
   // solver
   std::vector<T> tripletList;
