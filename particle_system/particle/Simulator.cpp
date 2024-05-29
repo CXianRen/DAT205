@@ -155,11 +155,11 @@ void Simulator::resetForce()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
-        m_grids->fx[POS(i, j, k)] = 0.0;
-        m_grids->fy[POS(i, j, k)] =
+        fx[POS(i, j, k)] = 0.0;
+        fy[POS(i, j, k)] =
             -ALPHA * m_grids->density(i, j, k) +
             BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
-        m_grids->fz[POS(i, j, k)] = 0.0;
+        fz[POS(i, j, k)] = 0.0;
     }
 }
 
@@ -229,9 +229,9 @@ void Simulator::calVorticity()
         Vec3 vorticity = Vec3(m_grids->omg_x[POS(i, j, k)], m_grids->omg_y[POS(i, j, k)], m_grids->omg_z[POS(i, j, k)]);
         Vec3 f = VORT_EPS * VOXEL_SIZE * vorticity.cross(N_ijk);
         m_grids->vort[POS(i, j, k)] = f.norm();
-        m_grids->fx[POS(i, j, k)] += f[0];
-        m_grids->fy[POS(i, j, k)] += f[1];
-        m_grids->fz[POS(i, j, k)] += f[2];
+        fx[POS(i, j, k)] += f[0];
+        fy[POS(i, j, k)] += f[1];
+        fz[POS(i, j, k)] += f[2];
     }
 }
 
@@ -242,15 +242,15 @@ void Simulator::addForce()
     {
         if (i < Nx - 1)
         {
-            m_grids->u(i + 1, j, k) += DT * (m_grids->fx[POS(i, j, k)] + m_grids->fx[POS(i + 1, j, k)]) * 0.5;
+            m_grids->u(i + 1, j, k) += DT * (fx[POS(i, j, k)] + fx[POS(i + 1, j, k)]) * 0.5;
         }
         if (j < Ny - 1)
         {
-            m_grids->v(i, j + 1, k) += DT * (m_grids->fy[POS(i, j, k)] + m_grids->fy[POS(i, j + 1, k)]) * 0.5;
+            m_grids->v(i, j + 1, k) += DT * (fy[POS(i, j, k)] + fx[POS(i, j + 1, k)]) * 0.5;
         }
         if (k < Nz - 1)
         {
-            m_grids->w(i, j, k + 1) += DT * (m_grids->fz[POS(i, j, k)] + m_grids->fz[POS(i, j, k + 1)]) * 0.5;
+            m_grids->w(i, j, k + 1) += DT * (fz[POS(i, j, k)] + fx[POS(i, j, k + 1)]) * 0.5;
         }
     }
 }

@@ -25,7 +25,7 @@
 
 class MACGrid
 {
-  public:
+public:
     MACGrid();
     ~MACGrid();
 
@@ -42,9 +42,11 @@ class MACGrid
     GridDataX u, u0;
     GridDataY v, v0;
     GridDataZ w, w0;
-    GridDataScalar density0, temperature0;
-    GridDataScalar density, temperature, pressure;
+    GridDataScalar density, density0;
+    GridDataScalar temperature0, temperature;
+    GridDataScalar pressure;
+
     double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
     double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE], vort[SIZE];
-    double fx[SIZE], fy[SIZE], fz[SIZE];
+    
 };

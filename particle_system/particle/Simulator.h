@@ -40,6 +40,9 @@ private:
   std::shared_ptr<MACGrid> m_grids;
   double &m_time;
 
+  // external force
+  double fx[SIZE], fy[SIZE], fz[SIZE];
+
   // solver
   std::vector<T> tripletList;
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;
