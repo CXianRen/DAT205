@@ -30,17 +30,15 @@ public:
     ~MACGrid();
 
     Vec3 getCenter(int i, int j, int k);
-    Vec3 getVelocity(const Vec3 &pos);
+    // Vec3 getVelocity(const Vec3 &pos);
 
-    double getVelocityX(const Vec3 &pos);
-    double getVelocityY(const Vec3 &pos);
-    double getVelocityZ(const Vec3 &pos);
+    // double getVelocityX(const Vec3 &pos);
+    // double getVelocityY(const Vec3 &pos);
+    // double getVelocityZ(const Vec3 &pos);
     // double getDensity(const Vec3 &pos);
     
     
-    GridDataX u, u0;
-    GridDataY v, v0;
-    GridDataZ w, w0;
+
     
     
 

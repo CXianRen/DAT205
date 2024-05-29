@@ -22,26 +22,26 @@ Vec3 MACGrid::getCenter(int i, int j, int k)
     return Vec3(x, y, z);
 }
 
-Vec3 MACGrid::getVelocity(const Vec3 &pos)
-{
-    Vec3 vel;
-    vel[0] = getVelocityX(pos);
-    vel[1] = getVelocityY(pos);
-    vel[2] = getVelocityZ(pos);
-    return vel;
-}
-double MACGrid::getVelocityX(const Vec3 &pos)
-{
-    return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
-}
-double MACGrid::getVelocityY(const Vec3 &pos)
-{
-    return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
-}
-double MACGrid::getVelocityZ(const Vec3 &pos)
-{
-    return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
-}
+// Vec3 MACGrid::getVelocity(const Vec3 &pos)
+// {
+//     Vec3 vel;
+//     vel[0] = getVelocityX(pos);
+//     vel[1] = getVelocityY(pos);
+//     vel[2] = getVelocityZ(pos);
+//     return vel;
+// }
+// double MACGrid::getVelocityX(const Vec3 &pos)
+// {
+//     return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
+// }
+// double MACGrid::getVelocityY(const Vec3 &pos)
+// {
+//     return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
+// }
+// double MACGrid::getVelocityZ(const Vec3 &pos)
+// {
+//     return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
+// }
 
 // double MACGrid::getDensity(const Vec3 &pos)
 // {

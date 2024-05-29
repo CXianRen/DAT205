@@ -113,18 +113,18 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    // m_grids->v(i, j, k) = INIT_VELOCITY;
-                    // m_grids->v0(i, j, k) = m_grids->v(i, j, k);
+                    // v(i, j, k) = INIT_VELOCITY;
+                    // v0(i, j, k) = v(i, j, k);
                     // random velocity
-                    m_grids->v(i, j, k) = INIT_VELOCITY * (rand() % 100) / 100.0;
-                    m_grids->v0(i, j, k) = m_grids->v(i, j, k);
+                    v(i, j, k) = INIT_VELOCITY * (rand() % 100) / 100.0;
+                    v0(i, j, k) = v(i, j, k);
 
                     // random velocity for x and z (-0.5, 0.5) * INIT_VELOCITY
-                    // m_grids->u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // m_grids->u0(i, j, k) = m_grids->u(i, j, k);
+                    // u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // u0(i, j, k) = u(i, j, k);
 
-                    // m_grids->w(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // m_grids->w0(i, j, k) = m_grids->w(i, j, k);
+                    // w(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // w0(i, j, k) = w(i, j, k);
                 }
             }
         }
@@ -140,8 +140,8 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    m_grids->v(i, j, k) = -INIT_VELOCITY;
-                    m_grids->v0(i, j, k) = m_grids->v(i, j, k);
+                    v(i, j, k) = -INIT_VELOCITY;
+                    v0(i, j, k) = v(i, j, k);
                 }
             }
         }
@@ -168,9 +168,9 @@ void Simulator::calVorticity()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
-        avg_u[POS(i, j, k)] = (m_grids->u(i, j, k) + m_grids->u(i + 1, j, k)) * 0.5;
-        avg_v[POS(i, j, k)] = (m_grids->v(i, j, k) + m_grids->v(i, j + 1, k)) * 0.5;
-        avg_w[POS(i, j, k)] = (m_grids->w(i, j, k) + m_grids->w(i, j, k + 1)) * 0.5;
+        avg_u[POS(i, j, k)] = (u(i, j, k) + u(i + 1, j, k)) * 0.5;
+        avg_v[POS(i, j, k)] = (v(i, j, k) + v(i, j + 1, k)) * 0.5;
+        avg_w[POS(i, j, k)] = (w(i, j, k) + w(i, j, k + 1)) * 0.5;
     }
 
     OPENMP_FOR_COLLAPSE
@@ -242,15 +242,15 @@ void Simulator::addForce()
     {
         if (i < Nx - 1)
         {
-            m_grids->u(i + 1, j, k) += DT * (fx[POS(i, j, k)] + fx[POS(i + 1, j, k)]) * 0.5;
+            u(i + 1, j, k) += DT * (fx[POS(i, j, k)] + fx[POS(i + 1, j, k)]) * 0.5;
         }
         if (j < Ny - 1)
         {
-            m_grids->v(i, j + 1, k) += DT * (fy[POS(i, j, k)] + fx[POS(i, j + 1, k)]) * 0.5;
+            v(i, j + 1, k) += DT * (fy[POS(i, j, k)] + fx[POS(i, j + 1, k)]) * 0.5;
         }
         if (k < Nz - 1)
         {
-            m_grids->w(i, j, k + 1) += DT * (fz[POS(i, j, k)] + fx[POS(i, j, k + 1)]) * 0.5;
+            w(i, j, k + 1) += DT * (fz[POS(i, j, k)] + fx[POS(i, j, k + 1)]) * 0.5;
         }
     }
 }
@@ -272,12 +272,12 @@ void Simulator::calPressure()
                        static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
         double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
         double U[6];
-        U[0] = (double)(m_grids->w(i, j, k));
-        U[1] = (double)(m_grids->v(i, j, k));
-        U[2] = (double)(m_grids->u(i, j, k));
-        U[3] = (double)(m_grids->u(i + 1, j, k));
-        U[4] = (double)(m_grids->v(i, j + 1, k));
-        U[5] = (double)(m_grids->w(i, j, k + 1));
+        U[0] = (double)(w(i, j, k));
+        U[1] = (double)(v(i, j, k));
+        U[2] = (double)(u(i, j, k));
+        U[3] = (double)(u(i + 1, j, k));
+        U[4] = (double)(v(i, j + 1, k));
+        U[5] = (double)(w(i, j, k + 1));
         double sum_F = 0.0;
 
         for (int n = 0; n < 6; ++n)
@@ -377,50 +377,50 @@ void Simulator::applyPressureTerm()
         // compute gradient of pressure
         if (i < Nx - 1)
         {
-            m_grids->u(i + 1, j, k) -= DT * (pressure(i + 1, j, k) - pressure(i, j, k)) / VOXEL_SIZE;
+            u(i + 1, j, k) -= DT * (pressure(i + 1, j, k) - pressure(i, j, k)) / VOXEL_SIZE;
         }
         if (j < Ny - 1)
         {
-            m_grids->v(i, j + 1, k) -= DT * (pressure(i, j + 1, k) - pressure(i, j, k)) / VOXEL_SIZE;
+            v(i, j + 1, k) -= DT * (pressure(i, j + 1, k) - pressure(i, j, k)) / VOXEL_SIZE;
         }
         if (k < Nz - 1)
         {
-            m_grids->w(i, j, k + 1) -= DT * (pressure(i, j, k + 1) - pressure(i, j, k)) / VOXEL_SIZE;
+            w(i, j, k + 1) -= DT * (pressure(i, j, k + 1) - pressure(i, j, k)) / VOXEL_SIZE;
         }
     }
 }
 
 void Simulator::advectVelocity()
 {
-    std::copy(m_grids->u.begin(), m_grids->u.end(), m_grids->u0.begin());
-    std::copy(m_grids->v.begin(), m_grids->v.end(), m_grids->v0.begin());
-    std::copy(m_grids->w.begin(), m_grids->w.end(), m_grids->w0.begin());
+    std::copy(u.begin(), u.end(), u0.begin());
+    std::copy(v.begin(), v.end(), v0.begin());
+    std::copy(w.begin(), w.end(), w0.begin());
 
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_X
     {
         Vec3 pos_u = m_grids->getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
-        Vec3 vel_u = m_grids->getVelocity(pos_u);
+        Vec3 vel_u = getVelocity(pos_u);
         pos_u -= DT * vel_u;
-        m_grids->u(i, j, k) = m_grids->getVelocityX(pos_u);
+        u(i, j, k) = getVelocityX(pos_u);
     }
 
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Y
     {
         Vec3 pos_v = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
-        Vec3 vel_v = m_grids->getVelocity(pos_v);
+        Vec3 vel_v = getVelocity(pos_v);
         pos_v -= DT * vel_v;
-        m_grids->v(i, j, k) = m_grids->getVelocityY(pos_v);
+        v(i, j, k) = getVelocityY(pos_v);
     }
 
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Z
     {
         Vec3 pos_w = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
-        Vec3 vel_w = m_grids->getVelocity(pos_w);
+        Vec3 vel_w = getVelocity(pos_w);
         pos_w -= DT * vel_w;
-        m_grids->w(i, j, k) = m_grids->getVelocityZ(pos_w);
+        w(i, j, k) = getVelocityZ(pos_w);
     }
 }
 
@@ -433,7 +433,7 @@ void Simulator::advectScalar()
     FOR_EACH_CELL
     {
         Vec3 pos_cell = m_grids->getCenter(i, j, k);
-        Vec3 vel_cell = m_grids->getVelocity(pos_cell);
+        Vec3 vel_cell = getVelocity(pos_cell);
         pos_cell -= DT * vel_cell;
         density(i, j, k) = getDensity(pos_cell);
         temperature(i, j, k) = getTemperature(pos_cell);
@@ -457,9 +457,9 @@ void Simulator::setOccupiedVoxels()
     //     {
 
     //         // velocity is zero
-    //         m_grids->u(i, j, k) = 0.0;
-    //         m_grids->v(i, j, k) = 0.0;
-    //         m_grids->w(i, j, k) = 0.0;
+    //         u(i, j, k) = 0.0;
+    //         v(i, j, k) = 0.0;
+    //         w(i, j, k) = 0.0;
 
     //         // density is zero
     //         density(i, j, k) = 0.0;
@@ -483,9 +483,9 @@ void Simulator::setOccupiedVoxels()
         if ((i - Nx / 2) * (i - Nx / 2) + (j - Ny / 2) * (j - Ny / 2) + (k - Nz / 2) * (k - Nz / 2) <= 64)
         {
             // velocity is zero
-            m_grids->u(i, j, k) = 0.0;
-            m_grids->v(i, j, k) = 0.0;
-            m_grids->w(i, j, k) = 0.0;
+            u(i, j, k) = 0.0;
+            v(i, j, k) = 0.0;
+            w(i, j, k) = 0.0;
 
             // density is zero
             density(i, j, k) = 0.0;

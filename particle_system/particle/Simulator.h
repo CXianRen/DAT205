@@ -44,7 +44,31 @@ private:
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
   // velocity field
+  GridDataX u, u0;
+  GridDataY v, v0;
+  GridDataZ w, w0;
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
+
+  Vec3 getVelocity(const Vec3 &pos)
+  {
+    Vec3 vel;
+    vel[0] = getVelocityX(pos);
+    vel[1] = getVelocityY(pos);
+    vel[2] = getVelocityZ(pos);
+    return vel;
+  }
+  double getVelocityX(const Vec3 &pos)
+  {
+    return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
+  }
+  double getVelocityY(const Vec3 &pos)
+  {
+    return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
+  }
+  double getVelocityZ(const Vec3 &pos)
+  {
+    return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
+  }
 
   // vorticity field
   double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE];
