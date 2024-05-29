@@ -11,8 +11,10 @@ uniform float pointLightIntensity;
 uniform vec3 worldSpaceCameraPosition;
 
 layout(binding = 0) uniform sampler3D densityTex;
+layout(binding = 1) uniform sampler3D occupiedTex;
 
 layout(location = 0) out vec4 fragmentColor;
+
 
 void main() {
 
@@ -27,6 +29,8 @@ void main() {
 
     vec3 eyeDir = normalize(wpos - worldSpaceCameraPosition) * scale;
 
+    float factor = 15.0;
+    
     // transmittance
     float T = 1.0;
     // in-scattered radiance
@@ -34,17 +38,21 @@ void main() {
     for(int i = 0; i < numSamples; ++i) {
         // sample density
         float density = texture(densityTex, pos).x;
+        float occupied = texture(occupiedTex, pos).x;
+        if(occupied > 0.0) {
+            break;
+        }
+
         // skip empty space
         if(density > 0.0) {
-			// T = 0.0;
-			// break;
-
+            
 			// attenuate ray-throughput
-            T *= 1.0 - density * scale * 5;
+            T *= 1.0 - density * scale * factor;
             if(T <= 0.01) {
                 break;
             }
-            // // point light dir in texture space
+
+              // // point light dir in texture space
             vec3 lightDir = normalize(worldSpaceLightPosition - wpos) * lscale;
 
             // sample light
@@ -53,7 +61,13 @@ void main() {
 
             for(int s = 0; s < numLightSamples; ++s) {
                 float ld = texture(densityTex, lpos).x;
-                Tl *= 1.0 - 5.0 * lscale * ld;
+                float lo = texture(occupiedTex, lpos).x;
+                if(lo > 0.0) {
+                    // Tl = 0.0;
+                    break;
+                }
+
+                Tl *= 1.0 - factor * lscale * ld;
 
                 if(Tl <= 0.01)
                     break;
@@ -61,9 +75,9 @@ void main() {
                 lpos += lightDir;
             }
 
-            vec3 Li = pointLightIntensity * vec3(1.0) * Tl;
+            vec3 Li = pointLightIntensity *  vec3(0.5) * Tl;
 
-            Lo += Li * T * density * scale;
+            Lo += Li * T  * scale;
         }
 
         pos += eyeDir;
