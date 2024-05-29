@@ -72,7 +72,7 @@ void Simulator::addSource()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    m_grids->density(i, j, k) = INIT_DENSITY;
+                    density(i, j, k) = INIT_DENSITY;
                 }
             }
         }
@@ -91,7 +91,7 @@ void Simulator::addSource()
                 // (32-8) / 2 = 12, (32+8) / 2 = 20
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    m_grids->density(i, j, k) = INIT_DENSITY;
+                    density(i, j, k) = INIT_DENSITY;
                 }
             }
         }
@@ -157,7 +157,7 @@ void Simulator::resetForce()
     {
         fx[POS(i, j, k)] = 0.0;
         fy[POS(i, j, k)] =
-            -ALPHA * m_grids->density(i, j, k) +
+            -ALPHA * density(i, j, k) +
             BETA * (temperature(i, j, k) - T_AMBIENT);
         fz[POS(i, j, k)] = 0.0;
     }
@@ -426,7 +426,7 @@ void Simulator::advectVelocity()
 
 void Simulator::advectScalar()
 {
-    std::copy(m_grids->density.begin(), m_grids->density.end(), m_grids->density0.begin());
+    std::copy(density.begin(), density.end(), density0.begin());
     std::copy(temperature.begin(), temperature.end(), temperature0.begin());
 
     OPENMP_FOR_COLLAPSE
@@ -435,7 +435,7 @@ void Simulator::advectScalar()
         Vec3 pos_cell = m_grids->getCenter(i, j, k);
         Vec3 vel_cell = m_grids->getVelocity(pos_cell);
         pos_cell -= DT * vel_cell;
-        m_grids->density(i, j, k) = m_grids->getDensity(pos_cell);
+        density(i, j, k) = getDensity(pos_cell);
         temperature(i, j, k) = getTemperature(pos_cell);
     }
 }
@@ -462,7 +462,7 @@ void Simulator::setOccupiedVoxels()
     //         m_grids->w(i, j, k) = 0.0;
 
     //         // density is zero
-    //         m_grids->density(i, j, k) = 0.0;
+    //         density(i, j, k) = 0.0;
 
     //         // temperature is environment temperature
     //         temperature(i, j, k) = T_AMBIENT;
@@ -488,7 +488,7 @@ void Simulator::setOccupiedVoxels()
             m_grids->w(i, j, k) = 0.0;
 
             // density is zero
-            m_grids->density(i, j, k) = 0.0;
+            density(i, j, k) = 0.0;
 
             // temperature is environment temperature
             temperature(i, j, k) = T_AMBIENT;

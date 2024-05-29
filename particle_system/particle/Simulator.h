@@ -20,7 +20,7 @@ public:
   void update();
   const std::array<double, SIZE> &getDensity()
   {
-    return m_grids->density.m_data;
+    return density.m_data;
   }
 
 private:
@@ -66,7 +66,14 @@ private:
         pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
   }
 
-  
+  // density field
+  GridDataScalar density, density0;
+  double getDensity(const Vec3 &pos)
+  {
+    return density0.interp(
+        pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+  }
+
   // solver
   std::vector<T> tripletList;
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;

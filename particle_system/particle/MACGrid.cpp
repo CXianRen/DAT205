@@ -43,10 +43,10 @@ double MACGrid::getVelocityZ(const Vec3 &pos)
     return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
 }
 
-double MACGrid::getDensity(const Vec3 &pos)
-{
-    return density0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
-}
+// double MACGrid::getDensity(const Vec3 &pos)
+// {
+//     return density0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+// }
 
 // double MACGrid::getTemperature(const Vec3 &pos)
 // {
