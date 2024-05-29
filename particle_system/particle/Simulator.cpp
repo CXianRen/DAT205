@@ -18,9 +18,9 @@ Simulator::Simulator(std::shared_ptr<MACGrid> grids, double &time) : m_grids(gri
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
-        // m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
-        // m_grids->temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
-        m_grids->temperature(i, j, k) = dist(engine);
+        // temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
+        // temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
+        temperature(i, j, k) = dist(engine);
     }
 
     addSource();
@@ -158,7 +158,7 @@ void Simulator::resetForce()
         fx[POS(i, j, k)] = 0.0;
         fy[POS(i, j, k)] =
             -ALPHA * m_grids->density(i, j, k) +
-            BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
+            BETA * (temperature(i, j, k) - T_AMBIENT);
         fz[POS(i, j, k)] = 0.0;
     }
 }
@@ -427,7 +427,7 @@ void Simulator::advectVelocity()
 void Simulator::advectScalar()
 {
     std::copy(m_grids->density.begin(), m_grids->density.end(), m_grids->density0.begin());
-    std::copy(m_grids->temperature.begin(), m_grids->temperature.end(), m_grids->temperature0.begin());
+    std::copy(temperature.begin(), temperature.end(), temperature0.begin());
 
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
@@ -436,7 +436,7 @@ void Simulator::advectScalar()
         Vec3 vel_cell = m_grids->getVelocity(pos_cell);
         pos_cell -= DT * vel_cell;
         m_grids->density(i, j, k) = m_grids->getDensity(pos_cell);
-        m_grids->temperature(i, j, k) = m_grids->getTemperature(pos_cell);
+        temperature(i, j, k) = getTemperature(pos_cell);
     }
 }
 
@@ -465,7 +465,7 @@ void Simulator::setOccupiedVoxels()
     //         m_grids->density(i, j, k) = 0.0;
 
     //         // temperature is environment temperature
-    //         m_grids->temperature(i, j, k) = T_AMBIENT;
+    //         temperature(i, j, k) = T_AMBIENT;
     //     }
     // }
 
@@ -491,7 +491,7 @@ void Simulator::setOccupiedVoxels()
             m_grids->density(i, j, k) = 0.0;
 
             // temperature is environment temperature
-            m_grids->temperature(i, j, k) = T_AMBIENT;
+            temperature(i, j, k) = T_AMBIENT;
         }
     }
 }

@@ -58,6 +58,15 @@ private:
   //       pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
   // }
 
+  // temperature field
+  GridDataScalar temperature0, temperature;
+  double getTemperature(const Vec3 &pos)
+  {
+    return temperature0.interp(
+        pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+  }
+
+  
   // solver
   std::vector<T> tripletList;
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;

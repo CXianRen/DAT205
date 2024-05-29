@@ -48,12 +48,12 @@ double MACGrid::getDensity(const Vec3 &pos)
     return density0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 }
 
-double MACGrid::getTemperature(const Vec3 &pos)
-{
-    return temperature0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
-}
+// double MACGrid::getTemperature(const Vec3 &pos)
+// {
+//     return temperature0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+// }
 
 // double MACGrid::getPressure(const Vec3 &pos)
 // {
-//     
+//     return pressure.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 // }
