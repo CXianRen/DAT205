@@ -108,9 +108,9 @@ T linearInterpolation(const Vec3 &pt, T *src, int *dims, int *maxXYZ)
     T fracty = scale * (pos[1] - j * VOXEL_SIZE);
     T fractz = scale * (pos[2] - k * VOXEL_SIZE);
 
-    // assert(fractx < 1.0 && fractx >= 0);
-    // assert(fracty < 1.0 && fracty >= 0);
-    // assert(fractz < 1.0 && fractz >= 0);
+    assert(fractx < 1.0 && fractx >= 0);
+    assert(fracty < 1.0 && fracty >= 0);
+    assert(fractz < 1.0 && fractz >= 0);
 
     // Y @ low X, low Z:
     T tmp1 = src[ACCESS3D(i, j, k)];

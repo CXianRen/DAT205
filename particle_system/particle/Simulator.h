@@ -6,7 +6,7 @@
 
 #include "mmath.h"
 
-#include "GridData.h"
+#include "MData.h"
 
 #include "Solver.h"
 
@@ -66,9 +66,9 @@ private:
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
   // velocity field
-  GridDataX u, u0;
-  GridDataY v, v0;
-  GridDataZ w, w0;
+  MDataX u, u0;
+  MDataY v, v0;
+  MDataZ w, w0;
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
 
   Vec3 getVelocity(const Vec3 &pos)
@@ -122,27 +122,34 @@ private:
   double vort[SIZE];
 
   // pressure field
-  GridDataScalar pressure;
-  // double getPressure(const Vec3 &pos)
-  // {
-  //   return pressure.interp(
-  //       pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
-  // }
+  MDataScalar pressure;
 
   // temperature field
-  GridDataScalar temperature0, temperature;
+  MDataScalar temperature0, temperature;
   double getTemperature(const Vec3 &pos)
   {
-    return temperature0.interp(
-        pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+    static int dim[3] = {Nx, Ny, Nz};
+    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz - 1};
+    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+    return linearInterpolation<double>(
+        pos - offset,
+        temperature0.m_data.data(),
+        dim,
+        maxIndex);
   }
 
   // density field
-  GridDataScalar density, density0;
+  MDataScalar density, density0;
   double getDensity(const Vec3 &pos)
   {
-    return density0.interp(
-        pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+    static int dim[3] = {Nx, Ny, Nz};
+    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz - 1};
+    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+    return linearInterpolation<double>(
+        pos - offset,
+        density0.m_data.data(),
+        dim,
+        maxIndex);
   }
 
   // solver
