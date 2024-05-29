@@ -98,11 +98,18 @@ void Simulator::addSource()
         {
             for (int j = SOURCE_Y_MERGIN; j < SOURCE_Y_MERGIN + SOURCE_SIZE_Y; ++j)
             {
-                for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
+                // for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
+                for (int i = 20; i < 20 + SOURCE_SIZE_X; ++i)
                 {
                     density(i, j, k) = INIT_DENSITY;
                     temperature(i, j, k) = dist(engine);
                 }
+
+                // for (int i = Nx/2 + 10; i < Nx/2 + 20; ++i)
+                // {
+                //     density(i, j, k) = INIT_DENSITY;
+                //     temperature(i, j, k) = dist(engine);
+                // }
             }
         }
         break;

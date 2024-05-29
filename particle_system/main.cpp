@@ -21,6 +21,8 @@ std::string simulator_info;
 std::array<bool, SIZE> occupied_voxels = generate_vexelized_sphere((int)(8));
 std::array<bool, SIZE> occupied_voxels_cube = generate_vexelized_cube((int)(12));
 
+float tree_max_length = 0.0f;
+std::array<bool, SIZE> occupied_voxels_tree;
 
 // lock for simulator
 std::mutex simLock;
@@ -75,11 +77,15 @@ labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
 labhelper::Model *sphereModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
+labhelper::Model *generalModel = nullptr;
+
 SmokeRenderer *mmRender = nullptr;
+
 mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
 mat4 sphereModelMatrix;
 mat4 cubeModelMatrix;
+mat4 generalModelMatrix;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Particle system
@@ -139,19 +145,27 @@ void initialize()
 	pointLight = labhelper::loadModelFromOBJ("../scenes/point_light.obj");
 	sphereModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
 	cubeModel = labhelper::loadModelFromOBJ("../scenes/cube.obj");
+	generalModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
 
 	float scale_factor = 10.f;
 	testModelMatrix = translate(scale_factor * worldUp);
 	testModelMatrix *= scale(vec3(scale_factor, scale_factor, scale_factor));
 
 	sphereModelMatrix = translate(scale_factor * worldUp);
-	sphereModelMatrix *= scale(scale_factor * vec3(8.0/Nx,8.0/Nx, 8.0/Nx));
+	sphereModelMatrix *= scale(scale_factor * vec3(8.0 / Nx, 8.0 / Nx, 8.0 / Nx));
 
 	cubeModelMatrix = translate(vec3(-1.0, -1.0, -1.0));
 	cubeModelMatrix *= translate(scale_factor * worldUp);
 
-	cubeModelMatrix *= scale(scale_factor * vec3(12.0/Nx,12.0/Nx, 12.0/Nx));
+	cubeModelMatrix *= scale(scale_factor * vec3(12.0 / Nx, 12.0 / Nx, 12.0 / Nx));
 
+	occupied_voxels_tree = generate_vexel(generalModel->m_positions, tree_max_length);
+
+	float offset = (scale_factor * 2.0f / Nx);
+	//@todo a bug, need to fix, walk around using offset
+	generalModelMatrix = translate((scale_factor / 2.0f + offset) * worldUp);
+
+	generalModelMatrix *= scale((scale_factor / tree_max_length) * vec3(1.f));
 
 	// scale the plane
 	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
@@ -201,6 +215,39 @@ void debugDrawLight(const glm::mat4 &viewMatrix,
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	labhelper::render(pointLight);
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::mat4 &viewMatrix,
+					const glm::mat4 &projectionMatrix)
+{
+	glUseProgram(simpleShaderProgram);
+
+	// scale up the cube
+	// draw the occupied voxels
+	for (int i = 0; i < Nx; i++)
+	{
+		for (int j = 0; j < Ny; j++)
+		{
+			for (int k = 0; k < Nz; k++)
+			{
+				if (occupied_voxels[POS(i, j, k)])
+				{
+
+					glm::mat4 modelMatrix = glm::mat4(1.0f);
+					modelMatrix = glm::scale(glm::vec3(0.2, 0.2, 0.2)) * modelMatrix;
+					modelMatrix = glm::translate(
+									  glm::vec3(
+										  10.f / Nx * i - 5,
+										  5 + 10.f / Nx * j,
+										  10.f / Nx * k - 5)) *
+								  modelMatrix;
+					labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
+											  projectionMatrix * viewMatrix * modelMatrix);
+					labhelper::render(cubeModel);
+				}
+			}
+		}
+	}
 }
 
 void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
@@ -257,15 +304,27 @@ void drawScene(GLuint currentShaderProgram,
 	// 							  inverse(transpose(viewMatrix * sphereModelMatrix)));
 	// 	labhelper::render(sphereModel);
 	// }
+	// {
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 							  projectionMatrix * viewMatrix * cubeModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * cubeModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 							  inverse(transpose(viewMatrix * cubeModelMatrix)));
+	// 	labhelper::render(cubeModel);
+
+	// }
+
+	// draw a tree
 	{
 		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-								  projectionMatrix * viewMatrix * cubeModelMatrix);
-		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * cubeModelMatrix);
+								  projectionMatrix * viewMatrix * generalModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * generalModelMatrix);
 		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-								  inverse(transpose(viewMatrix * cubeModelMatrix)));
-		labhelper::render(cubeModel);
-	
+								  inverse(transpose(viewMatrix * generalModelMatrix)));
+		labhelper::render(generalModel);
 	}
+
+	debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
 
 	{
 		labhelper::perf::Scope s("render smoke");
@@ -549,7 +608,8 @@ int main(int argc, char *argv[])
 
 	// thred to run simulation
 	// simulator->setOccupiedVoxels(occupied_voxels);
-	simulator->setOccupiedVoxels(occupied_voxels_cube);
+	// simulator->setOccupiedVoxels(occupied_voxels_cube);
+	simulator->setOccupiedVoxels(occupied_voxels_tree);
 	std::thread simThread([&]()
 						  {
 		DEBUG_PRINT("Simulation thread started");
