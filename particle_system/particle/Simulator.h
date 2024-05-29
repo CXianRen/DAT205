@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "MACGrid.h"
+#include "GridData.h"
 
 #include "Solver.h"
 
@@ -14,7 +14,7 @@ class Simulator
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Simulator(std::shared_ptr<MACGrid> grids, double &time);
+  Simulator(double &time);
   ~Simulator();
 
   void update();
@@ -38,8 +38,17 @@ private:
   void advectVelocity();
   void advectScalar();
 
-  std::shared_ptr<MACGrid> m_grids;
   double &m_time;
+
+  Vec3 getCenter(int i, int j, int k)
+  {
+    double half_dx = 0.5 * VOXEL_SIZE;
+
+    double x = half_dx + i * VOXEL_SIZE;
+    double y = half_dx + j * VOXEL_SIZE;
+    double z = half_dx + k * VOXEL_SIZE;
+    return Vec3(x, y, z);
+  }
 
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];

@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Simulator::Simulator(std::shared_ptr<MACGrid> grids, double &time) : m_grids(grids), m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
+Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
 {
     // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
     tripletList.reserve(7 * SIZE);
@@ -399,7 +399,7 @@ void Simulator::advectVelocity()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_X
     {
-        Vec3 pos_u = m_grids->getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+        Vec3 pos_u = getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
         Vec3 vel_u = getVelocity(pos_u);
         pos_u -= DT * vel_u;
         u(i, j, k) = getVelocityX(pos_u);
@@ -408,7 +408,7 @@ void Simulator::advectVelocity()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Y
     {
-        Vec3 pos_v = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
+        Vec3 pos_v = getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
         Vec3 vel_v = getVelocity(pos_v);
         pos_v -= DT * vel_v;
         v(i, j, k) = getVelocityY(pos_v);
@@ -417,7 +417,7 @@ void Simulator::advectVelocity()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_FACE_Z
     {
-        Vec3 pos_w = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
+        Vec3 pos_w = getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
         Vec3 vel_w = getVelocity(pos_w);
         pos_w -= DT * vel_w;
         w(i, j, k) = getVelocityZ(pos_w);
@@ -432,7 +432,7 @@ void Simulator::advectScalar()
     OPENMP_FOR_COLLAPSE
     FOR_EACH_CELL
     {
-        Vec3 pos_cell = m_grids->getCenter(i, j, k);
+        Vec3 pos_cell = getCenter(i, j, k);
         Vec3 vel_cell = getVelocity(pos_cell);
         pos_cell -= DT * vel_cell;
         density(i, j, k) = getDensity(pos_cell);

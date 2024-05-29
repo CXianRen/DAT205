@@ -11,14 +11,9 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <thread>
 #include <mutex>
 
-#include "particle/MACGrid.h"
-
 double ttime = 0.0;
 
-// std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
-std::shared_ptr<MACGrid> grids = std::make_shared<MACGrid>();
-std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(grids, ttime);
-
+std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
 
 // lock for simulator
 std::mutex simLock;
@@ -485,19 +480,19 @@ void ControlPanel()
 	if (ImGui::Button("View Front"))
 	{
 		cameraPosition = vec3(30.f, 15.0f, 0.f);
-		cameraDirection = normalize(-vec3(1.0f,0.f, 0.f));
+		cameraDirection = normalize(-vec3(1.0f, 0.f, 0.f));
 	}
 	// set camera position
 	if (ImGui::Button("View Top"))
 	{
 		cameraPosition = vec3(0.f, 40.0f, 0.1f);
-		cameraDirection = normalize(vec3(0.0f,0.0f, 0.f) - cameraPosition);
+		cameraDirection = normalize(vec3(0.0f, 0.0f, 0.f) - cameraPosition);
 	}
 	// set camera position
 	if (ImGui::Button("View Side"))
 	{
 		cameraPosition = vec3(0.f, 15.0f, 30.f);
-		cameraDirection = normalize(-vec3(0.0f,0.f, 1.f));
+		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
 	}
 	// select the light color
 	ImGui::ColorEdit3("Light color", &point_light_color[0]);
@@ -547,18 +542,17 @@ int main(int argc, char *argv[])
 	while (!stopRendering)
 	{
 
-			// simulator->update();
-			// // update the simulator
-			// {
-			// 	std::lock_guard<std::mutex> lock(simLock);
-			// 	// copy the density
-			// 	std::copy(
-			// 		simulator->getDensity().begin(), 
-			// 		simulator->getDensity().end(), 
-			// 		density.begin()
-			// 	);
-			// }
-
+		// simulator->update();
+		// // update the simulator
+		// {
+		// 	std::lock_guard<std::mutex> lock(simLock);
+		// 	// copy the density
+		// 	std::copy(
+		// 		simulator->getDensity().begin(),
+		// 		simulator->getDensity().end(),
+		// 		density.begin()
+		// 	);
+		// }
 
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
