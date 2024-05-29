@@ -42,6 +42,12 @@ private:
 
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
+  // velocity field 
+  double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
+  
+  // vorticity field 
+   double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE];
+
 
   // solver
   std::vector<T> tripletList;

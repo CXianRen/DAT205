@@ -1,8 +1,9 @@
 #include "MACGrid.h"
 
-MACGrid::MACGrid() : avg_u(), avg_v(), avg_w(),
-                     omg_x(), omg_y(), omg_z(), vort()
-                    //  fx(), fy(), fz()
+MACGrid::MACGrid() :  vort()
+// omg_x(), omg_y(), omg_z(),
+//  avg_u(), avg_v(), avg_w(),
+//  fx(), fy(), fz()
 {
 }
 

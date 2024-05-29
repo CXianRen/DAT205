@@ -46,7 +46,8 @@ public:
     GridDataScalar temperature0, temperature;
     GridDataScalar pressure;
 
-    double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
-    double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE], vort[SIZE];
+    
+   
+    double vort[SIZE];
     
 };
