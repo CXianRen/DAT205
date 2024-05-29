@@ -26,6 +26,9 @@ private:
   void setEmitterVelocity();
   void addSource();
 
+  // a cube in the center of the domain
+  void setOccupiedVoxels();
+
   void resetForce();
   void calVorticity();
   void addForce();

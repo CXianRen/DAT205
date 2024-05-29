@@ -39,7 +39,8 @@ void Simulator::update()
     }
 
     std::cout << "m_time:" << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
-
+    
+    
     resetForce();
     calVorticity();
     addForce();
@@ -54,7 +55,7 @@ void Simulator::update()
         addSource();
         setEmitterVelocity();
     }
-    
+    setOccupiedVoxels();
     m_time += DT;
 }
 
@@ -113,8 +114,21 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    m_grids->v(i, j, k) = INIT_VELOCITY;
+                    // m_grids->v(i, j, k) = INIT_VELOCITY;
+                    // m_grids->v0(i, j, k) = m_grids->v(i, j, k);
+                    // random velocity
+                    m_grids->v(i, j, k) = INIT_VELOCITY * (rand() % 100) / 100.0;
                     m_grids->v0(i, j, k) = m_grids->v(i, j, k);
+
+                    // random velocity for x and z (-0.5, 0.5) * INIT_VELOCITY
+                    // m_grids->u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // m_grids->u0(i, j, k) = m_grids->u(i, j, k);
+
+                    // m_grids->w(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // m_grids->w0(i, j, k) = m_grids->w(i, j, k);
+
+                    
+
                 }
             }
         }
@@ -146,7 +160,9 @@ void Simulator::resetForce()
     FOR_EACH_CELL
     {
         m_grids->fx[POS(i, j, k)] = 0.0;
-        m_grids->fy[POS(i, j, k)] = -ALPHA * m_grids->density(i, j, k) + BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
+        m_grids->fy[POS(i, j, k)] = 
+            -ALPHA * m_grids->density(i, j, k) + 
+             BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
         m_grids->fz[POS(i, j, k)] = 0.0;
     }
 }
@@ -514,4 +530,62 @@ void Simulator::advectScalar()
         break;
     }
     }
+}
+
+
+void Simulator::setOccupiedVoxels(){
+    // a cube in the center of the domain
+    // int x0 = Nx / 2 - 4;
+    // int x1 = Nx / 2 + 4;
+    // int y0 = Ny / 2 - 4;
+    // int y1 = Ny / 2 + 4;
+    // int z0 = Nz / 2 - 4;
+    // int z1 = Nz / 2 + 4;
+
+    // OPENMP_FOR_COLLAPSE
+    // FOR_EACH_CELL
+    // {
+    //     if (i >= x0 && i <= x1 && j >= y0 && j <= y1 && k >= z0 && k <= z1)
+    //     {   
+            
+    //         // velocity is zero
+    //         m_grids->u(i, j, k) = 0.0;
+    //         m_grids->v(i, j, k) = 0.0;
+    //         m_grids->w(i, j, k) = 0.0;
+
+    //         // density is zero
+    //         m_grids->density(i, j, k) = 0.0;
+
+    //         // temperature is environment temperature
+    //         m_grids->temperature(i, j, k) = T_AMBIENT;
+    //     }
+    // }
+
+    // a sphere in the center of the domain, R is 5
+    int x0 = Nx / 2 - 8;
+    int x1 = Nx / 2 + 8;
+    int y0 = Ny / 2 - 8;
+    int y1 = Ny / 2 + 8;
+    int z0 = Nz / 2 - 8;
+    int z1 = Nz / 2 + 8;
+
+    OPENMP_FOR_COLLAPSE
+    FOR_EACH_CELL
+    {
+        if ((i - Nx / 2) * (i - Nx / 2) + (j - Ny / 2) * (j - Ny / 2) + (k - Nz / 2) * (k - Nz / 2) <= 64)
+        {
+            // velocity is zero
+            m_grids->u(i, j, k) = 0.0;
+            m_grids->v(i, j, k) = 0.0;
+            m_grids->w(i, j, k) = 0.0;
+
+            // density is zero
+            m_grids->density(i, j, k) = 0.0;
+
+            // temperature is environment temperature
+            m_grids->temperature(i, j, k) = T_AMBIENT;
+        }
+    }
+
+
 }
