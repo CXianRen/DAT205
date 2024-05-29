@@ -254,7 +254,6 @@ void Simulator::apply_external_force()
 void Simulator::calculate_pressure()
 {
     tripletList.clear();
-    A.setZero();
     b.setZero();
     x.setZero();
 
@@ -264,53 +263,22 @@ void Simulator::calculate_pressure()
     {
         double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
                        static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
-        double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-        double U[6];
+        
+        static double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
+        static double U[6];
+        
         U[0] = (double)(w(i, j, k));
         U[1] = (double)(v(i, j, k));
         U[2] = (double)(u(i, j, k));
         U[3] = (double)(u(i + 1, j, k));
         U[4] = (double)(v(i, j + 1, k));
         U[5] = (double)(w(i, j, k + 1));
-        double sum_F = 0.0;
 
         for (int n = 0; n < 6; ++n)
         {
-            sum_F += F[n];
             b(POS(i, j, k)) += D[n] * F[n] * U[n];
         }
         b(POS(i, j, k)) *= coeff;
-
-#pragma omp ordered
-        {
-            if (k > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j, k - 1), F[0]));
-            }
-            if (j > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j - 1, k), F[1]));
-            }
-            if (i > 0)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i - 1, j, k), F[2]));
-            }
-
-            tripletList.push_back(T(POS(i, j, k), POS(i, j, k), -sum_F));
-
-            if (i < Nx - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i + 1, j, k), F[3]));
-            }
-            if (j < Ny - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j + 1, k), F[4]));
-            }
-            if (k < Nz - 1)
-            {
-                tripletList.push_back(T(POS(i, j, k), POS(i, j, k + 1), F[5]));
-            }
-        }
     }
 
     {
@@ -318,7 +286,10 @@ void Simulator::calculate_pressure()
         if (first)
         {
             first = false;
-            A.setFromTriplets(tripletList.begin(), tripletList.end());
+            // A.setZero();
+            // A.setFromTriplets(tripletList.begin(), tripletList.end());
+            A = build_3d_laplace<double>(Nx, Ny, Nz);
+
             ICCG.compute(A);
             m_solver.compute(A);
         }

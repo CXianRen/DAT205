@@ -9,9 +9,6 @@
 #include "constants.h"
 #include "Vec3.h"
 
-
-
-
 #define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
 
 #define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
@@ -231,7 +228,6 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
     return axis_monotonicCubicInterpolation(arr_z, fractz);
 }
 
-
 #define ACC3D(x, y, z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
 
 #define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
@@ -261,15 +257,14 @@ T inline monotonicCubicInterpolation(const Vec3 &pt, T *src, const std::vector<i
 
 // calculate divergence \nobal /dot u
 
-#define GET_DIVERGENCE_2D_X(i,j, u, cols, dx) \
-    (u[ACC2D(i+1,j,cols)] - u[ACC2D(i,j,cols)] / dx)
+#define GET_DIVERGENCE_2D_X(i, j, u, cols, dx) \
+    (u[ACC2D(i + 1, j, cols)] - u[ACC2D(i, j, cols)] / dx)
 
-#define GET_DIVERGENCE_2D_Y(i,j, v, cols, dy) \
-    (v[ACC2D(i,j+1,cols)] - v[ACC2D(i,j,cols)] / dy)
+#define GET_DIVERGENCE_2D_Y(i, j, v, cols, dy) \
+    (v[ACC2D(i, j + 1, cols)] - v[ACC2D(i, j, cols)] / dy)
 
 #define GET_DIVERGENCE_2D(i, j, u, v, cols, dx, dy) \
-    (GET_DIVERGENCE_2D_X(i,j,u,cols,dx) + GET_DIVERGENCE_2D_Y(i,j,v,cols,dy))
-
+    (GET_DIVERGENCE_2D_X(i, j, u, cols, dx) + GET_DIVERGENCE_2D_Y(i, j, v, cols, dy))
 
 // build 2d laplace matrix
 // dirichlet boundary condition
@@ -328,6 +323,88 @@ Eigen::SparseMatrix<T, Eigen::RowMajor> build_2d_laplace(int Nx, int Ny)
     Eigen::SparseMatrix<T, Eigen::RowMajor> A(Nx * Ny, Nx * Ny);
     A.setFromTriplets(tripletList.begin(), tripletList.end());
 
+    return A;
+}
+
+// build 3d laplace matrix
+// dirichlet boundary condition
+// N: number of grid points
+// return: laplace matrix
+template <typename T>
+Eigen::SparseMatrix<T, Eigen::RowMajor> build_3d_laplace(int Nx, int Ny, int Nz)
+{
+    int M = Nx * Ny * Nz;
+    std::vector<Eigen::Triplet<T>> tripletList;
+    tripletList.reserve(M * 7);
+    for (int k = 0; k < Nz; k++)
+        for (int j = 0; j < Ny; j++)
+            for (int i = 0; i < Nx; i++)
+            {
+                int idx = ACC3D(i, j, k, Ny, Nx);
+                T sum = 0.0;
+
+                if (i > 0)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i - 1, j, k, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                if (i < Nx - 1)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i + 1, j, k, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                if (j > 0)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i, j - 1, k, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                if (j < Ny - 1)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i, j + 1, k, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                if (k > 0)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i, j, k - 1, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                if (k < Nz - 1)
+                {
+                    tripletList.push_back(
+                        Eigen::Triplet<T>(
+                            idx,
+                            ACC3D(i, j, k + 1, Ny, Nx),
+                            1.0));
+                    sum += 1.0f;
+                }
+                tripletList.push_back(
+                    Eigen::Triplet<T>(
+                        idx,
+                        ACC3D(i, j, k, Ny, Nx),
+                        -sum));
+            }
+    auto A = Eigen::SparseMatrix<T, Eigen::RowMajor>(M, M);
+    A.setFromTriplets(tripletList.begin(), tripletList.end());
     return A;
 }
 
