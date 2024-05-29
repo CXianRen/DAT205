@@ -228,7 +228,7 @@ void Simulator::calVorticity()
 
         Vec3 vorticity = Vec3(omg_x[POS(i, j, k)], omg_y[POS(i, j, k)], omg_z[POS(i, j, k)]);
         Vec3 f = VORT_EPS * VOXEL_SIZE * vorticity.cross(N_ijk);
-        m_grids->vort[POS(i, j, k)] = f.norm();
+        vort[POS(i, j, k)] = f.norm();
         fx[POS(i, j, k)] += f[0];
         fy[POS(i, j, k)] += f[1];
         fz[POS(i, j, k)] += f[2];

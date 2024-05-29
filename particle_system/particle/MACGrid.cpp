@@ -1,6 +1,7 @@
 #include "MACGrid.h"
 
-MACGrid::MACGrid() :  vort()
+MACGrid::MACGrid()  
+// vort()
 // omg_x(), omg_y(), omg_z(),
 //  avg_u(), avg_v(), avg_w(),
 //  fx(), fy(), fz()
