@@ -26,12 +26,13 @@ public:
     return density.m_data;
   }
 
+  void setOccupiedVoxels();
+
 private:
   void setEmitterVelocity();
   void addSource();
 
   // a cube in the center of the domain
-  void setOccupiedVoxels();
 
   /*
    * is to calculate the external force field
@@ -153,8 +154,8 @@ private:
   }
 
   // solver
-  std::vector<T> tripletList;
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> ICCG;
+  
+  EigenSolver m_e_solver;
 
   Eigen::SparseMatrix<double, Eigen::RowMajor> A;
   Eigen::VectorXd b;

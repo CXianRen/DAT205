@@ -259,13 +259,6 @@ CudaSolver::~CudaSolver()
         checkCudaErrors(cusparseDestroyDnVec(vecp));
     }
 
-    // free by Eigen
-    // free(I);
-    // free(J);
-    // free(val);
-    // free(x);
-    // free(rhs);
-
     cudaFree(d_col);
     cudaFree(d_row);
     cudaFree(d_val);

@@ -5,22 +5,19 @@
 #include <iostream>
 #include "mmath.h"
 
-Simulator::Simulator(double &time) : m_time(time), A(SIZE, SIZE), b(SIZE), x(SIZE)
+Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE)
 {
-    // nnz size is estimated by 7*SIZE because there are 7 nnz elements in a row.(center and neighbor 6)
-    tripletList.reserve(7 * SIZE);
-    ICCG.setTolerance(1e-6);
+    static auto L = build_3d_laplace<double>(Nx, Ny, Nz);
+    m_e_solver.compute(L);
+    m_solver.compute(L);
 
     /*set temperature */
-    std::random_device rnd;
-    std::mt19937 engine(rnd());
-    std::uniform_real_distribution<double> dist(800, 1000);
-
     FOR_EACH_CELL
     {
         // temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
         // temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
-        temperature(i, j, k) = dist(engine);
+        // temperature(i, j, k) = dist(engine);
+        temperature(i, j, k) = T_AMBIENT;
     }
 
     addSource();
@@ -61,6 +58,12 @@ void Simulator::update()
 /* private */
 void Simulator::addSource()
 {
+
+    std::random_device rnd;
+    std::mt19937 engine(rnd());
+    std::uniform_real_distribution<double> dist(800, 1000);
+
+
     switch (EMITTER_POS)
     {
     case E_TOP:
@@ -73,6 +76,7 @@ void Simulator::addSource()
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
                     density(i, j, k) = INIT_DENSITY;
+                    temperature(i, j, k) = dist(engine);
                 }
             }
         }
@@ -92,6 +96,7 @@ void Simulator::addSource()
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
                     density(i, j, k) = INIT_DENSITY;
+                    temperature(i, j, k) = dist(engine);
                 }
             }
         }
@@ -253,7 +258,6 @@ void Simulator::apply_external_force()
 
 void Simulator::calculate_pressure()
 {
-    tripletList.clear();
     b.setZero();
     x.setZero();
 
@@ -286,17 +290,6 @@ void Simulator::calculate_pressure()
         b(POS(i, j, k)) *= coeff;
     }
 
-    {
-        static bool first = true;
-        if (first)
-        {
-            first = false;
-            A = build_3d_laplace<double>(Nx, Ny, Nz);
-
-            ICCG.compute(A);
-            m_solver.compute(A);
-        }
-    }
     // if (ICCG.info() == Eigen::Success)
     // {
     //     printf("SUCCESS: Convergence\n");

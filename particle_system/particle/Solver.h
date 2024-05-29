@@ -26,59 +26,59 @@ public:
         Eigen::VectorXd &b) = 0;
 };
 
-// class EigenSolver : public Solver
-// {
-// public:
-//     EigenSolver()
-//     {
-//         // set tolerance
-//         ICCG.setTolerance(1e-4);
-//     }
+class EigenSolver : public Solver
+{
+public:
+    EigenSolver()
+    {
+        // set tolerance
+        ICCG.setTolerance(1e-6);
+    }
 
-//     ~EigenSolver() = default;
+    ~EigenSolver() = default;
 
-//     void setTolerance(float tol) override
-//     {
-//         ICCG.setTolerance(tol);
-//     }
+    void setTolerance(double tol) override
+    {
+        ICCG.setTolerance(tol);
+    }
 
-//     void setMaxIterations(int max_iter) override
-//     {
-//         ICCG.setMaxIterations(max_iter);
-//     }
+    void setMaxIterations(int max_iter) override
+    {
+        ICCG.setMaxIterations(max_iter);
+    }
 
-//     void getIterations(int &iter) override
-//     {
-//         iter = ICCG.iterations();
-//     }
+    void getIterations(int &iter) override
+    {
+        iter = ICCG.iterations();
+    }
 
-//     void getError(float &error) override
-//     {
-//         error = ICCG.error();
-//     }
+    void getError(double &error) override
+    {
+        error = ICCG.error();
+    }
 
-//     void compute(Eigen::SparseMatrix<float, Eigen::RowMajor> &A)
-//     {
-//         ICCG.compute(A);
-//     }
+    void compute(Eigen::SparseMatrix<double, Eigen::RowMajor> &A)
+    {
+        ICCG.compute(A);
+    }
 
-//     void solve(
-//         Eigen::VectorXf &x,
-//         Eigen::VectorXf &b) override;
+    void solve(
+        Eigen::VectorXd &x,
+        Eigen::VectorXd &b) override;
 
-//     void solveWithGuess(
-//         Eigen::VectorXf &x,
-//         Eigen::VectorXf &b) override;
+    void solveWithGuess(
+        Eigen::VectorXd &x,
+        Eigen::VectorXd &b) override;
 
-// private:
-//     Eigen::ConjugateGradient<
-//         Eigen::SparseMatrix<float>,
-//         Eigen::Lower | Eigen::Upper,
-//         // Eigen::IncompleteCholesky<float>>
-//         // Eigen::IncompleteLUT<float>>
-//         Eigen::DiagonalPreconditioner<float>>
-//         ICCG;
-// };
+private:
+    Eigen::ConjugateGradient<
+        Eigen::SparseMatrix<double>,
+        Eigen::Lower | Eigen::Upper,
+        // Eigen::IncompleteCholesky<double>>
+        // Eigen::IncompleteLUT<double>>
+        Eigen::DiagonalPreconditioner<double>>
+        ICCG;
+};
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
@@ -147,7 +147,7 @@ private:
 };
 
 // void cudaSolve(
-//     Eigen::SparseMatrix<float> &A,
+//     Eigen::SparseMatrix<double> &A,
 //     Eigen::VectorXf &b,
 //     Eigen::VectorXf &x);
 
