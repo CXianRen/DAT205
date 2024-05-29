@@ -5,8 +5,11 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include "common/debug.h"
 #include "common/globalvar.h"
+#include "common/mperf.h"
+
 #include "particle/render.h"
 #include "particle/Simulator.h"
+#include "particle/Vexelization.h"
 
 #include <thread>
 #include <mutex>
@@ -14,6 +17,8 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 double ttime = 0.0;
 
 std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
+std::string simulator_info;
+std::array<bool, SIZE> occupied_voxels = generate_vexelized_sphere(8);
 
 // lock for simulator
 std::mutex simLock;
@@ -505,6 +510,8 @@ void gui()
 	// ----------------- Set variables --------------------------
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 				ImGui::GetIO().Framerate);
+
+	ImGui::Text("Simulator Info: %s", simulator_info.c_str());
 	// ----------------------------------------------------------
 	labhelper::perf::drawEventsWindow();
 
@@ -521,6 +528,7 @@ int main(int argc, char *argv[])
 	auto startTime = std::chrono::system_clock::now();
 
 	// thred to run simulation
+	simulator->setOccupiedVoxels(occupied_voxels);
 	std::thread simThread([&]()
 						  {
 		DEBUG_PRINT("Simulation thread started");
@@ -536,23 +544,12 @@ int main(int argc, char *argv[])
 					simulator->getDensity().end(), 
 					density.begin()
 				);
+				simulator_info = simulator->get_performance_info();
 			}
 		} });
 
 	while (!stopRendering)
 	{
-
-		// simulator->update();
-		// // update the simulator
-		// {
-		// 	std::lock_guard<std::mutex> lock(simLock);
-		// 	// copy the density
-		// 	std::copy(
-		// 		simulator->getDensity().begin(),
-		// 		simulator->getDensity().end(),
-		// 		density.begin()
-		// 	);
-		// }
 
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
@@ -591,7 +588,6 @@ int main(int argc, char *argv[])
 	// Free Models
 	labhelper::freeModel(landingpadModel);
 	labhelper::freeModel(pointLight);
-
 	// Shut down everything. This includes the window and all other subsystems.
 	labhelper::shutDown(g_window);
 	return 0;

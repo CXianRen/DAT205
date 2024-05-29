@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include "mmath.h"
+#include "mperf.h"
 
 Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE)
 {
@@ -11,7 +12,7 @@ Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE)
     m_e_solver.compute(L);
     m_solver.compute(L);
 
-    /*set temperature */
+    // initial environment temperature
     FOR_EACH_CELL
     {
         // temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
@@ -35,23 +36,47 @@ void Simulator::update()
         return;
     }
 
-    std::cout << "m_time:" << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
+    clear_measurement();
 
+    T_START
     calculate_external_force();
-    calculate_vorticity();
-    apply_external_force();
-    advect_velocity();
-    calculate_pressure();
-    apply_pressure();
+    T_END("calculate_external_force")
 
+    T_START
+    calculate_vorticity();
+    T_END("calculate_vorticity")
+
+    T_START
+    apply_external_force();
+    T_END("apply_external_force")
+
+    T_START
+    advect_velocity();
+    T_END("advect_velocity")
+
+    T_START
+    calculate_pressure();
+    T_END("calculate_pressure")
+
+    T_START
+    apply_pressure();
+    T_END("apply_pressure")
+
+    T_START
     advect_scalar_field();
+    T_END("advect_scalar_field")
+
+    T_START
+    fix_occupied_voxels();
+    T_END("fix_occupied_voxels")
+
     if (m_time < EMIT_DURATION)
     {
 
         addSource();
         setEmitterVelocity();
     }
-    setOccupiedVoxels();
+
     m_time += DT;
 }
 
@@ -62,7 +87,6 @@ void Simulator::addSource()
     std::random_device rnd;
     std::mt19937 engine(rnd());
     std::uniform_real_distribution<double> dist(800, 1000);
-
 
     switch (EMITTER_POS)
     {
@@ -85,7 +109,6 @@ void Simulator::addSource()
 
     case E_BOTTOM:
     {
-
         // (32-8) / 2 = 12, (32+8) / 2 = 20
         for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
         {
@@ -304,10 +327,10 @@ void Simulator::calculate_pressure()
 
     static double err = 0.0;
     m_solver.getError(err);
-    printf("solver error: %f\n", err);
+    // printf("solver error: %f\n", err);
     static int it = 0;
     m_solver.getIterations(it);
-    printf("solver iterations: %d\n", it);
+    // printf("solver iterations: %d\n", it);
 
     // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
     // printf("estimated error: %e \n", ICCG.error());
@@ -385,61 +408,17 @@ void Simulator::advect_scalar_field()
     }
 }
 
-void Simulator::setOccupiedVoxels()
+void Simulator::fix_occupied_voxels()
 {
-    // a cube in the center of the domain
-    // int x0 = Nx / 2 - 4;
-    // int x1 = Nx / 2 + 4;
-    // int y0 = Ny / 2 - 4;
-    // int y1 = Ny / 2 + 4;
-    // int z0 = Nz / 2 - 4;
-    // int z1 = Nz / 2 + 4;
-
-    //
-    // FOR_EACH_CELL
-    // {
-    //     if (i >= x0 && i <= x1 && j >= y0 && j <= y1 && k >= z0 && k <= z1)
-    //     {
-
-    //         // velocity is zero
-    //         u(i, j, k) = 0.0;
-    //         v(i, j, k) = 0.0;
-    //         w(i, j, k) = 0.0;
-
-    //         // density is zero
-    //         density(i, j, k) = 0.0;
-
-    //         // temperature is environment temperature
-    //         temperature(i, j, k) = T_AMBIENT;
-    //     }
-    // }
-
-    // a sphere in the center of the domain, R is 5
-    int x0 = Nx / 2 - 8;
-    int x1 = Nx / 2 + 8;
-    int y0 = Ny / 2 - 8;
-    int y1 = Ny / 2 + 8;
-    int z0 = Nz / 2 - 8;
-    int z1 = Nz / 2 + 8;
-
     FOR_EACH_CELL
     {
-        if (
-            (i - Nx / 2) * (i - Nx / 2) +
-                (j - Ny / 2) * (j - Ny / 2) +
-                (k - Nz / 2) * (k - Nz / 2) <=
-            64)
+        if (m_occupied_voxels[POS(i, j, k)])
         {
-            // velocity is zero
             u(i, j, k) = 0.0;
             v(i, j, k) = 0.0;
             w(i, j, k) = 0.0;
-
-            // density is zero
-            density(i, j, k) = 0.0;
-
-            // temperature is environment temperature
             temperature(i, j, k) = T_AMBIENT;
+            density(i, j, k) = 0.0;
         }
     }
 }

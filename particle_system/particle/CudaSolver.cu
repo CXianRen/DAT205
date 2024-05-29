@@ -7,12 +7,12 @@
 #include <cuda_runtime.h>
 #include <cusparse.h>
 
-#define checkCudaErrors(err) \
-    if (err != cudaSuccess)   \
-    {                         \
-        printf("CUDA error\n"); \
+#define checkCudaErrors(err)                                         \
+    if (err != cudaSuccess)                                          \
+    {                                                                \
+        printf("CUDA error\n");                                      \
         printf("Error at line %d in file %s\n", __LINE__, __FILE__); \
-        exit(1);              \
+        exit(1);                                                     \
     }
 
 void __genLaplace(int *row_ptr, int *col_ind, float *val, int M, int N, int nz,
@@ -195,8 +195,8 @@ void CudaSolver::solve(
     cublasStatus = cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 
     k = 1;
-    printf("tol * tol = %e\n", tol * tol);
-    auto  lowest = sqrt(r1);
+    // printf("tol * tol = %e\n", tol * tol);
+    auto lowest = sqrt(r1);
     while (r1 > tol * tol && k <= max_iter)
     {
         if (k > 1)
@@ -231,8 +231,9 @@ void CudaSolver::solve(
 
         k++;
     }
-    printf("lowest error = %e\n", lowest);
-    printf("iteration = %3d, residual = %e\n", k, sqrt(r1));
+    
+    // printf("lowest error = %e\n", lowest);
+    // printf("iteration = %3d, residual = %e\n", k, sqrt(r1));
 
     // copy result back to host
     cudaMemcpy(x, d_x, N * sizeof(double), cudaMemcpyDeviceToHost);

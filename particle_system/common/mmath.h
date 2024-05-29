@@ -11,6 +11,13 @@
 
 #define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
 
+#define FOR_EACH_CELL                \
+    for (int k = 0; k < Nz; ++k)     \
+        for (int j = 0; j < Ny; ++j) \
+            for (int i = 0; i < Nx; ++i)
+
+            
+
 #define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 #define ACCESS3D_X(x, y, z) ((x) + (y) * (dims[0] + 1) + (z) * (dims[0] + 1) * dims[1])
 #define ACCESS3D_Y(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * (dims[1] + 1))

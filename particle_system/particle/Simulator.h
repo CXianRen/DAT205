@@ -1,21 +1,22 @@
 #pragma once
 #include <vector>
 #include <memory>
+
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "mmath.h"
-
 #include "MData.h"
+#include "mmath.h"
 
 #include "Solver.h"
 
-typedef Eigen::Triplet<double> T;
+#include "mperf.h"
 
 class Simulator
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   Simulator(double &time);
   ~Simulator();
 
@@ -26,14 +27,28 @@ public:
     return density.m_data;
   }
 
-  void setOccupiedVoxels();
+  std::string get_performance_info()
+  {
+    auto time_str = get_mesaurement_info();
+    // get solver info
+    int iter;
+    double error;
+    m_solver.getIterations(iter);
+    m_solver.getError(error);
+    return time_str + "Solver Iterations: " +
+           std::to_string(iter) + " Solver Error: " + std::to_string(error) + "\n";
+  }
+
+  void setOccupiedVoxels(std::array<bool, SIZE> &occupied_voxels)
+  {
+    m_occupied_voxels = occupied_voxels;
+  }
 
 private:
   void setEmitterVelocity();
   void addSource();
 
-  // a cube in the center of the domain
-
+  /**     General step in update function         **/
   /*
    * is to calculate the external force field
    * which is the buoyancy force and the gravity force
@@ -52,6 +67,7 @@ private:
   void advect_velocity();
   void advect_scalar_field();
 
+  /**   Semi-Lagarance method  **/
   double &m_time;
 
   Vec3 getCenter(int i, int j, int k)
@@ -154,7 +170,6 @@ private:
   }
 
   // solver
-  
   EigenSolver m_e_solver;
 
   Eigen::SparseMatrix<double, Eigen::RowMajor> A;
@@ -162,4 +177,9 @@ private:
   Eigen::VectorXd x;
 
   CudaSolver m_solver;
+
+  // ocuppied voxels
+  std::array<bool, SIZE> m_occupied_voxels;
+
+  void fix_occupied_voxels();
 };

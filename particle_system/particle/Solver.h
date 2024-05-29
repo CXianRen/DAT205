@@ -29,6 +29,8 @@ public:
 class EigenSolver : public Solver
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     EigenSolver()
     {
         // set tolerance
@@ -146,9 +148,6 @@ private:
     cusparseDnVecDescr_t vecAx = NULL;
 };
 
-// void cudaSolve(
-//     Eigen::SparseMatrix<double> &A,
-//     Eigen::VectorXf &b,
-//     Eigen::VectorXf &x);
+
 
 #endif // __M_CUSOLVER_H__
