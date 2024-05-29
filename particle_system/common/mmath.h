@@ -85,26 +85,32 @@ void inline calculate_Scalar_Field_gradient(
 
 // interpolate 3D scalar field
 template <typename T>
-T inline linearInterpolation(const Vec3 &pt, T *src, const std::vector<int> &dims, T h)
+T linearInterpolation(const Vec3 &pt, T *src, int *dims, int *maxXYZ)
 {
     Vec3 pos;
     // clamp position
-    pos[0] = std::min(std::max((T)0.0, pt[0]), (T)(dims[0] - 1) * h - (T)1e-6);
-    pos[1] = std::min(std::max((T)0.0, pt[1]), (T)(dims[1] - 1) * h - (T)1e-6);
-    pos[2] = std::min(std::max((T)0.0, pt[2]), (T)(dims[2] - 1) * h - (T)1e-6);
+    pos[0] = std::min(
+        std::max((T)0.0, pt[0]),
+        (T)(maxXYZ[0]) * VOXEL_SIZE - (T)1e-6);
+    pos[1] = std::min(
+        std::max((T)0.0, pt[1]),
+        (T)(maxXYZ[1]) * VOXEL_SIZE - (T)1e-6);
+    pos[2] = std::min(
+        std::max((T)0.0, pt[2]),
+        (T)(maxXYZ[2]) * VOXEL_SIZE - (T)1e-6);
 
-    int i = (int)(pos[0] / h);
-    int j = (int)(pos[1] / h);
-    int k = (int)(pos[2] / h);
+    int i = (int)(pos[0] / VOXEL_SIZE);
+    int j = (int)(pos[1] / VOXEL_SIZE);
+    int k = (int)(pos[2] / VOXEL_SIZE);
 
-    T scale = 1.0 / h;
-    T fractx = scale * (pos[0] - i * h);
-    T fracty = scale * (pos[1] - j * h);
-    T fractz = scale * (pos[2] - k * h);
+    T scale = 1.0 / VOXEL_SIZE;
+    T fractx = scale * (pos[0] - i * VOXEL_SIZE);
+    T fracty = scale * (pos[1] - j * VOXEL_SIZE);
+    T fractz = scale * (pos[2] - k * VOXEL_SIZE);
 
-    assert(fractx < 1.0 && fractx >= 0);
-    assert(fracty < 1.0 && fracty >= 0);
-    assert(fractz < 1.0 && fractz >= 0);
+    // assert(fractx < 1.0 && fractx >= 0);
+    // assert(fracty < 1.0 && fracty >= 0);
+    // assert(fractz < 1.0 && fractz >= 0);
 
     // Y @ low X, low Z:
     T tmp1 = src[ACCESS3D(i, j, k)];

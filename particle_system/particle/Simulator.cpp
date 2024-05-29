@@ -261,12 +261,17 @@ void Simulator::calculate_pressure()
 
     FOR_EACH_CELL
     {
-        double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
-                       static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
-        
+        double F[6] = {
+            static_cast<double>(k > 0),
+            static_cast<double>(j > 0),
+            static_cast<double>(i > 0),
+            static_cast<double>(i < Nx - 1),
+            static_cast<double>(j < Ny - 1),
+            static_cast<double>(k < Nz - 1)};
+
         static double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
         static double U[6];
-        
+
         U[0] = (double)(w(i, j, k));
         U[1] = (double)(v(i, j, k));
         U[2] = (double)(u(i, j, k));
@@ -286,8 +291,6 @@ void Simulator::calculate_pressure()
         if (first)
         {
             first = false;
-            // A.setZero();
-            // A.setFromTriplets(tripletList.begin(), tripletList.end());
             A = build_3d_laplace<double>(Nx, Ny, Nz);
 
             ICCG.compute(A);

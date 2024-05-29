@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
+#include "mmath.h"
+
 #include "GridData.h"
 
 #include "Solver.h"
@@ -33,14 +35,14 @@ private:
 
   /*
    * is to calculate the external force field
-    * which is the buoyancy force and the gravity force
-    * and store the result in fx, fy, fz
-    * fx, fy, fz are the external force field
-    * fx, fy, fz are the same size as the grid
-    * fx, fy, fz are the force field in x, y, z direction
-    * fx, fy, fz are the force field at the center of the grid
-    * f_buoyancy = alpha * density * (0, 1, 0) + beta * (T - T_ambient) * (0, 1, 0)
-  */
+   * which is the buoyancy force and the gravity force
+   * and store the result in fx, fy, fz
+   * fx, fy, fz are the external force field
+   * fx, fy, fz are the same size as the grid
+   * fx, fy, fz are the force field in x, y, z direction
+   * fx, fy, fz are the force field at the center of the grid
+   * f_buoyancy = alpha * density * (0, 1, 0) + beta * (T - T_ambient) * (0, 1, 0)
+   */
   void calculate_external_force();
   void calculate_vorticity();
   void apply_external_force();
@@ -77,17 +79,42 @@ private:
     vel[2] = getVelocityZ(pos);
     return vel;
   }
+
   double getVelocityX(const Vec3 &pos)
   {
-    return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
+    static int dim[3] = {Nx + 1, Ny, Nz};
+    static int maxIndex[3] = {Nx, Ny - 1, Nz - 1};
+    static Vec3 offset = 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE);
+    return linearInterpolation<double>(
+        pos - offset,
+        u0.m_data.data(),
+        dim,
+        maxIndex);
+    // return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
   }
   double getVelocityY(const Vec3 &pos)
   {
-    return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
+    static int dim[3] = {Nx, Ny + 1, Nz};
+    static int maxIndex[3] = {Nx - 1, Ny, Nz - 1};
+    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE);
+    return linearInterpolation<double>(
+        pos - offset,
+        v0.m_data.data(),
+        dim,
+        maxIndex);
+    // return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
   }
   double getVelocityZ(const Vec3 &pos)
   {
-    return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
+    static int dim[3] = {Nx, Ny, Nz + 1};
+    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz};
+    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0);
+    return linearInterpolation<double>(
+        pos - offset,
+        w0.m_data.data(),
+        dim,
+        maxIndex);
+    // return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
   }
 
   // vorticity field
