@@ -24,10 +24,10 @@ constexpr double DT = 0.01;
 
 constexpr double VOXEL_SIZE = 1.0;
 constexpr double INIT_DENSITY = 1.0;
-constexpr double INIT_VELOCITY = 0.0;
+constexpr double INIT_VELOCITY = 10.0;
 constexpr double T_AMBIENT = 25.0;
 
-constexpr double VORT_EPS = 20.0;
+constexpr double VORT_EPS = 30.0;
 constexpr double ALPHA = -0.1;
 constexpr double BETA = 5.0;
 

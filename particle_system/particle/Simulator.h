@@ -44,6 +44,21 @@ public:
     m_occupied_voxels = occupied_voxels;
   }
 
+  void reset(){
+    density.m_data.fill(0.0);
+    density0.m_data.fill(0.0);
+    temperature.m_data.fill(T_AMBIENT);
+    temperature0.m_data.fill(T_AMBIENT);
+    u.m_data.fill(0.0);
+    u0.m_data.fill(0.0);
+    v.m_data.fill(0.0);
+    v0.m_data.fill(0.0);
+    w.m_data.fill(0.0);
+    w0.m_data.fill(0.0);
+    pressure.m_data.fill(0.0);
+    m_time = 0.0;
+  }
+
 private:
   void setEmitterVelocity();
   void addSource();

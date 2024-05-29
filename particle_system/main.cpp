@@ -21,9 +21,12 @@ std::string simulator_info;
 
 std::array<bool, SIZE> occupied_voxels_sphere = generate_vexelized_sphere((int)(10));
 std::array<bool, SIZE> occupied_voxels_cube = generate_vexelized_cube((int)(12));
+std::array<bool, SIZE> empty_voxels;
 
 float tree_max_length = 0.0f;
 std::array<bool, SIZE> occupied_voxels_tree;
+
+int case_id = 0;
 
 // lock for simulator
 std::mutex simLock;
@@ -66,7 +69,7 @@ const std::string envmap_base_name = "001";
 vec3 lightPosition;
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
-float point_light_intensity_multiplier = 100000.0f;
+float point_light_intensity_multiplier = 50000.0f;
 bool step_light = true;
 float light_rotation_step = 0.01f;
 
@@ -164,6 +167,9 @@ void initialize()
 
 	occupied_voxels_tree = generate_vexel(generalModel->m_positions, tree_max_length);
 
+	empty_voxels = std::array<bool, SIZE>();
+	std::fill(empty_voxels.begin(), empty_voxels.end(), false);
+
 	// occupied_voxels_sphere = generate_vexel(sphereModel->m_positions, sphere_max_length);
 
 	// occupied_voxels_cube = generate_vexel(cubeModel->m_positions, cube_max_length);
@@ -182,7 +188,7 @@ void initialize()
 	mmRender = new SmokeRenderer();
 	// mmRender->set_occupied_texture(occupied_voxels_cube);
 	// mmRender->set_occupied_texture(occupied_voxels_sphere);
-	mmRender->set_occupied_texture(occupied_voxels_tree);
+	// mmRender->set_occupied_texture(occupied_voxels_tree);
 
 	///////////////////////////////////////////////////////////////////////
 	// Load environment map
@@ -336,7 +342,50 @@ void drawScene(GLuint currentShaderProgram,
 
 	// debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
 	// debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
-	debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
+	// debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
+
+	switch (case_id){
+		case 0:
+			break;
+		case 1:
+			debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
+			break;
+		case 2:
+			debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
+			break;
+		case 3:
+			debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
+			break;
+		
+		default:
+			break;
+	}
+
+	{
+		static int current_case = -1;
+		if(current_case != case_id){
+			current_case = case_id;
+			switch (case_id)
+			{
+			case 0:
+				mmRender->set_occupied_texture(empty_voxels);
+				break;
+			case 1:
+				mmRender->set_occupied_texture(occupied_voxels_sphere);
+				break;
+			case 2:
+				mmRender->set_occupied_texture(occupied_voxels_cube);
+				break;
+			case 3:
+				mmRender->set_occupied_texture(occupied_voxels_tree);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+
 	{
 		labhelper::perf::Scope s("render smoke");
 
@@ -431,9 +480,7 @@ void display(void)
 
 	glActiveTexture(GL_TEXTURE0);
 
-	///////////////////////////////////////////////////////////////////////////
-	// Draw scene from security camera
-	///////////////////////////////////////////////////////////////////////////
+
 	// FboInfo &securityCamFBO = FBOList[0];
 	// glBindFramebuffer(GL_FRAMEBUFFER, securityCamFBO.framebufferId);
 	// glViewport(0, 0, securityCamFBO.width, securityCamFBO.height);
@@ -571,6 +618,29 @@ void ControlPanel()
 	{
 		light_rotation_step += 0.01f;
 	}
+
+
+	if (ImGui::Button("Case 0: Empty"))
+	{
+		case_id = 0;
+	}
+
+	if (ImGui::Button("Case 1: Sphere"))
+	{
+		case_id = 1;
+	}
+
+	if (ImGui::Button("Case 2: Cube"))
+	{
+		case_id = 2;
+	}
+
+	if (ImGui::Button("Case 3: Tree"))
+	{
+		case_id = 3;
+	}
+
+
 	// set camera position
 	if (ImGui::Button("View Front"))
 	{
@@ -620,12 +690,36 @@ int main(int argc, char *argv[])
 	// thred to run simulation
 	// simulator->setOccupiedVoxels(occupied_voxels_sphere);
 	// simulator->setOccupiedVoxels(occupied_voxels_cube);
-	simulator->setOccupiedVoxels(occupied_voxels_tree);
+	// simulator->setOccupiedVoxels(occupied_voxels_tree);
+
 	std::thread simThread([&]()
 						  {
 		DEBUG_PRINT("Simulation thread started");
 		while (!stopRendering)
-		{
+		{	
+			static int current_case = -1;
+			if(current_case != case_id){
+				current_case = case_id;
+				switch (case_id)
+				{
+				case 0:
+					simulator->setOccupiedVoxels(empty_voxels);
+					break;
+				case 1:
+					simulator->setOccupiedVoxels(occupied_voxels_sphere);
+					break;
+				case 2:
+					simulator->setOccupiedVoxels(occupied_voxels_cube);
+					break;
+				case 3:
+					simulator->setOccupiedVoxels(occupied_voxels_tree);
+					break;
+				default:
+					break;
+				}
+				simulator->reset();
+			}
+
 			simulator->update();
 			// update the simulator
 			{
