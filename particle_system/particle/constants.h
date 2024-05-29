@@ -7,11 +7,6 @@ enum E_METHOD
     E_MONOTONIC_CUBIC = 1
 };
 
-enum E_ADVECTION
-{
-    E_SEMI_LAGRANGE = 0,
-    E_MAC_CORMACK = 1
-};
 
 enum E_EMITTER_POS
 {
@@ -22,9 +17,9 @@ enum E_EMITTER_POS
 constexpr int N = 50;
 constexpr int ratio[3] = {1, 2, 1}; // X, Y, Z
 constexpr E_METHOD INTERPOLATION_METHOD = E_LINEAR;
-constexpr E_ADVECTION ADVECTION_METHOD = E_SEMI_LAGRANGE;
+
 constexpr E_EMITTER_POS EMITTER_POS = E_TOP;
-constexpr bool OFFSCREEN_MODE = false;
+
 
 // 32, 64, 32
 constexpr int Nx = ratio[0] * N, Ny = ratio[1] * N, Nz = ratio[2] * N;

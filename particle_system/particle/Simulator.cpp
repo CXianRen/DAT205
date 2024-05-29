@@ -39,15 +39,14 @@ void Simulator::update()
     }
 
     std::cout << "m_time:" << m_time << " EEMIT_DURATION:" << EMIT_DURATION << std::endl;
-    
-    
+
     resetForce();
     calVorticity();
     addForce();
     advectVelocity();
     calPressure();
     applyPressureTerm();
-    
+
     advectScalar();
     if (m_time < EMIT_DURATION)
     {
@@ -126,9 +125,6 @@ void Simulator::setEmitterVelocity()
 
                     // m_grids->w(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
                     // m_grids->w0(i, j, k) = m_grids->w(i, j, k);
-
-                    
-
                 }
             }
         }
@@ -160,9 +156,9 @@ void Simulator::resetForce()
     FOR_EACH_CELL
     {
         m_grids->fx[POS(i, j, k)] = 0.0;
-        m_grids->fy[POS(i, j, k)] = 
-            -ALPHA * m_grids->density(i, j, k) + 
-             BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
+        m_grids->fy[POS(i, j, k)] =
+            -ALPHA * m_grids->density(i, j, k) +
+            BETA * (m_grids->temperature(i, j, k) - T_AMBIENT);
         m_grids->fz[POS(i, j, k)] = 0.0;
     }
 }
@@ -273,7 +269,7 @@ void Simulator::calPressure()
     FOR_EACH_CELL
     {
         double F[6] = {static_cast<double>(k > 0), static_cast<double>(j > 0), static_cast<double>(i > 0),
-                      static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
+                       static_cast<double>(i < Nx - 1), static_cast<double>(j < Ny - 1), static_cast<double>(k < Nz - 1)};
         double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
         double U[6];
         U[0] = (double)(m_grids->w(i, j, k));
@@ -348,10 +344,10 @@ void Simulator::calPressure()
 
     static double err = 0.0;
     m_solver.getError(err);
-    printf("solver error: %f\n",err);
+    printf("solver error: %f\n", err);
     static int it = 0;
     m_solver.getIterations(it);
-    printf("solver iterations: %d\n", it );
+    printf("solver iterations: %d\n", it);
 
     // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
     // printf("estimated error: %e \n", ICCG.error());
@@ -367,7 +363,7 @@ void Simulator::calPressure()
         {
             for (int i = 0; i < Nx; ++i)
             {
-                m_grids->pressure(i, j, k) = x(POS(i, j, k))* (VOXEL_SIZE / DT);
+                m_grids->pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
             }
         }
     }
@@ -400,89 +396,31 @@ void Simulator::advectVelocity()
     std::copy(m_grids->v.begin(), m_grids->v.end(), m_grids->v0.begin());
     std::copy(m_grids->w.begin(), m_grids->w.end(), m_grids->w0.begin());
 
-    switch (ADVECTION_METHOD)
+    OPENMP_FOR_COLLAPSE
+    FOR_EACH_FACE_X
     {
-    case E_SEMI_LAGRANGE:
-    {
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_X
-        {
-            Vec3 pos_u = m_grids->getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
-            Vec3 vel_u = m_grids->getVelocity(pos_u);
-            pos_u -= DT * vel_u;
-            m_grids->u(i, j, k) = m_grids->getVelocityX(pos_u);
-        }
-
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_Y
-        {
-            Vec3 pos_v = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
-            Vec3 vel_v = m_grids->getVelocity(pos_v);
-            pos_v -= DT * vel_v;
-            m_grids->v(i, j, k) = m_grids->getVelocityY(pos_v);
-        }
-
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_Z
-        {
-            Vec3 pos_w = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
-            Vec3 vel_w = m_grids->getVelocity(pos_w);
-            pos_w -= DT * vel_w;
-            m_grids->w(i, j, k) = m_grids->getVelocityZ(pos_w);
-        }
-        break;
+        Vec3 pos_u = m_grids->getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+        Vec3 vel_u = m_grids->getVelocity(pos_u);
+        pos_u -= DT * vel_u;
+        m_grids->u(i, j, k) = m_grids->getVelocityX(pos_u);
     }
 
-    case E_MAC_CORMACK:
+    OPENMP_FOR_COLLAPSE
+    FOR_EACH_FACE_Y
     {
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_X
-        {
-            double u_n = m_grids->u0(i, j, k);
-            Vec3 pos_u = m_grids->getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
-            Vec3 vel_u = m_grids->getVelocity(pos_u);
-            // forward advection
-            pos_u -= DT * vel_u;
-            double u_np1_hat = m_grids->getVelocityX(pos_u);
-            // backward advection
-            pos_u += DT * m_grids->getVelocity(pos_u);
-            double u_n_hat = m_grids->getVelocityX(pos_u);
-
-            m_grids->u(i, j, k) = u_np1_hat + 0.5 * (u_n - u_n_hat);
-        }
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_Y
-        {
-            double v_n = m_grids->v0(i, j, k);
-            Vec3 pos_v = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
-            Vec3 vel_v = m_grids->getVelocity(pos_v);
-            // forward advection
-            pos_v -= DT * vel_v;
-            double v_np1_hat = m_grids->getVelocityY(pos_v);
-            // backward advection
-            pos_v += DT * m_grids->getVelocity(pos_v);
-            double v_n_hat = m_grids->getVelocityY(pos_v);
-
-            m_grids->v(i, j, k) = v_np1_hat + 0.5 * (v_n - v_n_hat);
-        }
-
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_FACE_Z
-        {
-            double w_n = m_grids->w0(i, j, k);
-            Vec3 pos_w = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
-            Vec3 vel_w = m_grids->getVelocity(pos_w);
-            // forward advection
-            pos_w -= DT * vel_w;
-            double w_np1_hat = m_grids->getVelocityZ(pos_w);
-            // backward advection
-            pos_w += DT * m_grids->getVelocity(pos_w);
-            double w_n_hat = m_grids->getVelocityZ(pos_w);
-
-            m_grids->w(i, j, k) = w_np1_hat + 0.5 * (w_n - w_n_hat);
-        }
-        break;
+        Vec3 pos_v = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
+        Vec3 vel_v = m_grids->getVelocity(pos_v);
+        pos_v -= DT * vel_v;
+        m_grids->v(i, j, k) = m_grids->getVelocityY(pos_v);
     }
+
+    OPENMP_FOR_COLLAPSE
+    FOR_EACH_FACE_Z
+    {
+        Vec3 pos_w = m_grids->getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
+        Vec3 vel_w = m_grids->getVelocity(pos_w);
+        pos_w -= DT * vel_w;
+        m_grids->w(i, j, k) = m_grids->getVelocityZ(pos_w);
     }
 }
 
@@ -491,49 +429,19 @@ void Simulator::advectScalar()
     std::copy(m_grids->density.begin(), m_grids->density.end(), m_grids->density0.begin());
     std::copy(m_grids->temperature.begin(), m_grids->temperature.end(), m_grids->temperature0.begin());
 
-    switch (ADVECTION_METHOD)
+    OPENMP_FOR_COLLAPSE
+    FOR_EACH_CELL
     {
-    case E_SEMI_LAGRANGE:
-    {
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_CELL
-        {
-            Vec3 pos_cell = m_grids->getCenter(i, j, k);
-            Vec3 vel_cell = m_grids->getVelocity(pos_cell);
-            pos_cell -= DT * vel_cell;
-            m_grids->density(i, j, k) = m_grids->getDensity(pos_cell);
-            m_grids->temperature(i, j, k) = m_grids->getTemperature(pos_cell);
-        }
-        break;
-    }
-    case E_MAC_CORMACK:
-    {
-        OPENMP_FOR_COLLAPSE
-        FOR_EACH_CELL
-        {
-            double d_n = m_grids->density(i, j, k);
-            double t_n = m_grids->temperature(i, j, k);
-            Vec3 pos_cell = m_grids->getCenter(i, j, k);
-            Vec3 vel_cell = m_grids->getVelocity(pos_cell);
-            // forward advection
-            pos_cell -= DT * vel_cell;
-            double d_np1_hat = m_grids->getDensity(pos_cell);
-            double t_np1_hat = m_grids->getTemperature(pos_cell);
-            // backward advection
-            pos_cell += DT * m_grids->getVelocity(pos_cell);
-            double d_n_hat = m_grids->getDensity(pos_cell);
-            double t_n_hat = m_grids->getTemperature(pos_cell);
-
-            m_grids->density(i, j, k) = d_np1_hat + 0.5 * (d_n - d_n_hat);
-            m_grids->temperature(i, j, k) = t_np1_hat + 0.5 * (t_n - t_n_hat);
-        }
-        break;
-    }
+        Vec3 pos_cell = m_grids->getCenter(i, j, k);
+        Vec3 vel_cell = m_grids->getVelocity(pos_cell);
+        pos_cell -= DT * vel_cell;
+        m_grids->density(i, j, k) = m_grids->getDensity(pos_cell);
+        m_grids->temperature(i, j, k) = m_grids->getTemperature(pos_cell);
     }
 }
 
-
-void Simulator::setOccupiedVoxels(){
+void Simulator::setOccupiedVoxels()
+{
     // a cube in the center of the domain
     // int x0 = Nx / 2 - 4;
     // int x1 = Nx / 2 + 4;
@@ -546,8 +454,8 @@ void Simulator::setOccupiedVoxels(){
     // FOR_EACH_CELL
     // {
     //     if (i >= x0 && i <= x1 && j >= y0 && j <= y1 && k >= z0 && k <= z1)
-    //     {   
-            
+    //     {
+
     //         // velocity is zero
     //         m_grids->u(i, j, k) = 0.0;
     //         m_grids->v(i, j, k) = 0.0;
@@ -586,6 +494,4 @@ void Simulator::setOccupiedVoxels(){
             m_grids->temperature(i, j, k) = T_AMBIENT;
         }
     }
-
-
 }
