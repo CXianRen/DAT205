@@ -31,6 +31,8 @@ int case_id = 0;
 // lock for simulator
 std::mutex simLock;
 std::array<double, SIZE> density;
+float smoke_factor = 10.f;
+int enable_light_tracing = 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -152,18 +154,17 @@ void initialize()
 	generalModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
 
 	float scale_factor = 10.f;
-	testModelMatrix = translate(scale_factor * worldUp);
-	testModelMatrix *= scale(vec3(scale_factor, scale_factor, scale_factor));
+	// testModelMatrix = mat4(1.0f);
+	// testModelMatrix = translate(scale_factor * worldUp);
+	testModelMatrix = scale(1.f * vec3(scale_factor, scale_factor, scale_factor));
 
-	sphereModelMatrix = translate(scale_factor * worldUp);
-	sphereModelMatrix *= scale(scale_factor * vec3(8.0 / Nx, 8.0 / Nx, 8.0 / Nx));
+	sphereModelMatrix = translate(scale_factor * vec3(1, 1, 0));
+	// sphereModelMatrix *= scale(scale_factor * vec3(8.0 / Nx, 8.0 / Nx, 8.0 / Nx));
 
-	
-	cubeModelMatrix  = translate(vec3(-0.5, -0.5, -0.5));
-	cubeModelMatrix *= translate((scale_factor) * worldUp);
+	cubeModelMatrix = translate(vec3(-0.5, -0.5, -0.5));
+	cubeModelMatrix *= translate((scale_factor)*worldUp);
 
 	cubeModelMatrix *= scale(scale_factor * vec3(12.0 / Nx, 12.0 / Nx, 12.0 / Nx));
-
 
 	occupied_voxels_tree = generate_vexel(generalModel->m_positions, tree_max_length);
 
@@ -173,7 +174,6 @@ void initialize()
 	// occupied_voxels_sphere = generate_vexel(sphereModel->m_positions, sphere_max_length);
 
 	// occupied_voxels_cube = generate_vexel(cubeModel->m_positions, cube_max_length);
-
 
 	float offset = (scale_factor * 2.0f / Nx);
 	//@todo a bug, need to fix, walk around using offset
@@ -302,25 +302,25 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
 
 	// landing pad
-	{
-		labhelper::perf::Scope s("Landing pad");
-		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-								  projectionMatrix * viewMatrix * landingPadModelMatrix);
-		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
-		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-								  inverse(transpose(viewMatrix * landingPadModelMatrix)));
-		labhelper::render(landingpadModel);
-	}
+	// {
+	// 	labhelper::perf::Scope s("Landing pad");
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 							  projectionMatrix * viewMatrix * landingPadModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 							  inverse(transpose(viewMatrix * landingPadModelMatrix)));
+	// 	labhelper::render(landingpadModel);
+	// }
 
 	// draw an object
-	// {
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 							  projectionMatrix * viewMatrix * sphereModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * sphereModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 							  inverse(transpose(viewMatrix * sphereModelMatrix)));
-	// 	labhelper::render(sphereModel);
-	// }
+	{
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+								  projectionMatrix * viewMatrix * sphereModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * sphereModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+								  inverse(transpose(viewMatrix * sphereModelMatrix)));
+		labhelper::render(sphereModel);
+	}
 	// {
 	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
 	// 							  projectionMatrix * viewMatrix * cubeModelMatrix);
@@ -344,26 +344,28 @@ void drawScene(GLuint currentShaderProgram,
 	// debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
 	// debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
 
-	switch (case_id){
-		case 0:
-			break;
-		case 1:
-			debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
-			break;
-		case 2:
-			debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
-			break;
-		case 3:
-			debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
-			break;
-		
-		default:
-			break;
+	switch (case_id)
+	{
+	case 0:
+		break;
+	case 1:
+		debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
+		break;
+	case 2:
+		debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
+		break;
+	case 3:
+		debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
+		break;
+
+	default:
+		break;
 	}
 
 	{
 		static int current_case = -1;
-		if(current_case != case_id){
+		if (current_case != case_id)
+		{
 			current_case = case_id;
 			switch (case_id)
 			{
@@ -385,7 +387,6 @@ void drawScene(GLuint currentShaderProgram,
 		}
 	}
 
-
 	{
 		labhelper::perf::Scope s("render smoke");
 
@@ -396,11 +397,13 @@ void drawScene(GLuint currentShaderProgram,
 		labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
 		labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", point_light_intensity_multiplier);
 		labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
+		labhelper::setUniformSlow(smokeProgram, "factor", smoke_factor);
+		labhelper::setUniformSlow(smokeProgram, "enable_light_tracing", enable_light_tracing);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		// mmRender->render(generateSphereDensity());
-
+		// mmRender->render(generateCubeDensity());
 		// try to lock the simulator
 		{
 			std::lock_guard<std::mutex> lock(simLock);
@@ -410,7 +413,7 @@ void drawScene(GLuint currentShaderProgram,
 		glDisable(GL_BLEND);
 
 		glDisable(GL_DEPTH_TEST);
-		mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
+		// mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
 		glEnable(GL_DEPTH_TEST);
 
 		// draw a line
@@ -452,12 +455,12 @@ void display(void)
 	///////////////////////////////////////////////////////////////////////////
 	// setup matrices
 	///////////////////////////////////////////////////////////////////////////
-	mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
+	mat4 projMatrix = perspective(radians(40.0f), float(windowWidth) / float(windowHeight), 10.f, 1000.0f);
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
 	static vec3 wheatley_position(-35.0f, 35.0f, -35.0f);
 
-	static vec4 lightStartPosition = vec4(80.0f, 80.0f, 80.0f, 1.0f);
+	static vec4 lightStartPosition = vec4(80.0f, 25.0f, 25.0f, 1.0f);
 	if (!step_light)
 	{
 
@@ -479,7 +482,6 @@ void display(void)
 	glBindTexture(GL_TEXTURE_2D, reflectionMap);
 
 	glActiveTexture(GL_TEXTURE0);
-
 
 	// FboInfo &securityCamFBO = FBOList[0];
 	// glBindFramebuffer(GL_FRAMEBUFFER, securityCamFBO.framebufferId);
@@ -613,12 +615,18 @@ void ControlPanel()
 {
 	ImGui::Begin("Control panel");
 	ImGui::SliderFloat("Light intensity", &point_light_intensity_multiplier, 0.0f, 100000.0f);
+	ImGui::SliderFloat("Smoke factor", &smoke_factor, 0.0f, 100.0f);
 	ImGui::Selectable("Step light", &step_light, 0, ImVec2(0, 0));
+	if (ImGui::Button("enable_light_tracing"))
+	{
+		enable_light_tracing = !enable_light_tracing;
+		std::cout << "enable_light_tracing: " << enable_light_tracing << std::endl;
+	}
+
 	if (ImGui::Button("Light move one step") && step_light)
 	{
 		light_rotation_step += 0.01f;
 	}
-
 
 	if (ImGui::Button("Case 0: Empty"))
 	{
@@ -640,7 +648,6 @@ void ControlPanel()
 		case_id = 3;
 	}
 
-
 	// set camera position
 	if (ImGui::Button("View Front"))
 	{
@@ -656,7 +663,7 @@ void ControlPanel()
 	// set camera position
 	if (ImGui::Button("View Side"))
 	{
-		cameraPosition = vec3(0.f, 15.0f, 30.f);
+		cameraPosition = vec3(5.f, 5.0f, 20.f);
 		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
 	}
 	// select the light color

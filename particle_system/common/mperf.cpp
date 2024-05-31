@@ -25,14 +25,8 @@ void clear_measurement()
 std::string get_mesaurement_info()
 {
     std::stringstream ss;
-    // total time
-    double total_time = 0.0;
-    for (int i = 0; i < times.size(); i++)
-    {
-        total_time += times[i];
-    }
     // .3f means 3 decimal places
-    ss << "Total time: " << std::setprecision(3) << total_time << " ms\n";
+    // ss << "Total time: " << std::setprecision(3) << total_time << " ms\n";
 
     for (int i = 0; i < desc.size(); i++)
     {

@@ -78,7 +78,6 @@ SmokeRenderer::SmokeRenderer()
     glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
     glBindTexture(GL_TEXTURE_3D, 0);
 
-
     DEBUG_PRINT("SmokeRenderer::SmokeRenderer() end\n");
 }
 
@@ -86,7 +85,6 @@ SmokeRenderer::~SmokeRenderer()
 {
     glDeleteTextures(1, &textureID);
 }
-
 
 void SmokeRenderer::set_occupied_texture(std::array<bool, SIZE> &vexels)
 {
@@ -116,21 +114,20 @@ void SmokeRenderer::set_occupied_texture(std::array<bool, SIZE> &vexels)
             }
         }
     }
+
     glTexImage3D(GL_TEXTURE_3D,
-                0,                // mip map level, 0 means no mip map
-                GL_RED,           // internal format, single channel, 8-bit data, red
-                Nx,               // width
-                Ny,               // height
-                Nz,               // depth
-                0,                // border size
-                GL_RED,           // format of the pixel data
-                GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
-                data);
+                 0,                // mip map level, 0 means no mip map
+                 GL_RED,           // internal format, single channel, 8-bit data, red
+                 Nx,               // width
+                 Ny,               // height
+                 Nz,               // depth
+                 0,                // border size
+                 GL_RED,           // format of the pixel data
+                 GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
+                 data);
 
     glBindTexture(GL_TEXTURE_3D, 0);
-    
 }
-
 
 void SmokeRenderer::render(std::array<double, SIZE> &density)
 {
@@ -139,9 +136,8 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
     {
         glBindTexture(GL_TEXTURE_3D, textureID);
 
-        // @todo: set the texture parameters GL_CLAMP_TO_BORDER is not supported ?
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -149,8 +145,10 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        GLubyte *data = new GLubyte[SIZE];
+        static GLubyte *data = new GLubyte[SIZE];
         GLubyte *ptr = data;
+        // float *data = new float[SIZE];
+        // float *ptr = data;
 
         for (int z = 0; z < Nz; ++z)
         {
@@ -160,19 +158,35 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
                 {
                     auto f = density[POS(x, y, z)];
                     *ptr++ = std::max(0, std::min(255, (int)std::floor(f * 256.0)));
+                    // *ptr = f;
+                    // ptr++;
                 }
             }
         }
+
         glTexImage3D(GL_TEXTURE_3D,
-                    0,                // mip map level, 0 means no mip map
-                    GL_RED,           // internal format, single channel, 8-bit data, red
-                    Nx,               // width
-                    Ny,               // height
-                    Nz,               // depth
-                    0,                // border size
-                    GL_RED,           // format of the pixel data
-                    GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
-                    data);
+                     0,                // mip map level, 0 means no mip map
+                     GL_RED,           // internal format, single channel, 8-bit data, red
+                     Nx,               // width
+                     Ny,               // height
+                     Nz,               // depth
+                     0,                // border size
+                     GL_RED,           // format of the pixel data
+                     GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
+                     data);
+
+        // glTexImage3D(GL_TEXTURE_3D,
+        //             0,                // mip map level, 0 means no mip map
+        //             GL_R32F,           // internal format, single channel, 8-bit data, red
+        //             Nx,               // width
+        //             Ny,               // height
+        //             Nz,               // depth
+        //             0,                // border size
+        //             GL_RED,           // format of the pixel data
+        //             GL_FLOAT, // data type of the pixel data, each pixel is a byte
+        //             data);
+
+        // delete[] data;
 
         glBindTexture(GL_TEXTURE_3D, 0);
 
@@ -186,9 +200,13 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
         glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
 
         // 36 : the number of indices (12 triangles * 3 vertices per triangle)
+        // only the edge of the cube is rendered
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        // glDisable(GL_CULL_FACE);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        // glEnable(GL_CULL_FACE);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-    
 }
 
 void SmokeRenderer::render_frame(const glm::mat4 &projectionViewMatrix)

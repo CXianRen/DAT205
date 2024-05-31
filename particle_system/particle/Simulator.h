@@ -124,6 +124,7 @@ private:
         maxIndex);
     // return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
   }
+  
   double getVelocityY(const Vec3 &pos)
   {
     static int dim[3] = {Nx, Ny + 1, Nz};
@@ -198,3 +199,10 @@ private:
 
   void fix_occupied_voxels();
 };
+
+std::array<double, SIZE>&
+generateSphereDensity();
+
+
+std::array<double, SIZE>&
+generateCubeDensity();

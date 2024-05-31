@@ -39,6 +39,8 @@ void Simulator::update()
     clear_measurement();
 
     T_START
+
+    T_START
     calculate_external_force();
     T_END("calculate_external_force")
 
@@ -69,6 +71,8 @@ void Simulator::update()
     T_START
     fix_occupied_voxels();
     T_END("fix_occupied_voxels")
+
+    T_END("update total")
 
     if (m_time < EMIT_DURATION)
     {
@@ -290,10 +294,11 @@ void Simulator::apply_external_force()
 void Simulator::calculate_pressure()
 {
     b.setZero();
-    x.setZero();
+    // x.setZero();
 
     double coeff = 1.0;
 
+    T_START
     FOR_EACH_CELL
     {
         double F[6] = {
@@ -321,17 +326,11 @@ void Simulator::calculate_pressure()
         b(POS(i, j, k)) *= coeff;
     }
 
-    // if (ICCG.info() == Eigen::Success)
-    // {
-    //     printf("SUCCESS: Convergence\n");
-    // }
-    // else
-    // {
-    //     fprintf(stderr, "FAILED: No Convergence\n");
-    // }
-    // x = ICCG.solve(b);
+    T_END("\tBuild b")
 
+    T_START
     m_solver.solve(x, b);
+    T_END("\tSolve")
 
     static double err = 0.0;
     m_solver.getError(err);
@@ -342,11 +341,14 @@ void Simulator::calculate_pressure()
 
     // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
     // printf("estimated error: %e \n", ICCG.error());
-
+    static float t_coeff = (VOXEL_SIZE / DT);
+    T_START
     FOR_EACH_CELL
     {
-        pressure(i, j, k) = x(POS(i, j, k)) * (VOXEL_SIZE / DT);
+        // pressure(i, j, k) = x(POS(i, j, k)) * t_coeff;
+        pressure.m_data[POS(i, j, k)] = x(POS(i, j, k)) * t_coeff;
     }
+    T_END("\tUpdate pressure")
 }
 
 void Simulator::apply_pressure()
@@ -372,31 +374,62 @@ void Simulator::apply_pressure()
 
 void Simulator::advect_velocity()
 {
+    T_START
     std::copy(u.begin(), u.end(), u0.begin());
     std::copy(v.begin(), v.end(), v0.begin());
     std::copy(w.begin(), w.end(), w0.begin());
+    T_END("\tcopy data")
 
-    FOR_EACH_FACE_X
+    Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+    // T_START
+    // FOR_EACH_FACE_X
+    // {
+    //     Vec3 pos_u = getCenter(i, j, k) - offset;
+    //     Vec3 vel_u = getVelocity(pos_u);
+    //     pos_u -= DT * vel_u;
+    //     u(i, j, k) = getVelocityX(pos_u);
+    // }
+    // T_END("\tadvect u")
+
+    // T_START
+    // offset = 0.5 * Vec3(0, VOXEL_SIZE, 0);
+    // FOR_EACH_FACE_Y
+    // {
+    //     Vec3 pos_v = getCenter(i, j, k) - offset;
+    //     Vec3 vel_v = getVelocity(pos_v);
+    //     pos_v -= DT * vel_v;
+    //     v(i, j, k) = getVelocityY(pos_v);
+    // }
+    // T_END("\tadvect v")
+
+    // T_START
+    // offset = 0.5 * Vec3(0, 0, VOXEL_SIZE);
+    // FOR_EACH_FACE_Z
+    // {
+    //     Vec3 pos_w = getCenter(i, j, k) - offset;
+    //     Vec3 vel_w = getVelocity(pos_w);
+    //     pos_w -= DT * vel_w;
+    //     w(i, j, k) = getVelocityZ(pos_w);
+    // }
+    // T_END("\tadvect w")
+    
+    FOR_EACH_CELL
     {
-        Vec3 pos_u = getCenter(i, j, k) - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+        Vec3 center = getCenter(i, j, k);
+        Vec3 pos_u = center - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+        Vec3 pos_v = center - 0.5 * Vec3(0, VOXEL_SIZE, 0);
+        Vec3 pos_w = center - 0.5 * Vec3(0, 0, VOXEL_SIZE);
+
         Vec3 vel_u = getVelocity(pos_u);
-        pos_u -= DT * vel_u;
-        u(i, j, k) = getVelocityX(pos_u);
-    }
-
-    FOR_EACH_FACE_Y
-    {
-        Vec3 pos_v = getCenter(i, j, k) - 0.5 * Vec3(0, VOXEL_SIZE, 0);
         Vec3 vel_v = getVelocity(pos_v);
-        pos_v -= DT * vel_v;
-        v(i, j, k) = getVelocityY(pos_v);
-    }
-
-    FOR_EACH_FACE_Z
-    {
-        Vec3 pos_w = getCenter(i, j, k) - 0.5 * Vec3(0, 0, VOXEL_SIZE);
         Vec3 vel_w = getVelocity(pos_w);
+
+        pos_u -= DT * vel_u;
+        pos_v -= DT * vel_v;
         pos_w -= DT * vel_w;
+
+        u(i, j, k) = getVelocityX(pos_u);
+        v(i, j, k) = getVelocityY(pos_v);
         w(i, j, k) = getVelocityZ(pos_w);
     }
 }
@@ -429,4 +462,37 @@ void Simulator::fix_occupied_voxels()
             density(i, j, k) = 0.0;
         }
     }
+}
+
+std::array<double, SIZE> &
+generateSphereDensity()
+{
+    static std::array<double, SIZE> density;
+    density.fill(0.0);
+    FOR_EACH_CELL
+    {
+        // a ball in the center, radius is 1/3 Nx
+        if (pow(i - Nx / 2, 2) + pow(j - Ny / 2, 2) + pow(k - Nz / 2, 2) < pow(Nx / 4, 2))
+        {
+            density[POS(i, j, k)] = 0.5;
+        }
+    }
+    return density;
+}
+
+std::array<double, SIZE> &
+generateCubeDensity()
+{
+    static std::array<double, SIZE> density;
+    density.fill(0.0);
+    FOR_EACH_CELL
+    {
+        // a cube in the center, side length is 1/3 Nx
+        if (abs(i - Nx / 2) < Nx / 3 && abs(j - Ny / 2) < 5 && abs(k - Nz / 2) < 5)
+        {
+            density[POS(i, j, k)] = 0.5;
+        }
+        //  density[POS(i, j, k)] = 0.5;
+    }
+    return density;
 }

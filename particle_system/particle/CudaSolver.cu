@@ -18,9 +18,9 @@
 void __genLaplace(int *row_ptr, int *col_ind, float *val, int M, int N, int nz,
                   float *rhs)
 {
-    assert(M == N);
+    // assert(M == N);
     int n = (int)sqrt((double)N);
-    assert(n * n == N);
+    // assert(n * n == N);
     printf("laplace dimension = %d\n", n);
     int idx = 0;
 
