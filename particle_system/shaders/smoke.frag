@@ -9,80 +9,70 @@ in vec3 vertexTextureSpacePos;  // texture space position
 uniform vec3 worldSpaceLightPosition;
 uniform float pointLightIntensity;
 uniform vec3 worldSpaceCameraPosition;
+uniform float factor;
+uniform int enable_light_tracing;
 
 layout(binding = 0) uniform sampler3D densityTex;
 layout(binding = 1) uniform sampler3D occupiedTex;
 
 layout(location = 0) out vec4 fragmentColor;
 
+int numSamples = 50;
+float step = 0.02;
+float modelScale = 20;
+
+// parallel light, from the right
+vec3 light_dir;
+
+float getTray(vec3 pos, vec3 dir) {
+    float Tl = 1.0;
+    for(int s = 0; s < numSamples; ++s) {
+        pos += dir * step;
+        float density = texture(densityTex, pos).x;
+        if (density < 0.01)
+            continue;
+
+        Tl *= exp(-factor * density * step);
+        if(Tl <= 0.01)
+            break;
+    }
+    return Tl;
+}
 
 void main() {
 
-    float numSamples = 40;
-    float numLightSamples = numSamples;
+    vec3 pos = vertexTextureSpacePos.xyz;
 
-    float scale = 2.0 / 40;
-    float lscale = scale;
-
-    vec3 pos = vertexTextureSpacePos;
     vec3 wpos = vertexWorldSpacePos.xyz;
 
-    vec3 eyeDir = normalize(wpos - worldSpaceCameraPosition) * scale;
+    vec3 eyeDir = normalize(wpos - worldSpaceCameraPosition);
+    // vec3 eyeDir = vec3(0.0, 0.0, -1.0);
 
-    float factor = 15.0;
-    
-    // transmittance
     float T = 1.0;
-    // in-scattered radiance
     vec3 Lo = vec3(0.0);
     for(int i = 0; i < numSamples; ++i) {
-        // sample density
         float density = texture(densityTex, pos).x;
-        float occupied = texture(occupiedTex, pos).x;
-        if(occupied > 0.0) {
-            break;
-        }
-
         // skip empty space
-        if(density > 0.0) {
-            
-			// attenuate ray-throughput
-            T *= 1.0 - density * scale * factor;
-            if(T <= 0.01) {
+        if(density > 0.01) {
+            T *= exp(-factor * density * step);
+            if(T <= 0.01)
                 break;
-            }
 
-              // // point light dir in texture space
-            vec3 lightDir = normalize(worldSpaceLightPosition - wpos) * lscale;
+            light_dir = normalize(worldSpaceLightPosition - wpos);
+            float dist = length(worldSpaceLightPosition - wpos);
 
-            // sample light
-            float Tl = 1.0; // transmittance along light ray
-            vec3 lpos = pos + lightDir;
+            float Tray = getTray(pos, light_dir);
 
-            for(int s = 0; s < numLightSamples; ++s) {
-                float ld = texture(densityTex, lpos).x;
-                float lo = texture(occupiedTex, lpos).x;
-                if(lo > 0.0) {
-                    // Tl = 0.0;
-                    break;
-                }
+            float Tvox = exp(-factor * density * step);
 
-                Tl *= 1.0 - factor * lscale * ld;
+            float Lvox = pointLightIntensity * (1 - Tvox) * Tray/ dist / dist;
 
-                if(Tl <= 0.01)
-                    break;
-
-                lpos += lightDir;
-            }
-
-            vec3 Li = pointLightIntensity *  vec3(0.5) * Tl;
-
-            Lo += Li * T  * scale;
+            Lo += Lvox * T;
         }
 
-        pos += eyeDir;
-        wpos += eyeDir;
+        pos += eyeDir * step;
+        wpos += modelScale * eyeDir * step;
     }
 
-    fragmentColor = vec4(Lo, 1.0 - T);
+    fragmentColor = vec4(Lo, 1-T);
 }
