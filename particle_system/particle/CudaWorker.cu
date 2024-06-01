@@ -4,10 +4,6 @@
 
 #include <cuda_runtime.h>
 
-__global__ void addKernel()
-{
-}
-
 namespace MCUDA
 {
 
@@ -16,20 +12,20 @@ namespace MCUDA
         double *avg_u, double *avg_v, double *avg_w,
         int workSize, int Nx, int Ny, int Nz)
     {
-        // int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-        // // calculate the index of the cell
-        // int i = idx % Nx;
-        // int j = (idx / Nx) % Ny;
-        // int k = idx / (Nx * Ny);
+        // calculate the index of the cell
+        int i = idx % Nx;
+        int j = (idx / Nx) % Ny;
+        int k = idx / (Nx * Ny);
 
-        // if (idx < workSize)
-        // {
-        //     // calculate average velocity
-        //     avg_u[POS(i, j, k)] = (u[POS_X(i, j, k)] + u[POS_X(i + 1, j, k)]) * 0.5;
-        //     avg_v[POS(i, j, k)] = (v[POS_Y(i, j, k)] + v[POS_Y(i, j + 1, k)]) * 0.5;
-        //     avg_w[POS(i, j, k)] = (w[POS_Z(i, j, k)] + w[POS_Z(i, j, k + 1)]) * 0.5;
-        // }
+        if (idx < workSize)
+        {
+            // calculate average velocity
+            avg_u[POS(i, j, k)] = (u[POS_X(i, j, k)] + u[POS_X(i + 1, j, k)]) * 0.5;
+            avg_v[POS(i, j, k)] = (v[POS_Y(i, j, k)] + v[POS_Y(i, j + 1, k)]) * 0.5;
+            avg_w[POS(i, j, k)] = (w[POS_Z(i, j, k)] + w[POS_Z(i, j, k + 1)]) * 0.5;
+        }
     }
 
     CudaWorker::CudaWorker(
@@ -47,6 +43,7 @@ namespace MCUDA
             exit(1);
         }
         DEBUG_PRINT("CUDA Device Count: " << deviceCount);
+        cudaSetDevice(0);
 
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, 0);
@@ -150,17 +147,28 @@ namespace MCUDA
         copyDataToDevice(h_w, w, Nx_ * Ny_ * (Nz_ + 1));
 
         // calculate average velocity
-        // calculateAverageVelocityKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
-        //     u, v, w,
-        //     avg_u, avg_v, avg_w,
-        //     workSize_, Nx_, Ny_, Nz_);
-     
+        // DEBUG_PRINT("Launching kernel");
+        calculateAverageVelocityKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            u, v, w,
+            avg_u, avg_v, avg_w,
+            workSize_, Nx_, Ny_, Nz_);
 
-        DEBUG_PRINT("Running kernel");
-        addKernel<<<4, 256>>>();
-  
         // wait for kernel to finish
-        DEBUG_PRINT("Waiting for kernel to finish");
+        // DEBUG_PRINT("Waiting for kernel to finish");
         cudaDeviceSynchronize();
     }
+}
+
+__global__ void addKernel()
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+}
+
+void test_cuda()
+{
+    // launch kernel
+    DEBUG_PRINT("Launching kernel\n");
+    addKernel<<<4, 256>>>();
+    cudaDeviceSynchronize();
+    DEBUG_PRINT("Kernel finished\n");
 }

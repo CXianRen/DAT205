@@ -16,7 +16,6 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 double ttime = 0.0;
 
-std::unique_ptr<Simulator> simulator = std::make_unique<Simulator>(ttime);
 std::string simulator_info;
 
 std::array<bool, SIZE> occupied_voxels_sphere = generate_vexelized_sphere((int)(10));
@@ -97,6 +96,7 @@ mat4 generalModelMatrix;
 // Particle system
 ///////////////////////////////////////////////////////////////////////////////
 // Simulator simulator;
+std::unique_ptr<Simulator> simulator;
 
 void loadShaders(bool is_reload)
 {
@@ -687,6 +687,9 @@ void gui()
 
 int main(int argc, char *argv[])
 {
+	// DEBUG_PRINT("MAIN cuda");
+	simulator = std::make_unique<Simulator>(ttime);
+
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
 	initialize();
@@ -743,7 +746,7 @@ int main(int argc, char *argv[])
 
 	while (!stopRendering)
 	{
-
+		
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;

@@ -53,4 +53,9 @@ namespace MCUDA
     };
 
 } // namespace MCUDA
+
+
+void test_cuda();
+
+
 #endif // __CUDA_WORKER_H__

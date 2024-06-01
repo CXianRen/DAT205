@@ -9,7 +9,7 @@
 
 
 Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
-     CW(MCUDA::CudaWorker(SIZE, Nx, Ny, Nz))
+                                     CW(MCUDA::CudaWorker(SIZE, Nx, Ny, Nz))
 {
     CW.init();
 
@@ -25,7 +25,7 @@ Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
         // temperature(i, j, k) = dist(engine);
         temperature(i, j, k) = T_AMBIENT;
     }
-
+  
     addSource();
     setEmitterVelocity();
 }
@@ -35,7 +35,7 @@ Simulator::~Simulator()
 }
 
 void Simulator::update()
-{
+{   
     if (m_time > FINISH_TIME)
     {
         return;
@@ -51,9 +51,9 @@ void Simulator::update()
 
     T_START
     CW.caculateVorticity(
-        u.m_data.data(),
-        v.m_data.data(),
-        w.m_data.data());
+    u.m_data.data(),
+    v.m_data.data(),
+    w.m_data.data());
     T_END("gpu calculate_average_velocity")
 
     T_START
