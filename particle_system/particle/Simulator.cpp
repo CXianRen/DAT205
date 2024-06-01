@@ -6,8 +6,13 @@
 #include "mmath.h"
 #include "mperf.h"
 
-Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE)
+
+
+Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
+     CW(MCUDA::CudaWorker(SIZE, Nx, Ny, Nz))
 {
+    CW.init();
+
     static auto L = build_3d_laplace<double>(Nx, Ny, Nz);
     m_e_solver.compute(L);
     m_solver.compute(L);
@@ -43,6 +48,13 @@ void Simulator::update()
     T_START
     calculate_external_force();
     T_END("calculate_external_force")
+
+    T_START
+    CW.caculateVorticity(
+        u.m_data.data(),
+        v.m_data.data(),
+        w.m_data.data());
+    T_END("gpu calculate_average_velocity")
 
     T_START
     calculate_vorticity();
@@ -412,7 +424,7 @@ void Simulator::advect_velocity()
     //     w(i, j, k) = getVelocityZ(pos_w);
     // }
     // T_END("\tadvect w")
-    
+
     FOR_EACH_CELL
     {
         Vec3 center = getCenter(i, j, k);

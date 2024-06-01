@@ -10,6 +10,10 @@
 #include "Vec3.h"
 
 #define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
+#define POS_X(i, j, k) ((i) + (Nx + 1) * (j) + (Nx + 1) * (Ny) * (k))
+#define POS_Y(i, j, k) ((i) + Nx * (j) + Nx * (Ny + 1) * (k))
+#define POS_Z(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k + 1))
+
 
 #define FOR_EACH_CELL                \
     for (int k = 0; k < Nz; ++k)     \
