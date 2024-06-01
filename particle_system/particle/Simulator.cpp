@@ -6,8 +6,6 @@
 #include "mmath.h"
 #include "mperf.h"
 
-
-
 Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
                                      CW(MCUDA::CudaWorker(SIZE, Nx, Ny, Nz))
 {
@@ -25,7 +23,7 @@ Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
         // temperature(i, j, k) = dist(engine);
         temperature(i, j, k) = T_AMBIENT;
     }
-  
+
     addSource();
     setEmitterVelocity();
 }
@@ -35,7 +33,7 @@ Simulator::~Simulator()
 }
 
 void Simulator::update()
-{   
+{
     if (m_time > FINISH_TIME)
     {
         return;
@@ -50,19 +48,25 @@ void Simulator::update()
     T_END("calculate_external_force")
 
     T_START
-    CW.caculateVorticity(
-    u.m_data.data(),
-    v.m_data.data(),
-    w.m_data.data());
-    T_END("gpu calculate_average_velocity")
+    CW.setforceField(fx, fy, fz);
+    CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+    CW.calculateVorticity();
+    T_END("\tgpu calculate_vorticity")
+
+    // T_START
+    // calculate_vorticity();
+    // T_END("calculate_vorticity")
 
     T_START
-    calculate_vorticity();
-    T_END("calculate_vorticity")
+    CW.applyExternalForce();
+    CW.getforceField(fx, fy, fz);
+    CW.getVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+    T_END("\tgpu apply_external_force")
 
-    T_START
-    apply_external_force();
-    T_END("apply_external_force")
+    // T_START
+    // CW.getforceField(fx, fy, fz);
+    // apply_external_force();
+    // T_END("apply_external_force")
 
     T_START
     advect_velocity();

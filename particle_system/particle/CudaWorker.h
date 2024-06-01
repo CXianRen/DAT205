@@ -17,10 +17,30 @@ namespace MCUDA
         void init();
         void cleanup();
 
-        void caculateVorticity(
+
+        void setforceField(
+            double *f_x,
+            double *f_y,
+            double *f_z);
+
+        void getforceField(
+            double *f_x,
+            double *f_y,
+            double *f_z);
+
+        void setVelocityField(
             double *u,
             double *v,
             double *w);
+        
+        void getVelocityField(
+            double *u,
+            double *v,
+            double *w);
+    
+        void calculateVorticity();
+
+        void applyExternalForce();
 
     private:
         void copyDataToDevice(double *src, double *dst, int size);
