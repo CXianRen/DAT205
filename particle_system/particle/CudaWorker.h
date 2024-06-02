@@ -42,6 +42,8 @@ namespace MCUDA
 
         void applyExternalForce();
 
+        void advectVelocityField();
+
     private:
         void copyDataToDevice(double *src, double *dst, int size);
         void copyDataToHost(double *src, double *dst, int size);
@@ -57,6 +59,10 @@ namespace MCUDA
         double *u;
         double *v;
         double *w;
+
+        double *u_0;
+        double *v_0;
+        double *w_0;
 
         double *avg_u;
         double *avg_v;

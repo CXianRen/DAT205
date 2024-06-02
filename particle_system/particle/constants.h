@@ -7,7 +7,7 @@ enum E_EMITTER_POS
     E_BOTTOM = 1
 };
 
-constexpr int N = 40;
+constexpr int N = 64;
 constexpr int ratio[3] = {1, 1, 1}; // X, Y, Z
 constexpr int Nx = ratio[0] * N, Ny = ratio[1] * N, Nz = ratio[2] * N;
 constexpr int SIZE = Nx * Ny * Nz;

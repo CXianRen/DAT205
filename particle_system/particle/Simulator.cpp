@@ -59,8 +59,10 @@ void Simulator::update()
 
     T_START
     CW.applyExternalForce();
-    CW.getforceField(fx, fy, fz);
-    CW.getVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+    CW.getVelocityField(
+        u.m_data.data(),
+        v.m_data.data(),
+        w.m_data.data());
     T_END("\tgpu apply_external_force")
 
     // T_START
@@ -68,9 +70,11 @@ void Simulator::update()
     // apply_external_force();
     // T_END("apply_external_force")
 
+
     T_START
     advect_velocity();
     T_END("advect_velocity")
+
 
     T_START
     calculate_pressure();
@@ -396,7 +400,7 @@ void Simulator::advect_velocity()
     std::copy(w.begin(), w.end(), w0.begin());
     T_END("\tcopy data")
 
-    Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0, 0);
+    // Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0, 0);
     // T_START
     // FOR_EACH_FACE_X
     // {
@@ -432,6 +436,7 @@ void Simulator::advect_velocity()
     FOR_EACH_CELL
     {
         Vec3 center = getCenter(i, j, k);
+        
         Vec3 pos_u = center - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
         Vec3 pos_v = center - 0.5 * Vec3(0, VOXEL_SIZE, 0);
         Vec3 pos_w = center - 0.5 * Vec3(0, 0, VOXEL_SIZE);

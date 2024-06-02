@@ -4,7 +4,7 @@
 
 #include <cuda_runtime.h>
 
-#define VEC_NORM(x, y, z) \
+#define VEC3_NORM(x, y, z) \
     sqrt((x) * (x) + (y) * (y) + (z) * (z))
 
 #define VEC_CROSS(x1, y1, z1, x2, y2, z2, x, y, z) \
@@ -14,6 +14,136 @@
 
 namespace MCUDA
 {
+    //@todo might merge with the one in mmath.h
+    template <typename T>
+    __device__
+        T
+        cuda_linearInterpolation(
+            const T *pt,
+            T *src,
+            int *dims,
+            int *maxXYZ)
+    {
+        T pos[3];
+        // clamp position
+        pos[0] = min(
+            max((T)0.0, pt[0]),
+            (T)(maxXYZ[0]) * VOXEL_SIZE - (T)1e-6);
+        pos[1] = min(
+            max((T)0.0, pt[1]),
+            (T)(maxXYZ[1]) * VOXEL_SIZE - (T)1e-6);
+        pos[2] = min(
+            max((T)0.0, pt[2]),
+            (T)(maxXYZ[2]) * VOXEL_SIZE - (T)1e-6);
+
+        int i = (int)(pos[0] / VOXEL_SIZE);
+        int j = (int)(pos[1] / VOXEL_SIZE);
+        int k = (int)(pos[2] / VOXEL_SIZE);
+
+        T scale = 1.0 / VOXEL_SIZE;
+        T fractx = scale * (pos[0] - i * VOXEL_SIZE);
+        T fracty = scale * (pos[1] - j * VOXEL_SIZE);
+        T fractz = scale * (pos[2] - k * VOXEL_SIZE);
+
+        assert(fractx < 1.0 && fractx >= 0);
+        assert(fracty < 1.0 && fracty >= 0);
+        assert(fractz < 1.0 && fractz >= 0);
+
+        // Y @ low X, low Z:
+        T tmp1 = src[ACCESS3D(i, j, k)];
+        T tmp2 = src[ACCESS3D(i, j + 1, k)];
+        // Y @ high X, low Z:
+        T tmp3 = src[ACCESS3D(i + 1, j, k)];
+        T tmp4 = src[ACCESS3D(i + 1, j + 1, k)];
+
+        // Y @ low X, high Z:
+        T tmp5 = src[ACCESS3D(i, j, k + 1)];
+        T tmp6 = src[ACCESS3D(i, j + 1, k + 1)];
+        // Y @ high X, high Z:
+        T tmp7 = src[ACCESS3D(i + 1, j, k + 1)];
+        T tmp8 = src[ACCESS3D(i + 1, j + 1, k + 1)];
+
+        // Y @ low X, low Z
+        T tmp12 = ((T)(1) - fracty) * tmp1 + fracty * tmp2;
+        // Y @ high X, low Z
+        T tmp34 = ((T)(1) - fracty) * tmp3 + fracty * tmp4;
+
+        // Y @ low X, high Z
+        T tmp56 = ((T)(1) - fracty) * tmp5 + fracty * tmp6;
+        // Y @ high X, high Z
+        T tmp78 = ((T)(1) - fracty) * tmp7 + fracty * tmp8;
+
+        // X @ low Z
+        T tmp1234 = ((T)(1) - fractx) * tmp12 + fractx * tmp34;
+        // X @ high Z
+        T tmp5678 = ((T)(1) - fractx) * tmp56 + fractx * tmp78;
+
+        // Z
+        T tmp = ((T)(1) - fractz) * tmp1234 + fractz * tmp5678;
+        return tmp;
+    }
+
+    __device__ double cuda_getVelocityX(
+        double *pos_u, double *u, int Nx, int Ny, int Nz)
+    {
+        int dim[3] = {Nx + 1, Ny, Nz};
+        int maxIndex[3] = {Nx, Ny - 1, Nz - 1};
+        double pos_t[3];
+        pos_t[0] = pos_u[0];
+        pos_t[1] = pos_u[1] - 0.5 * VOXEL_SIZE;
+        pos_t[2] = pos_u[2] - 0.5 * VOXEL_SIZE;
+        return cuda_linearInterpolation<double>(
+            pos_t,
+            u,
+            dim,
+            maxIndex);
+    }
+
+    __device__ double cuda_getVelocityY(
+        double *pos_v, double *v, int Nx, int Ny, int Nz)
+    {
+        int dim[3] = {Nx, Ny + 1, Nz};
+        int maxIndex[3] = {Nx - 1, Ny, Nz - 1};
+        double pos_t[3];
+        pos_t[0] = pos_v[0] - 0.5 * VOXEL_SIZE;
+        pos_t[1] = pos_v[1];
+        pos_t[2] = pos_v[2] - 0.5 * VOXEL_SIZE;
+        return cuda_linearInterpolation<double>(
+            pos_t,
+            v,
+            dim,
+            maxIndex);
+    }
+
+    __device__ double cuda_getVelocityZ(
+        double *pos_w, double *w, int Nx, int Ny, int Nz)
+    {
+        int dim[3] = {Nx, Ny, Nz + 1};
+        int maxIndex[3] = {Nx - 1, Ny - 1, Nz};
+        double pos_t[3];
+        pos_t[0] = pos_w[0] - 0.5 * VOXEL_SIZE;
+        pos_t[1] = pos_w[1] - 0.5 * VOXEL_SIZE;
+        pos_t[2] = pos_w[2];
+        return cuda_linearInterpolation<double>(
+            pos_t,
+            w,
+            dim,
+            maxIndex);
+    }
+
+    __device__ double cuda_getVelocity(
+        double *pos,
+        double *vel,
+        double *u,
+        double *v,
+        double *w,
+        int Nx, int Ny, int Nz)
+    {
+        vel[0] = cuda_getVelocityX(pos, u, Nx, Ny, Nz);
+        vel[1] = cuda_getVelocityY(pos, v, Nx, Ny, Nz);
+        vel[2] = cuda_getVelocityZ(pos, w, Nx, Ny, Nz);
+    }
+
     __global__ void calculateAverageVelocityKernel(
         double *u, double *v, double *w,
         double *avg_u, double *avg_v, double *avg_w,
@@ -88,20 +218,20 @@ namespace MCUDA
             }
             // compute gradient of vorticity
             double p, q;
-            p = VEC_NORM(omg_x[POS(i + 1, j, k)], omg_y[POS(i + 1, j, k)], omg_z[POS(i + 1, j, k)]);
-            q = VEC_NORM(omg_x[POS(i - 1, j, k)], omg_y[POS(i - 1, j, k)], omg_z[POS(i - 1, j, k)]);
+            p = VEC3_NORM(omg_x[POS(i + 1, j, k)], omg_y[POS(i + 1, j, k)], omg_z[POS(i + 1, j, k)]);
+            q = VEC3_NORM(omg_x[POS(i - 1, j, k)], omg_y[POS(i - 1, j, k)], omg_z[POS(i - 1, j, k)]);
 
             double grad1 = (p - q) / (2.0 * VOXEL_SIZE);
 
-            p = VEC_NORM(omg_x[POS(i, j + 1, k)], omg_y[POS(i, j + 1, k)], omg_z[POS(i, j + 1, k)]);
-            q = VEC_NORM(omg_x[POS(i, j - 1, k)], omg_y[POS(i, j - 1, k)], omg_z[POS(i, j - 1, k)]);
+            p = VEC3_NORM(omg_x[POS(i, j + 1, k)], omg_y[POS(i, j + 1, k)], omg_z[POS(i, j + 1, k)]);
+            q = VEC3_NORM(omg_x[POS(i, j - 1, k)], omg_y[POS(i, j - 1, k)], omg_z[POS(i, j - 1, k)]);
             double grad2 = (p - q) / (2.0 * VOXEL_SIZE);
 
-            p = VEC_NORM(omg_x[POS(i, j, k + 1)], omg_y[POS(i, j, k + 1)], omg_z[POS(i, j, k + 1)]);
-            q = VEC_NORM(omg_x[POS(i, j, k - 1)], omg_y[POS(i, j, k - 1)], omg_z[POS(i, j, k - 1)]);
+            p = VEC3_NORM(omg_x[POS(i, j, k + 1)], omg_y[POS(i, j, k + 1)], omg_z[POS(i, j, k + 1)]);
+            q = VEC3_NORM(omg_x[POS(i, j, k - 1)], omg_y[POS(i, j, k - 1)], omg_z[POS(i, j, k - 1)]);
             double grad3 = (p - q) / (2.0 * VOXEL_SIZE);
 
-            double norm = VEC_NORM(grad1, grad2, grad3);
+            double norm = VEC3_NORM(grad1, grad2, grad3);
 
             double ni = 0.0, nj = 0.0, nk = 0.0;
             if (norm != 0)
@@ -151,6 +281,83 @@ namespace MCUDA
             {
                 w[POS_Z(i, j, k + 1)] += DT * (f_z[POS(i, j, k)] + f_x[POS(i, j, k + 1)]) * 0.5;
             }
+        }
+    }
+
+    __global__ void advectVelocityFieldKernel(
+        double *u, double *v, double *w,
+        double *u_0, double *v_0, double *w_0,
+        int workSize, int Nx, int Ny, int Nz)
+    {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int i = idx % Nx;
+        int j = (idx / Nx) % Ny;
+        int k = idx / (Nx * Ny);
+
+        if (idx < workSize)
+        {
+            double half_dx = 0.5 * VOXEL_SIZE;
+
+            double center[3];
+            center[0] = half_dx + i * VOXEL_SIZE;
+            center[1] = half_dx + j * VOXEL_SIZE;
+            center[2] = half_dx + k * VOXEL_SIZE;
+
+            double pos_u[3];
+            pos_u[0] = center[0] - half_dx;
+            pos_u[1] = center[1];
+            pos_u[2] = center[2];
+
+            double pos_v[3];
+            pos_v[0] = center[0];
+            pos_v[1] = center[1] - half_dx;
+            pos_v[2] = center[2];
+
+            double pos_w[3];
+            pos_w[0] = center[0];
+            pos_w[1] = center[1];
+            pos_w[2] = center[2] - half_dx;
+
+            // advect u
+
+            double vel_u[3];
+            cuda_getVelocity(
+                pos_u,
+                vel_u,
+                u_0, v_0, w_0, Nx, Ny, Nz);
+
+            double vel_v[3];
+            cuda_getVelocity(
+                pos_v,
+                vel_v,
+                u_0, v_0, w_0, Nx, Ny, Nz);
+
+            double vel_w[3];
+            cuda_getVelocity(
+                pos_w,
+                vel_w,
+                u_0, v_0, w_0, Nx, Ny, Nz);
+
+            pos_u[0] -= DT * vel_u[0];
+            pos_u[1] -= DT * vel_u[1];
+            pos_u[2] -= DT * vel_u[2];
+
+            pos_v[0] -= DT * vel_v[0];
+            pos_v[1] -= DT * vel_v[1];
+            pos_v[2] -= DT * vel_v[2];
+
+            pos_w[0] -= DT * vel_w[0];
+            pos_w[1] -= DT * vel_w[1];
+            pos_w[2] -= DT * vel_w[2];
+
+            u[POS_X(i, j, k)] =
+                cuda_getVelocityX(pos_u, u_0, Nx, Ny, Nz);
+
+            v[POS_Y(i, j, k)] =
+                cuda_getVelocityY(pos_v, v_0, Nx, Ny, Nz);
+
+            w[POS_Z(i, j, k)] =
+                cuda_getVelocityZ(pos_w, w_0, Nx, Ny, Nz);
         }
     }
 
@@ -221,8 +428,11 @@ namespace MCUDA
         // why (Nx_ + 1) * Ny_ * Nz : because we need to store ,
         // an extra cell to call the boundary condition
         cudaMalloc(&u, (Nx_ + 1) * Ny_ * Nz * sizeof(double));
+        cudaMalloc(&u_0, (Nx_ + 1) * Ny_ * Nz * sizeof(double));
         cudaMalloc(&v, Nx_ * (Ny_ + 1) * Nz * sizeof(double));
+        cudaMalloc(&v_0, Nx_ * (Ny_ + 1) * Nz * sizeof(double));
         cudaMalloc(&w, Nx_ * Ny_ * (Nz + 1) * sizeof(double));
+        cudaMalloc(&w_0, Nx_ * Ny_ * (Nz + 1) * sizeof(double));
 
         cudaMalloc(&avg_u, workSize_ * sizeof(double));
         cudaMalloc(&avg_v, workSize_ * sizeof(double));
@@ -335,6 +545,30 @@ namespace MCUDA
         applyExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
             f_x, f_y, f_z,
+            workSize_, Nx_, Ny_, Nz_);
+        cudaDeviceSynchronize();
+    }
+
+    void CudaWorker::advectVelocityField()
+    {
+        // swap u and u_0
+        double *temp = u;
+        u = u_0;
+        u_0 = temp;
+
+        // swap v and v_0
+        temp = v;
+        v = v_0;
+        v_0 = temp;
+
+        // swap w and w_0
+        temp = w;
+        w = w_0;
+        w_0 = temp;
+
+        advectVelocityFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            u, v, w,
+            u_0, v_0, w_0,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
     }
