@@ -19,52 +19,65 @@
         for (int j = 0; j < Ny; ++j) \
             for (int i = 0; i < Nx; ++i)
 
+#define ACC3D(x, y, z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
+
+#define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
+
 #define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 #define ACCESS3D_X(x, y, z) ((x) + (y) * (dims[0] + 1) + (z) * (dims[0] + 1) * dims[1])
 #define ACCESS3D_Y(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * (dims[1] + 1))
 #define ACCESS3D_Z(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 
 template <typename T>
-T linearInterpolation(const T *pt, T *src, int *dims, int *maxXYZ)
+T linearInterpolation3D(
+    const T *pt,
+    T *src,
+    int Nx,
+    int Ny,
+    int Nz,
+    int maxNx,
+    int maxNy,
+    int maxNz,
+    int cellSize)
 {
     T pos[3];
     // clamp position
     pos[0] = std::min(
         std::max((T)0.0, pt[0]),
-        (T)(maxXYZ[0]) * VOXEL_SIZE - (T)1e-6);
+        (T)(maxNx)*cellSize - (T)1e-6);
     pos[1] = std::min(
         std::max((T)0.0, pt[1]),
-        (T)(maxXYZ[1]) * VOXEL_SIZE - (T)1e-6);
+        (T)(maxNy)*cellSize - (T)1e-6);
     pos[2] = std::min(
         std::max((T)0.0, pt[2]),
-        (T)(maxXYZ[2]) * VOXEL_SIZE - (T)1e-6);
+        (T)(maxNz)*cellSize - (T)1e-6);
 
-    int i = (int)(pos[0] / VOXEL_SIZE);
-    int j = (int)(pos[1] / VOXEL_SIZE);
-    int k = (int)(pos[2] / VOXEL_SIZE);
+    int i = (int)(pos[0] / cellSize);
+    int j = (int)(pos[1] / cellSize);
+    int k = (int)(pos[2] / cellSize);
 
-    T scale = 1.0 / VOXEL_SIZE;
-    T fractx = scale * (pos[0] - i * VOXEL_SIZE);
-    T fracty = scale * (pos[1] - j * VOXEL_SIZE);
-    T fractz = scale * (pos[2] - k * VOXEL_SIZE);
+    T scale = 1.0 / cellSize;
+    T fractx = scale * (pos[0] - i * cellSize);
+    T fracty = scale * (pos[1] - j * cellSize);
+    T fractz = scale * (pos[2] - k * cellSize);
 
     assert(fractx < 1.0 && fractx >= 0);
     assert(fracty < 1.0 && fracty >= 0);
     assert(fractz < 1.0 && fractz >= 0);
 
     // Y @ low X, low Z:
-    T tmp1 = src[ACCESS3D(i, j, k)];
-    T tmp2 = src[ACCESS3D(i, j + 1, k)];
+    T tmp1 = src[ACC3D(i, j, k, Ny, Nx)];
+    T tmp2 = src[ACC3D(i, j + 1, k, Ny, Nx)];
     // Y @ high X, low Z:
-    T tmp3 = src[ACCESS3D(i + 1, j, k)];
-    T tmp4 = src[ACCESS3D(i + 1, j + 1, k)];
+    T tmp3 = src[ACC3D(i + 1, j, k, Ny, Nx)];
+    T tmp4 = src[ACC3D(i + 1, j + 1, k, Ny, Nx)];
 
     // Y @ low X, high Z:
-    T tmp5 = src[ACCESS3D(i, j, k + 1)];
-    T tmp6 = src[ACCESS3D(i, j + 1, k + 1)];
+    T tmp5 = src[ACC3D(i, j, k + 1, Ny, Nx)];
+    T tmp6 = src[ACC3D(i, j + 1, k + 1, Ny, Nx)];
     // Y @ high X, high Z:
-    T tmp7 = src[ACCESS3D(i + 1, j, k + 1)];
-    T tmp8 = src[ACCESS3D(i + 1, j + 1, k + 1)];
+    T tmp7 = src[ACC3D(i + 1, j, k + 1, Ny, Nx)];
+    T tmp8 = src[ACC3D(i + 1, j + 1, k + 1, Ny, Nx)];
 
     // Y @ low X, low Z
     T tmp12 = ((T)(1) - fracty) * tmp1 + fracty * tmp2;
@@ -87,15 +100,15 @@ T linearInterpolation(const T *pt, T *src, int *dims, int *maxXYZ)
 }
 
 template <typename T>
-T linearInterpolation(const Vec3 &pt, T *src, int *dims, int *maxXYZ)
+T linearInterpolation3D(const Vec3 &pt, T *src, int *dims, int *maxXYZ)
 {
-    return linearInterpolation<T>(pt.n, src, dims, maxXYZ);
+    return linearInterpolation3D<T>(
+        pt.n,
+        src,
+        dims[0], dims[1], dims[2],
+        maxXYZ[0], maxXYZ[1], maxXYZ[2],
+        VOXEL_SIZE);
 }
-
-
-#define ACC3D(x, y, z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
-
-#define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
 
 /*
     middle difference

@@ -45,7 +45,8 @@ public:
     m_occupied_voxels = occupied_voxels;
   }
 
-  void reset(){
+  void reset()
+  {
     density.m_data.fill(0.0);
     density0.m_data.fill(0.0);
     temperature.m_data.fill(T_AMBIENT);
@@ -115,40 +116,43 @@ private:
 
   double getVelocityX(const Vec3 &pos)
   {
-    static int dim[3] = {Nx + 1, Ny, Nz};
-    static int maxIndex[3] = {Nx, Ny - 1, Nz - 1};
-    static Vec3 offset = 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE);
-    return linearInterpolation<double>(
-        pos - offset,
+    double tpos[3] = {
+        pos[0],
+        pos[1] - 0.5 * VOXEL_SIZE,
+        pos[2] - 0.5 * VOXEL_SIZE};
+
+    return linearInterpolation3D<double>(
+        tpos,
         u0.m_data.data(),
-        dim,
-        maxIndex);
-    // return u0.interp(pos - 0.5 * Vec3(0.0, VOXEL_SIZE, VOXEL_SIZE));
+        Nx + 1, Ny, Nz,
+        Nx, Ny - 1, Nz - 1, VOXEL_SIZE);
   }
-  
+
   double getVelocityY(const Vec3 &pos)
   {
-    static int dim[3] = {Nx, Ny + 1, Nz};
-    static int maxIndex[3] = {Nx - 1, Ny, Nz - 1};
-    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE);
-    return linearInterpolation<double>(
-        pos - offset,
+    double tpos[3] = {
+        pos[0] - 0.5 * VOXEL_SIZE,
+        pos[1],
+        pos[2] - 0.5 * VOXEL_SIZE};
+
+    return linearInterpolation3D<double>(
+        tpos,
         v0.m_data.data(),
-        dim,
-        maxIndex);
-    // return v0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, 0.0, VOXEL_SIZE));
+        Nx, Ny + 1, Nz,
+        Nx - 1, Ny, Nz - 1, VOXEL_SIZE);
   }
+
   double getVelocityZ(const Vec3 &pos)
   {
-    static int dim[3] = {Nx, Ny, Nz + 1};
-    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz};
-    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0);
-    return linearInterpolation<double>(
-        pos - offset,
+    double tpos[3] = {
+        pos[0] - 0.5 * VOXEL_SIZE,
+        pos[1] - 0.5 * VOXEL_SIZE,
+        pos[2]};
+    return linearInterpolation3D<double>(
+        tpos,
         w0.m_data.data(),
-        dim,
-        maxIndex);
-    // return w0.interp(pos - 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, 0.0));
+        Nx, Ny, Nz + 1,
+        Nx - 1, Ny - 1, Nz, VOXEL_SIZE);
   }
 
   // vorticity field
@@ -162,28 +166,32 @@ private:
   MDataScalar temperature0, temperature;
   double getTemperature(const Vec3 &pos)
   {
-    static int dim[3] = {Nx, Ny, Nz};
-    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz - 1};
-    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
-    return linearInterpolation<double>(
-        pos - offset,
+    double tpos[3] = {
+        pos[0] - 0.5 * VOXEL_SIZE,
+        pos[1] - 0.5 * VOXEL_SIZE,
+        pos[2] - 0.5 * VOXEL_SIZE};
+
+    return linearInterpolation3D<double>(
+        tpos,
         temperature0.m_data.data(),
-        dim,
-        maxIndex);
+        Nx, Ny, Nz,
+        Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
   }
 
   // density field
   MDataScalar density, density0;
   double getDensity(const Vec3 &pos)
   {
-    static int dim[3] = {Nx, Ny, Nz};
-    static int maxIndex[3] = {Nx - 1, Ny - 1, Nz - 1};
-    static Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
-    return linearInterpolation<double>(
-        pos - offset,
+    double tpos[3] = {
+        pos[0] - 0.5 * VOXEL_SIZE,
+        pos[1] - 0.5 * VOXEL_SIZE,
+        pos[2] - 0.5 * VOXEL_SIZE};
+
+    return linearInterpolation3D<double>(
+        tpos,
         density0.m_data.data(),
-        dim,
-        maxIndex);
+        Nx, Ny, Nz,
+        Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
   }
 
   // solver
@@ -203,9 +211,8 @@ private:
   void fix_occupied_voxels();
 };
 
-std::array<double, SIZE>&
+std::array<double, SIZE> &
 generateSphereDensity();
 
-
-std::array<double, SIZE>&
+std::array<double, SIZE> &
 generateCubeDensity();
