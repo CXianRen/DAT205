@@ -17,7 +17,6 @@ namespace MCUDA
         void init();
         void cleanup();
 
-
         void setforceField(
             double *f_x,
             double *f_y,
@@ -32,17 +31,48 @@ namespace MCUDA
             double *u,
             double *v,
             double *w);
-        
+
         void getVelocityField(
             double *u,
             double *v,
             double *w);
-    
+
+        void getPreviosVelocityField(
+            double *u,
+            double *v,
+            double *w);
+
+        void setDensityField(
+            double *density);
+
+        void getDensityField(
+            double *density);
+
+        void setPreviosDensityField(
+            double *density_0);
+
+        void getPreviosDensityField(
+            double *density_0);
+
+        void setTemperatureField(
+            double *temperature);
+
+        void getTemperatureField(
+            double *temperature);
+
+        void setPreviosTemperatureField(
+            double *temperature_0);
+
+        void getPreviosTemperatureField(
+            double *temperature_0);
+
         void calculateVorticity();
 
         void applyExternalForce();
 
         void advectVelocityField();
+
+        void advectScalarField();
 
     private:
         void copyDataToDevice(double *src, double *dst, int size);
@@ -76,12 +106,17 @@ namespace MCUDA
         double *f_x;
         double *f_y;
         double *f_z;
+
+        // scalar field
+        double *temperature;
+        double *temperature_0;
+
+        double *density;
+        double *density_0;
     };
 
 } // namespace MCUDA
 
-
 void test_cuda();
-
 
 #endif // __CUDA_WORKER_H__

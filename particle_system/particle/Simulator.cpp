@@ -70,23 +70,51 @@ void Simulator::update()
     // apply_external_force();
     // T_END("apply_external_force")
 
-
     T_START
-    advect_velocity();
-    T_END("advect_velocity")
-
+    CW.advectVelocityField();
+    CW.getVelocityField(
+        u.m_data.data(),
+        v.m_data.data(),
+        w.m_data.data());
+    CW.getPreviosVelocityField(
+        u0.m_data.data(),
+        v0.m_data.data(),
+        w0.m_data.data());
+    T_END("gpu advect_velocity")
 
     T_START
     calculate_pressure();
-    T_END("calculate_pressure")
+    T_END("gpu calculate_pressure")
 
     T_START
     apply_pressure();
     T_END("apply_pressure")
 
     T_START
-    advect_scalar_field();
-    T_END("advect_scalar_field")
+
+    T_START
+    CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+
+    CW.setDensityField(density.m_data.data());
+    CW.setPreviosDensityField(density0.m_data.data());
+
+    CW.setTemperatureField(temperature.m_data.data());
+    CW.setPreviosTemperatureField(temperature0.m_data.data());
+    T_END("\tupdate density and temperature to gpu")
+
+    CW.advectScalarField();
+
+    CW.getDensityField(density.m_data.data());
+    CW.getPreviosDensityField(density0.m_data.data());
+
+    CW.getTemperatureField(temperature.m_data.data());
+    CW.getPreviosTemperatureField(temperature0.m_data.data());
+
+    T_END("gpu advect_scalar_field")
+
+    // T_START
+    // advect_scalar_field();
+    // T_END("advect_scalar_field")
 
     T_START
     fix_occupied_voxels();
@@ -99,7 +127,6 @@ void Simulator::update()
 
         addSource();
         setEmitterVelocity();
-        ;
     }
 
     m_time += DT;
@@ -400,73 +427,59 @@ void Simulator::advect_velocity()
     std::copy(w.begin(), w.end(), w0.begin());
     T_END("\tcopy data")
 
-    // Vec3 offset = 0.5 * Vec3(VOXEL_SIZE, 0, 0);
-    // T_START
-    // FOR_EACH_FACE_X
-    // {
-    //     Vec3 pos_u = getCenter(i, j, k) - offset;
-    //     Vec3 vel_u = getVelocity(pos_u);
-    //     pos_u -= DT * vel_u;
-    //     u(i, j, k) = getVelocityX(pos_u);
-    // }
-    // T_END("\tadvect u")
+    double *u = this->u.m_data.data();
+    double *v = this->v.m_data.data();
+    double *w = this->w.m_data.data();
 
-    // T_START
-    // offset = 0.5 * Vec3(0, VOXEL_SIZE, 0);
-    // FOR_EACH_FACE_Y
-    // {
-    //     Vec3 pos_v = getCenter(i, j, k) - offset;
-    //     Vec3 vel_v = getVelocity(pos_v);
-    //     pos_v -= DT * vel_v;
-    //     v(i, j, k) = getVelocityY(pos_v);
-    // }
-    // T_END("\tadvect v")
-
-    // T_START
-    // offset = 0.5 * Vec3(0, 0, VOXEL_SIZE);
-    // FOR_EACH_FACE_Z
-    // {
-    //     Vec3 pos_w = getCenter(i, j, k) - offset;
-    //     Vec3 vel_w = getVelocity(pos_w);
-    //     pos_w -= DT * vel_w;
-    //     w(i, j, k) = getVelocityZ(pos_w);
-    // }
-    // T_END("\tadvect w")
+    double *u_0 = this->u0.m_data.data();
+    double *v_0 = this->v0.m_data.data();
+    double *w_0 = this->w0.m_data.data();
 
     FOR_EACH_CELL
     {
-        Vec3 center = getCenter(i, j, k);
-        
-        Vec3 pos_u = center - 0.5 * Vec3(VOXEL_SIZE, 0, 0);
-        Vec3 pos_v = center - 0.5 * Vec3(0, VOXEL_SIZE, 0);
-        Vec3 pos_w = center - 0.5 * Vec3(0, 0, VOXEL_SIZE);
-
-        Vec3 vel_u = getVelocity(pos_u);
-        Vec3 vel_v = getVelocity(pos_v);
-        Vec3 vel_w = getVelocity(pos_w);
-
-        pos_u -= DT * vel_u;
-        pos_v -= DT * vel_v;
-        pos_w -= DT * vel_w;
-
-        u(i, j, k) = getVelocityX(pos_u);
-        v(i, j, k) = getVelocityY(pos_v);
-        w(i, j, k) = getVelocityZ(pos_w);
+        advectVelocityBody<double>(
+            u, v, w,
+            u_0, v_0, w_0,
+            i, j, k,
+            Nx, Ny, Nz);
     }
 }
 
 void Simulator::advect_scalar_field()
 {
+    T_START
+    std::copy(u.begin(), u.end(), u0.begin());
+    std::copy(v.begin(), v.end(), v0.begin());
+    std::copy(w.begin(), w.end(), w0.begin());
+
     std::copy(density.begin(), density.end(), density0.begin());
     std::copy(temperature.begin(), temperature.end(), temperature0.begin());
+    T_END("\tcopy data")
 
     FOR_EACH_CELL
     {
         Vec3 pos_cell = getCenter(i, j, k);
-        Vec3 vel_cell = getVelocity(pos_cell);
+        Vec3 vel_cell;
+
+        getVelocity<double>(
+            pos_cell.n,
+            vel_cell.n,
+            u0.m_data.data(),
+            v0.m_data.data(),
+            w0.m_data.data(),
+            Nx, Ny, Nz);
+
         pos_cell -= DT * vel_cell;
-        density(i, j, k) = getDensity(pos_cell);
-        temperature(i, j, k) = getTemperature(pos_cell);
+
+        density(i, j, k) = getScalar<double>(
+            pos_cell.n,
+            density0.m_data.data(),
+            Nx, Ny, Nz);
+
+        temperature(i, j, k) = getScalar<double>(
+            pos_cell.n,
+            temperature0.m_data.data(),
+            Nx, Ny, Nz);
     }
 }
 

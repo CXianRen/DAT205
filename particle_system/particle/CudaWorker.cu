@@ -1,6 +1,7 @@
 #include "CudaWorker.h"
 #include "common/debug.h"
 #include "common/mmath.h"
+#include "SimBase.h"
 
 #include <cuda_runtime.h>
 
@@ -14,136 +15,6 @@
 
 namespace MCUDA
 {
-    //@todo might merge with the one in mmath.h
-    template <typename T>
-    __device__
-        T
-        cuda_linearInterpolation(
-            const T *pt,
-            T *src,
-            int *dims,
-            int *maxXYZ)
-    {
-        T pos[3];
-        // clamp position
-        pos[0] = min(
-            max((T)0.0, pt[0]),
-            (T)(maxXYZ[0]) * VOXEL_SIZE - (T)1e-6);
-        pos[1] = min(
-            max((T)0.0, pt[1]),
-            (T)(maxXYZ[1]) * VOXEL_SIZE - (T)1e-6);
-        pos[2] = min(
-            max((T)0.0, pt[2]),
-            (T)(maxXYZ[2]) * VOXEL_SIZE - (T)1e-6);
-
-        int i = (int)(pos[0] / VOXEL_SIZE);
-        int j = (int)(pos[1] / VOXEL_SIZE);
-        int k = (int)(pos[2] / VOXEL_SIZE);
-
-        T scale = 1.0 / VOXEL_SIZE;
-        T fractx = scale * (pos[0] - i * VOXEL_SIZE);
-        T fracty = scale * (pos[1] - j * VOXEL_SIZE);
-        T fractz = scale * (pos[2] - k * VOXEL_SIZE);
-
-        assert(fractx < 1.0 && fractx >= 0);
-        assert(fracty < 1.0 && fracty >= 0);
-        assert(fractz < 1.0 && fractz >= 0);
-
-        // Y @ low X, low Z:
-        T tmp1 = src[ACCESS3D(i, j, k)];
-        T tmp2 = src[ACCESS3D(i, j + 1, k)];
-        // Y @ high X, low Z:
-        T tmp3 = src[ACCESS3D(i + 1, j, k)];
-        T tmp4 = src[ACCESS3D(i + 1, j + 1, k)];
-
-        // Y @ low X, high Z:
-        T tmp5 = src[ACCESS3D(i, j, k + 1)];
-        T tmp6 = src[ACCESS3D(i, j + 1, k + 1)];
-        // Y @ high X, high Z:
-        T tmp7 = src[ACCESS3D(i + 1, j, k + 1)];
-        T tmp8 = src[ACCESS3D(i + 1, j + 1, k + 1)];
-
-        // Y @ low X, low Z
-        T tmp12 = ((T)(1) - fracty) * tmp1 + fracty * tmp2;
-        // Y @ high X, low Z
-        T tmp34 = ((T)(1) - fracty) * tmp3 + fracty * tmp4;
-
-        // Y @ low X, high Z
-        T tmp56 = ((T)(1) - fracty) * tmp5 + fracty * tmp6;
-        // Y @ high X, high Z
-        T tmp78 = ((T)(1) - fracty) * tmp7 + fracty * tmp8;
-
-        // X @ low Z
-        T tmp1234 = ((T)(1) - fractx) * tmp12 + fractx * tmp34;
-        // X @ high Z
-        T tmp5678 = ((T)(1) - fractx) * tmp56 + fractx * tmp78;
-
-        // Z
-        T tmp = ((T)(1) - fractz) * tmp1234 + fractz * tmp5678;
-        return tmp;
-    }
-
-    __device__ double cuda_getVelocityX(
-        double *pos_u, double *u, int Nx, int Ny, int Nz)
-    {
-        int dim[3] = {Nx + 1, Ny, Nz};
-        int maxIndex[3] = {Nx, Ny - 1, Nz - 1};
-        double pos_t[3];
-        pos_t[0] = pos_u[0];
-        pos_t[1] = pos_u[1] - 0.5 * VOXEL_SIZE;
-        pos_t[2] = pos_u[2] - 0.5 * VOXEL_SIZE;
-        return cuda_linearInterpolation<double>(
-            pos_t,
-            u,
-            dim,
-            maxIndex);
-    }
-
-    __device__ double cuda_getVelocityY(
-        double *pos_v, double *v, int Nx, int Ny, int Nz)
-    {
-        int dim[3] = {Nx, Ny + 1, Nz};
-        int maxIndex[3] = {Nx - 1, Ny, Nz - 1};
-        double pos_t[3];
-        pos_t[0] = pos_v[0] - 0.5 * VOXEL_SIZE;
-        pos_t[1] = pos_v[1];
-        pos_t[2] = pos_v[2] - 0.5 * VOXEL_SIZE;
-        return cuda_linearInterpolation<double>(
-            pos_t,
-            v,
-            dim,
-            maxIndex);
-    }
-
-    __device__ double cuda_getVelocityZ(
-        double *pos_w, double *w, int Nx, int Ny, int Nz)
-    {
-        int dim[3] = {Nx, Ny, Nz + 1};
-        int maxIndex[3] = {Nx - 1, Ny - 1, Nz};
-        double pos_t[3];
-        pos_t[0] = pos_w[0] - 0.5 * VOXEL_SIZE;
-        pos_t[1] = pos_w[1] - 0.5 * VOXEL_SIZE;
-        pos_t[2] = pos_w[2];
-        return cuda_linearInterpolation<double>(
-            pos_t,
-            w,
-            dim,
-            maxIndex);
-    }
-
-    __device__ double cuda_getVelocity(
-        double *pos,
-        double *vel,
-        double *u,
-        double *v,
-        double *w,
-        int Nx, int Ny, int Nz)
-    {
-        vel[0] = cuda_getVelocityX(pos, u, Nx, Ny, Nz);
-        vel[1] = cuda_getVelocityY(pos, v, Nx, Ny, Nz);
-        vel[2] = cuda_getVelocityZ(pos, w, Nx, Ny, Nz);
-    }
-
     __global__ void calculateAverageVelocityKernel(
         double *u, double *v, double *w,
         double *avg_u, double *avg_v, double *avg_w,
@@ -293,71 +164,51 @@ namespace MCUDA
         int i = idx % Nx;
         int j = (idx / Nx) % Ny;
         int k = idx / (Nx * Ny);
+        if (idx < workSize)
+        {
+            advectVelocityBody<double>(
+                u, v, w,
+                u_0, v_0, w_0,
+                i, j, k,
+                Nx, Ny, Nz);
+        }
+    }
 
+    __global__ void advectScalarFieldKernel(
+        double *field, double *field_0,
+        double *u_0, double *v_0, double *w_0,
+        int workSize, int Nx, int Ny, int Nz)
+    {
+        int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        int i = idx % Nx;
+        int j = (idx / Nx) % Ny;
+        int k = idx / (Nx * Ny);
         if (idx < workSize)
         {
             double half_dx = 0.5 * VOXEL_SIZE;
 
-            double center[3];
-            center[0] = half_dx + i * VOXEL_SIZE;
-            center[1] = half_dx + j * VOXEL_SIZE;
-            center[2] = half_dx + k * VOXEL_SIZE;
+            double pos_cell[3];
+            pos_cell[0] = half_dx + i * VOXEL_SIZE;
+            pos_cell[1] = half_dx + j * VOXEL_SIZE;
+            pos_cell[2] = half_dx + k * VOXEL_SIZE;
 
-            double pos_u[3];
-            pos_u[0] = center[0] - half_dx;
-            pos_u[1] = center[1];
-            pos_u[2] = center[2];
+            double vel_cell[3];
+            getVelocity<double>(
+                pos_cell,
+                vel_cell,
+                u_0,
+                v_0,
+                w_0,
+                Nx, Ny, Nz);
 
-            double pos_v[3];
-            pos_v[0] = center[0];
-            pos_v[1] = center[1] - half_dx;
-            pos_v[2] = center[2];
+            pos_cell[0] -= vel_cell[0] * DT;
+            pos_cell[1] -= vel_cell[1] * DT;
+            pos_cell[2] -= vel_cell[2] * DT;
 
-            double pos_w[3];
-            pos_w[0] = center[0];
-            pos_w[1] = center[1];
-            pos_w[2] = center[2] - half_dx;
-
-            // advect u
-
-            double vel_u[3];
-            cuda_getVelocity(
-                pos_u,
-                vel_u,
-                u_0, v_0, w_0, Nx, Ny, Nz);
-
-            double vel_v[3];
-            cuda_getVelocity(
-                pos_v,
-                vel_v,
-                u_0, v_0, w_0, Nx, Ny, Nz);
-
-            double vel_w[3];
-            cuda_getVelocity(
-                pos_w,
-                vel_w,
-                u_0, v_0, w_0, Nx, Ny, Nz);
-
-            pos_u[0] -= DT * vel_u[0];
-            pos_u[1] -= DT * vel_u[1];
-            pos_u[2] -= DT * vel_u[2];
-
-            pos_v[0] -= DT * vel_v[0];
-            pos_v[1] -= DT * vel_v[1];
-            pos_v[2] -= DT * vel_v[2];
-
-            pos_w[0] -= DT * vel_w[0];
-            pos_w[1] -= DT * vel_w[1];
-            pos_w[2] -= DT * vel_w[2];
-
-            u[POS_X(i, j, k)] =
-                cuda_getVelocityX(pos_u, u_0, Nx, Ny, Nz);
-
-            v[POS_Y(i, j, k)] =
-                cuda_getVelocityY(pos_v, v_0, Nx, Ny, Nz);
-
-            w[POS_Z(i, j, k)] =
-                cuda_getVelocityZ(pos_w, w_0, Nx, Ny, Nz);
+            field[POS(i, j, k)] = getScalar<double>(
+                pos_cell,
+                field_0,
+                Nx, Ny, Nz);
         }
     }
 
@@ -399,7 +250,7 @@ namespace MCUDA
         // max threads per block
         int maxThreadsPerBlock = deviceProp.maxThreadsPerBlock;
         DEBUG_PRINT("CUDA Max Threads Per Block: " << maxThreadsPerBlock);
-        threadsPerBlock_ = maxThreadsPerBlock;
+        threadsPerBlock_ = 256;
 
         // max warp per block
         int maxWarpsPerBlock = deviceProp.maxThreadsPerBlock / deviceProp.warpSize;
@@ -445,6 +296,14 @@ namespace MCUDA
         cudaMalloc(&f_x, workSize_ * sizeof(double));
         cudaMalloc(&f_y, workSize_ * sizeof(double));
         cudaMalloc(&f_z, workSize_ * sizeof(double));
+
+        // allocate memory for density field
+        cudaMalloc(&density, workSize_ * sizeof(double));
+        cudaMalloc(&density_0, workSize_ * sizeof(double));
+
+        // allocate memory for temperature field
+        cudaMalloc(&temperature, workSize_ * sizeof(double));
+        cudaMalloc(&temperature_0, workSize_ * sizeof(double));
     }
 
     void CudaWorker::cleanup()
@@ -454,6 +313,12 @@ namespace MCUDA
         cudaFree(avg_u);
         cudaFree(avg_v);
         cudaFree(avg_w);
+        cudaFree(u);
+        cudaFree(v);
+        cudaFree(w);
+        cudaFree(u_0);
+        cudaFree(v_0);
+        cudaFree(w_0);
 
         cudaFree(omg_x);
         cudaFree(omg_y);
@@ -496,23 +361,33 @@ namespace MCUDA
     }
 
     void CudaWorker::setVelocityField(
-        double *u,
-        double *v,
-        double *w)
+        double *u_src,
+        double *v_src,
+        double *w_src)
     {
-        copyDataToDevice(u, this->u, (Nx_ + 1) * Ny_ * Nz_);
-        copyDataToDevice(v, this->v, Nx_ * (Ny_ + 1) * Nz_);
-        copyDataToDevice(w, this->w, Nx_ * Ny_ * (Nz_ + 1));
+        copyDataToDevice(u_src, this->u, (Nx_ + 1) * Ny_ * Nz_);
+        copyDataToDevice(v_src, this->v, Nx_ * (Ny_ + 1) * Nz_);
+        copyDataToDevice(w_src, this->w, Nx_ * Ny_ * (Nz_ + 1));
     }
 
     void CudaWorker::getVelocityField(
-        double *u,
-        double *v,
-        double *w)
+        double *u_dst,
+        double *v_dst,
+        double *w_dst)
     {
-        copyDataToHost(this->u, u, (Nx_ + 1) * Ny_ * Nz_);
-        copyDataToHost(this->v, v, Nx_ * (Ny_ + 1) * Nz_);
-        copyDataToHost(this->w, w, Nx_ * Ny_ * (Nz_ + 1));
+        copyDataToHost(this->u, u_dst, (Nx_ + 1) * Ny_ * Nz_);
+        copyDataToHost(this->v, v_dst, Nx_ * (Ny_ + 1) * Nz_);
+        copyDataToHost(this->w, w_dst, Nx_ * Ny_ * (Nz_ + 1));
+    }
+
+    void CudaWorker::getPreviosVelocityField(
+        double *u_dst,
+        double *v_dst,
+        double *w_dst)
+    {
+        copyDataToHost(this->u_0, u_dst, (Nx_ + 1) * Ny_ * Nz_);
+        copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_ + 1) * Nz_);
+        copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_ + 1));
     }
 
     void CudaWorker::calculateVorticity()
@@ -546,28 +421,121 @@ namespace MCUDA
             u, v, w,
             f_x, f_y, f_z,
             workSize_, Nx_, Ny_, Nz_);
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+        {
+            DEBUG_PRINT("CUDA Error: " << cudaGetErrorString(error));
+        }
         cudaDeviceSynchronize();
     }
 
     void CudaWorker::advectVelocityField()
     {
-        // swap u and u_0
-        double *temp = u;
-        u = u_0;
-        u_0 = temp;
-
-        // swap v and v_0
-        temp = v;
-        v = v_0;
-        v_0 = temp;
-
-        // swap w and w_0
-        temp = w;
-        w = w_0;
-        w_0 = temp;
+        // copy current velocity field to previous
+        cudaMemcpy(u_0, u, (Nx_ + 1) * Ny_ * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(v_0, v, Nx_ * (Ny_ + 1) * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(w_0, w, Nx_ * Ny_ * (Nz_ + 1) * sizeof(double), cudaMemcpyDeviceToDevice);
 
         advectVelocityFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
+            u_0, v_0, w_0,
+            workSize_, Nx_, Ny_, Nz_);
+        // check error
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+        {
+            DEBUG_PRINT("Error at advectVelocityFieldKernel: " << cudaGetErrorString(error));
+            DEBUG_PRINT("\tworkSize: " << workSize_);
+            DEBUG_PRINT("\tNx: " << Nx_);
+            DEBUG_PRINT("\tNy: " << Ny_);
+            DEBUG_PRINT("\tNz: " << Nz_);
+            DEBUG_PRINT("\tblocksPerGrid: " << blocksPerGrid_);
+            DEBUG_PRINT("\tthreadsPerBlock: " << threadsPerBlock_);
+        }
+        cudaDeviceSynchronize();
+    }
+
+    void CudaWorker::setDensityField(
+        double *density)
+    {
+        // copy density field to device
+        copyDataToDevice(density, this->density, workSize_);
+    }
+
+    void CudaWorker::getDensityField(
+        double *density)
+    {
+        // copy density field to host
+        copyDataToHost(this->density, density, workSize_);
+    }
+
+    void CudaWorker::setPreviosDensityField(
+        double *density_0)
+    {
+        copyDataToDevice(density_0, this->density_0, workSize_);
+    }
+
+    void CudaWorker::getPreviosDensityField(
+        double *density_0)
+    {
+        copyDataToHost(this->density_0,
+                       density_0, workSize_);
+    }
+
+    void CudaWorker::setTemperatureField(
+        double *temperature)
+    {
+        copyDataToDevice(temperature,
+                         this->temperature, workSize_);
+    }
+
+    void CudaWorker::getTemperatureField(
+        double *temperature)
+    {
+        copyDataToHost(this->temperature,
+                       temperature, workSize_);
+    }
+
+    void CudaWorker::setPreviosTemperatureField(
+        double *temperature_0)
+    {
+        copyDataToDevice(temperature_0,
+                         this->temperature_0,
+                         workSize_);
+    }
+
+    void CudaWorker::getPreviosTemperatureField(
+        double *temperature_0)
+    {
+        copyDataToHost(this->temperature_0,
+                       temperature_0, workSize_);
+    }
+
+    void CudaWorker::advectScalarField()
+    {
+        // copy velocity field to previous
+        cudaMemcpy(u_0, u,
+                   (Nx_ + 1) * Ny_ * Nz_ * sizeof(double),
+                   cudaMemcpyDeviceToDevice);
+        // copy current density field to previous
+        cudaMemcpy(density_0, density,
+                   workSize_ * sizeof(double),
+                   cudaMemcpyDeviceToDevice);
+        // copy current temperature field to previous
+        cudaMemcpy(temperature_0, temperature,
+                   workSize_ * sizeof(double),
+                   cudaMemcpyDeviceToDevice);
+
+        // advect density field
+        advectScalarFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            density, density_0,
+            u_0, v_0, w_0,
+            workSize_, Nx_, Ny_, Nz_);
+        cudaDeviceSynchronize();
+
+        // advect temperature field
+        advectScalarFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            temperature, temperature_0,
             u_0, v_0, w_0,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();

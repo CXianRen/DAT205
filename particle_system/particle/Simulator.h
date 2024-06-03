@@ -8,6 +8,8 @@
 #include "MData.h"
 #include "mmath.h"
 
+#include "SimBase.h"
+
 #include "Solver.h"
 #include "CudaWorker.h"
 
@@ -105,56 +107,6 @@ private:
   MDataZ w, w0;
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
 
-  Vec3 getVelocity(const Vec3 &pos)
-  {
-    Vec3 vel;
-    vel[0] = getVelocityX(pos);
-    vel[1] = getVelocityY(pos);
-    vel[2] = getVelocityZ(pos);
-    return vel;
-  }
-
-  double getVelocityX(const Vec3 &pos)
-  {
-    double tpos[3] = {
-        pos[0],
-        pos[1] - 0.5 * VOXEL_SIZE,
-        pos[2] - 0.5 * VOXEL_SIZE};
-
-    return linearInterpolation3D<double>(
-        tpos,
-        u0.m_data.data(),
-        Nx + 1, Ny, Nz,
-        Nx, Ny - 1, Nz - 1, VOXEL_SIZE);
-  }
-
-  double getVelocityY(const Vec3 &pos)
-  {
-    double tpos[3] = {
-        pos[0] - 0.5 * VOXEL_SIZE,
-        pos[1],
-        pos[2] - 0.5 * VOXEL_SIZE};
-
-    return linearInterpolation3D<double>(
-        tpos,
-        v0.m_data.data(),
-        Nx, Ny + 1, Nz,
-        Nx - 1, Ny, Nz - 1, VOXEL_SIZE);
-  }
-
-  double getVelocityZ(const Vec3 &pos)
-  {
-    double tpos[3] = {
-        pos[0] - 0.5 * VOXEL_SIZE,
-        pos[1] - 0.5 * VOXEL_SIZE,
-        pos[2]};
-    return linearInterpolation3D<double>(
-        tpos,
-        w0.m_data.data(),
-        Nx, Ny, Nz + 1,
-        Nx - 1, Ny - 1, Nz, VOXEL_SIZE);
-  }
-
   // vorticity field
   double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE];
   double vort[SIZE];
@@ -164,35 +116,35 @@ private:
 
   // temperature field
   MDataScalar temperature0, temperature;
-  double getTemperature(const Vec3 &pos)
-  {
-    double tpos[3] = {
-        pos[0] - 0.5 * VOXEL_SIZE,
-        pos[1] - 0.5 * VOXEL_SIZE,
-        pos[2] - 0.5 * VOXEL_SIZE};
+  // double getTemperature(const Vec3 &pos)
+  // {
+  //   double tpos[3] = {
+  //       pos[0] - 0.5 * VOXEL_SIZE,
+  //       pos[1] - 0.5 * VOXEL_SIZE,
+  //       pos[2] - 0.5 * VOXEL_SIZE};
 
-    return linearInterpolation3D<double>(
-        tpos,
-        temperature0.m_data.data(),
-        Nx, Ny, Nz,
-        Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
-  }
+  //   return linearInterpolation3D<double>(
+  //       tpos,
+  //       temperature0.m_data.data(),
+  //       Nx, Ny, Nz,
+  //       Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
+  // }
 
   // density field
   MDataScalar density, density0;
-  double getDensity(const Vec3 &pos)
-  {
-    double tpos[3] = {
-        pos[0] - 0.5 * VOXEL_SIZE,
-        pos[1] - 0.5 * VOXEL_SIZE,
-        pos[2] - 0.5 * VOXEL_SIZE};
+  // double getDensity(const Vec3 &pos)
+  // {
+  //   double tpos[3] = {
+  //       pos[0] - 0.5 * VOXEL_SIZE,
+  //       pos[1] - 0.5 * VOXEL_SIZE,
+  //       pos[2] - 0.5 * VOXEL_SIZE};
 
-    return linearInterpolation3D<double>(
-        tpos,
-        density0.m_data.data(),
-        Nx, Ny, Nz,
-        Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
-  }
+  //   return linearInterpolation3D<double>(
+  //       tpos,
+  //       density0.m_data.data(),
+  //       Nx, Ny, Nz,
+  //       Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
+  // }
 
   // solver
   EigenSolver m_e_solver;

@@ -9,6 +9,15 @@
 #include "constants.h"
 #include "Vec3.h"
 
+#ifdef __CUDACC__
+#define PREFIX __device__
+#else
+#define PREFIX
+#endif
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
 #define POS_X(i, j, k) ((i) + (Nx + 1) * (j) + (Nx + 1) * (Ny) * (k))
 #define POS_Y(i, j, k) ((i) + Nx * (j) + Nx * (Ny + 1) * (k))
@@ -29,27 +38,29 @@
 #define ACCESS3D_Z(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
 
 template <typename T>
-T linearInterpolation3D(
-    const T *pt,
-    T *src,
-    int Nx,
-    int Ny,
-    int Nz,
-    int maxNx,
-    int maxNy,
-    int maxNz,
-    int cellSize)
+PREFIX
+    T
+    linearInterpolation3D(
+        const T *pt,
+        T *src,
+        int Nx,
+        int Ny,
+        int Nz,
+        int maxNx,
+        int maxNy,
+        int maxNz,
+        int cellSize)
 {
     T pos[3];
     // clamp position
-    pos[0] = std::min(
-        std::max((T)0.0, pt[0]),
+    pos[0] = MIN(
+        MAX((T)0.0, pt[0]),
         (T)(maxNx)*cellSize - (T)1e-6);
-    pos[1] = std::min(
-        std::max((T)0.0, pt[1]),
+    pos[1] = MIN(
+        MAX((T)0.0, pt[1]),
         (T)(maxNy)*cellSize - (T)1e-6);
-    pos[2] = std::min(
-        std::max((T)0.0, pt[2]),
+    pos[2] = MIN(
+        MAX((T)0.0, pt[2]),
         (T)(maxNz)*cellSize - (T)1e-6);
 
     int i = (int)(pos[0] / cellSize);
