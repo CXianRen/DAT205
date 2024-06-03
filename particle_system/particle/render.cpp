@@ -127,6 +127,7 @@ void SmokeRenderer::set_occupied_texture(std::array<bool, SIZE> &vexels)
                  data);
 
     glBindTexture(GL_TEXTURE_3D, 0);
+    free(data);
 }
 
 void SmokeRenderer::render(std::array<double, SIZE> &density)
@@ -147,8 +148,6 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
 
         static GLubyte *data = new GLubyte[SIZE];
         GLubyte *ptr = data;
-        // float *data = new float[SIZE];
-        // float *ptr = data;
 
         for (int z = 0; z < Nz; ++z)
         {
@@ -158,8 +157,6 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
                 {
                     auto f = density[POS(x, y, z)];
                     *ptr++ = std::max(0, std::min(255, (int)std::floor(f * 256.0)));
-                    // *ptr = f;
-                    // ptr++;
                 }
             }
         }
@@ -175,19 +172,6 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
                      GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
                      data);
 
-        // glTexImage3D(GL_TEXTURE_3D,
-        //             0,                // mip map level, 0 means no mip map
-        //             GL_R32F,           // internal format, single channel, 8-bit data, red
-        //             Nx,               // width
-        //             Ny,               // height
-        //             Nz,               // depth
-        //             0,                // border size
-        //             GL_RED,           // format of the pixel data
-        //             GL_FLOAT, // data type of the pixel data, each pixel is a byte
-        //             data);
-
-        // delete[] data;
-
         glBindTexture(GL_TEXTURE_3D, 0);
 
         // draw the cube
@@ -200,40 +184,10 @@ void SmokeRenderer::render(std::array<double, SIZE> &density)
         glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
 
         // 36 : the number of indices (12 triangles * 3 vertices per triangle)
-        // only the edge of the cube is rendered
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        // glDisable(GL_CULL_FACE);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        // glEnable(GL_CULL_FACE);
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
 
 void SmokeRenderer::render_frame(const glm::mat4 &projectionViewMatrix)
 {
-    // render the frame
-    float ratio_x = 1.f * 0.5f;
-    float ratio_y = Ny / Nx * 0.5f;
-    float ratio_z = Nz / Nx * 0.5f;
-
-    float vertices[8][3] = {
-        {-1.0f, -1.0f, -1.0f},
-        {1.0f, -1.0f, -1.0f},
-        {-1.0f, 1.0f, -1.0f},
-        {-1.0f, -1.0f, 1.0f},
-        {1.0f, 1.0f, -1.0f},
-        {-1.0f, 1.0f, 1.0f},
-        {1.0f, -1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f}};
-
-    const unsigned int indices[12][2] = {
-        {0, 1}, {1, 6}, {6, 3}, {3, 0}, {0, 2}, {1, 4}, {6, 7}, {3, 5}, {2, 4}, {4, 7}, {7, 5}, {5, 2}};
-
-    for (int i = 0; i < 12; i++)
-    {
-        drawLine(glm::vec3(vertices[indices[i][0]][0] * ratio_x, vertices[indices[i][0]][1] * ratio_y, vertices[indices[i][0]][2] * ratio_z),
-                 glm::vec3(vertices[indices[i][1]][0] * ratio_x, vertices[indices[i][1]][1] * ratio_y, vertices[indices[i][1]][2] * ratio_z),
-                 projectionViewMatrix,
-                 glm::vec3(0.0f, 0.0f, 0.0f));
-    }
 }

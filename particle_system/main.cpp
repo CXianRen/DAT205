@@ -67,12 +67,10 @@ const std::string envmap_base_name = "001";
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
-vec3 lightPosition;
+vec3 lightPosition = vec4(80.0f, 25.0f, 25.0f, 1.0f);
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
-float point_light_intensity_multiplier = 50000.0f;
-bool step_light = true;
-float light_rotation_step = 0.01f;
+float point_light_intensity_multiplier = 15000.0f;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Models
@@ -221,19 +219,6 @@ void initialize()
 	}
 }
 
-void debugDrawLight(const glm::mat4 &viewMatrix,
-					const glm::mat4 &projectionMatrix,
-					const glm::vec3 &worldSpaceLightPos)
-{
-	mat4 modelMatrix = glm::translate(worldSpaceLightPos);
-	glUseProgram(shaderProgram);
-	labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
-							  projectionMatrix * viewMatrix * modelMatrix);
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	labhelper::render(pointLight);
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
 void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::mat4 &viewMatrix,
 					const glm::mat4 &projectionMatrix)
 {
@@ -267,15 +252,6 @@ void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::ma
 	}
 }
 
-void drawBackground(const mat4 &viewMatrix, const mat4 &projectionMatrix)
-{
-	glUseProgram(backgroundProgram);
-	labhelper::setUniformSlow(backgroundProgram, "environment_multiplier", environment_multiplier);
-	labhelper::setUniformSlow(backgroundProgram, "inv_PV", inverse(projectionMatrix * viewMatrix));
-	labhelper::setUniformSlow(backgroundProgram, "camera_pos", cameraPosition);
-	labhelper::drawFullScreenQuad();
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is used to draw the main objects on the scene
 ///////////////////////////////////////////////////////////////////////////////
@@ -302,25 +278,25 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
 
 	// landing pad
-	// {
-	// 	labhelper::perf::Scope s("Landing pad");
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 							  projectionMatrix * viewMatrix * landingPadModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 							  inverse(transpose(viewMatrix * landingPadModelMatrix)));
-	// 	labhelper::render(landingpadModel);
-	// }
+	{
+		labhelper::perf::Scope s("Landing pad");
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+								  projectionMatrix * viewMatrix * landingPadModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+								  inverse(transpose(viewMatrix * landingPadModelMatrix)));
+		labhelper::render(landingpadModel);
+	}
 
 	// draw an object
-	{
-		labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-								  projectionMatrix * viewMatrix * sphereModelMatrix);
-		labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * sphereModelMatrix);
-		labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-								  inverse(transpose(viewMatrix * sphereModelMatrix)));
-		labhelper::render(sphereModel);
-	}
+	// {
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+	// 							  projectionMatrix * viewMatrix * sphereModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * sphereModelMatrix);
+	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
+	// 							  inverse(transpose(viewMatrix * sphereModelMatrix)));
+	// 	labhelper::render(sphereModel);
+	// }
 	// {
 	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
 	// 							  projectionMatrix * viewMatrix * cubeModelMatrix);
@@ -412,19 +388,18 @@ void drawScene(GLuint currentShaderProgram,
 
 		glDisable(GL_BLEND);
 
-		glDisable(GL_DEPTH_TEST);
+		// glDisable(GL_DEPTH_TEST);
 		// mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
-		glEnable(GL_DEPTH_TEST);
-
-		// draw a line
-		glDisable(GL_DEPTH_TEST);
-		//
-		drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
-		drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
-		drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
-		//
-		glEnable(GL_DEPTH_TEST);
+		// glEnable(GL_DEPTH_TEST);
 	}
+	// draw a line
+	glDisable(GL_DEPTH_TEST);
+	//
+	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
+	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
+	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
+	//
+	glEnable(GL_DEPTH_TEST);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -458,16 +433,6 @@ void display(void)
 	mat4 projMatrix = perspective(radians(40.0f), float(windowWidth) / float(windowHeight), 10.f, 1000.0f);
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
-	static vec3 wheatley_position(-35.0f, 35.0f, -35.0f);
-
-	static vec4 lightStartPosition = vec4(80.0f, 25.0f, 25.0f, 1.0f);
-	if (!step_light)
-	{
-
-		light_rotation_step += 0.01f;
-	}
-	lightPosition = vec3(rotate(light_rotation_step, worldUp) * lightStartPosition);
-
 	mat4 lightViewMatrix = lookAt(lightPosition, vec3(0.0f), worldUp);
 	static mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
 
@@ -480,44 +445,16 @@ void display(void)
 	glBindTexture(GL_TEXTURE_2D, irradianceMap);
 	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, reflectionMap);
-
 	glActiveTexture(GL_TEXTURE0);
-
-	// FboInfo &securityCamFBO = FBOList[0];
-	// glBindFramebuffer(GL_FRAMEBUFFER, securityCamFBO.framebufferId);
-	// glViewport(0, 0, securityCamFBO.width, securityCamFBO.height);
-	// glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
-	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// drawBackground(viewMatrix, projMatrix);
-
-	// drawScene( shaderProgram,
-	// 			securityCamViewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
-
-	// labhelper::Material& tv_screen = landingpadModel->m_materials[8];
-	// tv_screen.m_emission_texture.gl_id = securityCamFBO.colorTextureTargets[0];
-
-	///////////////////////////////////////////////////////////////////////////
-	// Draw from camera
-	///////////////////////////////////////////////////////////////////////////
-	// glBindFramebuffer(GL_FRAMEBUFFER, cameraFBO.framebufferId);
-	// glViewport(0, 0, cameraFBO.width, cameraFBO.height);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, windowWidth, windowHeight);
 	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	{
-		// labhelper::perf::Scope s( "Background" );
-		// drawBackground(viewMatrix, projMatrix);
-	}
 	{
 		labhelper::perf::Scope s("Scene");
 		drawScene(shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix);
 	}
-
-	// debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -616,17 +553,6 @@ void ControlPanel()
 	ImGui::Begin("Control panel");
 	ImGui::SliderFloat("Light intensity", &point_light_intensity_multiplier, 0.0f, 100000.0f);
 	ImGui::SliderFloat("Smoke factor", &smoke_factor, 0.0f, 100.0f);
-	ImGui::Selectable("Step light", &step_light, 0, ImVec2(0, 0));
-	if (ImGui::Button("enable_light_tracing"))
-	{
-		enable_light_tracing = !enable_light_tracing;
-		std::cout << "enable_light_tracing: " << enable_light_tracing << std::endl;
-	}
-
-	if (ImGui::Button("Light move one step") && step_light)
-	{
-		light_rotation_step += 0.01f;
-	}
 
 	if (ImGui::Button("Case 0: Empty"))
 	{
@@ -651,19 +577,19 @@ void ControlPanel()
 	// set camera position
 	if (ImGui::Button("View Front"))
 	{
-		cameraPosition = vec3(30.f, 15.0f, 0.f);
-		cameraDirection = normalize(-vec3(1.0f, 0.f, 0.f));
+		cameraPosition = vec3(30.f, 5.0f, 5.f);
+		cameraDirection = normalize(-vec3(1.f, 0.f, 0.f));
 	}
 	// set camera position
 	if (ImGui::Button("View Top"))
 	{
-		cameraPosition = vec3(0.f, 40.0f, 0.1f);
-		cameraDirection = normalize(vec3(0.0f, 0.0f, 0.f) - cameraPosition);
+		cameraPosition = vec3(5.f, 30.f, 5.f);
+		cameraDirection = normalize(-vec3(0.0f, 1.f, 0.1f));
 	}
 	// set camera position
 	if (ImGui::Button("View Side"))
 	{
-		cameraPosition = vec3(5.f, 5.0f, 20.f);
+		cameraPosition = vec3(5.f, 5.0f, 30.f);
 		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
 	}
 	// select the light color
@@ -678,7 +604,11 @@ void gui()
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 				ImGui::GetIO().Framerate);
 
-	ImGui::Text("Simulator Info: %s", simulator_info.c_str());
+	{
+		std::lock_guard<std::mutex> lock(simLock);
+		ImGui::Text("Simulator Info: %s", simulator_info.c_str());
+	}
+
 	// ----------------------------------------------------------
 	labhelper::perf::drawEventsWindow();
 
@@ -732,6 +662,13 @@ int main(int argc, char *argv[])
 
 			simulator->update();
 			// update the simulator
+			if (ttime > FINISH_TIME){
+				// DEBUG_PRINT("Simulation  finished");
+				// sleep for a while
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				continue;
+			}
+
 			{
 				std::lock_guard<std::mutex> lock(simLock);
 				// copy the density
@@ -746,7 +683,6 @@ int main(int argc, char *argv[])
 
 	while (!stopRendering)
 	{
-		
 		// update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
@@ -762,15 +698,20 @@ int main(int argc, char *argv[])
 		// Render overlay GUI.
 		gui();
 
+		labhelper::perf::Scope scope("Main loop");
 		// render to window
 		display();
 
 		// Finish the frame and render the GUI
-		labhelper::finishFrame();
-
+		{
+			labhelper::perf::Scope s("finish frame");
+			labhelper::finishFrame();
+		}
 		// Swap front and back buffer. This frame will now been displayed.
-		SDL_GL_SwapWindow(g_window);
-
+		{
+			labhelper::perf::Scope s("SDL_GL_SwapWindow");
+			SDL_GL_SwapWindow(g_window);
+		}
 		// limit the frame rate: 30
 		std::chrono::duration<float> endTime = std::chrono::system_clock::now() - startTime;
 		auto frame_time = endTime.count() - previousTime;
@@ -780,6 +721,7 @@ int main(int argc, char *argv[])
 				std::chrono::milliseconds(
 					(int)(1000.0f / 30.0f - frame_time * 1000.0f)));
 		}
+		// DEBUG_PRINT("Frame time:" << frame_time);
 	}
 	// Free Models
 	labhelper::freeModel(landingpadModel);
