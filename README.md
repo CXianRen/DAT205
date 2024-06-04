@@ -37,9 +37,9 @@ make GLEW_DEST=YOUR_INSTALLING_PATH install
 4. make -j12
 
 # how to run
-1. bash run.sh
+1. bash scripts/run.sh
 
 
 # Demo
 + you should see something like this:
-![figher](./Doc/fighter.gif)
+![figher](./Doc/smoke_case_1_empty_N_50.gif)
