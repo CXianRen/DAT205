@@ -1,7 +1,6 @@
 #include "particle/render.h"
 #include "common/debug.h"
 #include <glm/glm.hpp>
-#include <GL/glew.h>
 #include <glm/gtx/transform.hpp>
 
 #include "common/debug.h"
@@ -78,6 +77,11 @@ SmokeRenderer::SmokeRenderer()
     glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
     glBindTexture(GL_TEXTURE_3D, 0);
 
+    // for transparency
+    glGenTextures(1, &transparencyTextureID);
+    glBindTexture(GL_TEXTURE_3D, transparencyTextureID);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
     DEBUG_PRINT("SmokeRenderer::SmokeRenderer() end\n");
 }
 
@@ -88,104 +92,29 @@ SmokeRenderer::~SmokeRenderer()
 
 void SmokeRenderer::set_occupied_texture(std::array<bool, SIZE> &vexels)
 {
-    glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
-
-    // @todo: set the texture parameters GL_CLAMP_TO_BORDER is not supported ?
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    GLubyte *data = new GLubyte[SIZE];
-    GLubyte *ptr = data;
-
-    for (int z = 0; z < Nz; ++z)
-    {
-        for (int y = 0; y < Ny; ++y)
-        {
-            for (int x = 0; x < Nx; ++x)
-            {
-                auto f = vexels[POS(x, y, z)];
-                *ptr++ = std::max(0, std::min(255, (int)std::floor((float)f * 256.0)));
-            }
-        }
-    }
-
-    glTexImage3D(GL_TEXTURE_3D,
-                 0,                // mip map level, 0 means no mip map
-                 GL_RED,           // internal format, single channel, 8-bit data, red
-                 Nx,               // width
-                 Ny,               // height
-                 Nz,               // depth
-                 0,                // border size
-                 GL_RED,           // format of the pixel data
-                 GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
-                 data);
-
-    glBindTexture(GL_TEXTURE_3D, 0);
-    free(data);
+    setTexture<bool>(vexels.data(), occupiedTextureID);
 }
 
-void SmokeRenderer::render(std::array<double, SIZE> &density)
+void SmokeRenderer::render(std::array<double, SIZE> &density, double *transparency)
 {
     // update the texture
     // Bind the texture
-    {
-        glBindTexture(GL_TEXTURE_3D, textureID);
+    setTexture<double>(density.data(), textureID);
+    setTexture<double>(transparency, transparencyTextureID);
 
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // draw the cube
+    glBindVertexArray(vaoID);
 
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    // bind the texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, textureID);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_3D, transparencyTextureID);
 
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-        static GLubyte *data = new GLubyte[SIZE];
-        GLubyte *ptr = data;
-
-        for (int z = 0; z < Nz; ++z)
-        {
-            for (int y = 0; y < Ny; ++y)
-            {
-                for (int x = 0; x < Nx; ++x)
-                {
-                    auto f = density[POS(x, y, z)];
-                    *ptr++ = std::max(0, std::min(255, (int)std::floor(f * 256.0)));
-                }
-            }
-        }
-
-        glTexImage3D(GL_TEXTURE_3D,
-                     0,                // mip map level, 0 means no mip map
-                     GL_RED,           // internal format, single channel, 8-bit data, red
-                     Nx,               // width
-                     Ny,               // height
-                     Nz,               // depth
-                     0,                // border size
-                     GL_RED,           // format of the pixel data
-                     GL_UNSIGNED_BYTE, // data type of the pixel data, each pixel is a byte
-                     data);
-
-        glBindTexture(GL_TEXTURE_3D, 0);
-
-        // draw the cube
-        glBindVertexArray(vaoID);
-
-        // bind the texture
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_3D, textureID);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_3D, occupiedTextureID);
-
-        // 36 : the number of indices (12 triangles * 3 vertices per triangle)
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-    }
+    // 36 : the number of indices (12 triangles * 3 vertices per triangle)
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
 void SmokeRenderer::render_frame(const glm::mat4 &projectionViewMatrix)

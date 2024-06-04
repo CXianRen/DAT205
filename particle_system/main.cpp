@@ -30,6 +30,8 @@ int case_id = 0;
 // lock for simulator
 std::mutex simLock;
 std::array<double, SIZE> density;
+double transparency[SIZE];
+
 float smoke_factor = 10.f;
 int enable_light_tracing = 1;
 
@@ -383,7 +385,7 @@ void drawScene(GLuint currentShaderProgram,
 		// try to lock the simulator
 		{
 			std::lock_guard<std::mutex> lock(simLock);
-			mmRender->render(density);
+			mmRender->render(density, transparency);
 		}
 
 		glDisable(GL_BLEND);
@@ -660,6 +662,14 @@ int main(int argc, char *argv[])
 				simulator->reset();
 			}
 
+			simulator->setLightPosition(
+				lightPosition.x,
+				lightPosition.y,
+				lightPosition.z,
+				10.f,
+				smoke_factor
+			);
+		
 			simulator->update();
 			// update the simulator
 			if (ttime > FINISH_TIME){
@@ -677,6 +687,10 @@ int main(int argc, char *argv[])
 					simulator->getDensity().end(), 
 					density.begin()
 				);
+				std::copy(simulator->getTransparency(), 
+					simulator->getTransparency() + SIZE,  
+					transparency);
+					
 				simulator_info = simulator->get_performance_info();
 			}
 		} });

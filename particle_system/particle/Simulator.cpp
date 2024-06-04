@@ -111,7 +111,6 @@ void Simulator::update()
     CW.getPreviosTemperatureField(temperature0.m_data.data());
 
     T_END("gpu advect_scalar_field")
-
     // T_START
     // advect_scalar_field();
     // T_END("advect_scalar_field")
@@ -119,6 +118,10 @@ void Simulator::update()
     T_START
     fix_occupied_voxels();
     T_END("fix_occupied_voxels")
+
+    T_START
+    genTransparencyMap();
+    T_END("gpu genTransparencyMap")
 
     T_END("update total")
 
@@ -496,6 +499,21 @@ void Simulator::fix_occupied_voxels()
             density(i, j, k) = 0.0;
         }
     }
+}
+
+void Simulator::genTransparencyMap()
+{
+    CW.genTransparencyMap(
+        light_x, light_y, light_z,
+        module_scale_factor, factor);
+    CW.getTransparencyMap(transparency);
+
+    // print the first 100 values
+    // for (int i = 0; i < 100; ++i)
+    // {
+    //     printf("%f ", transparency[i]);
+    // }
+    // printf("\n");
 }
 
 std::array<double, SIZE> &

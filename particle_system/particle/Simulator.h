@@ -47,6 +47,24 @@ public:
     m_occupied_voxels = occupied_voxels;
   }
 
+  void setLightPosition(
+      double x, double y, double z,
+      double scale_factor, double factor)
+  {
+    light_x = x;
+    light_y = y;
+    light_z = z;
+    module_scale_factor = scale_factor;
+    this->factor = factor;
+  }
+
+  void genTransparencyMap();
+
+  double *getTransparency()
+  {
+    return transparency;
+  }
+
   void reset()
   {
     density.m_data.fill(0.0);
@@ -116,35 +134,14 @@ private:
 
   // temperature field
   MDataScalar temperature0, temperature;
-  // double getTemperature(const Vec3 &pos)
-  // {
-  //   double tpos[3] = {
-  //       pos[0] - 0.5 * VOXEL_SIZE,
-  //       pos[1] - 0.5 * VOXEL_SIZE,
-  //       pos[2] - 0.5 * VOXEL_SIZE};
-
-  //   return linearInterpolation3D<double>(
-  //       tpos,
-  //       temperature0.m_data.data(),
-  //       Nx, Ny, Nz,
-  //       Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
-  // }
 
   // density field
   MDataScalar density, density0;
-  // double getDensity(const Vec3 &pos)
-  // {
-  //   double tpos[3] = {
-  //       pos[0] - 0.5 * VOXEL_SIZE,
-  //       pos[1] - 0.5 * VOXEL_SIZE,
-  //       pos[2] - 0.5 * VOXEL_SIZE};
 
-  //   return linearInterpolation3D<double>(
-  //       tpos,
-  //       density0.m_data.data(),
-  //       Nx, Ny, Nz,
-  //       Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
-  // }
+  double transparency[SIZE];
+  double light_x, light_y, light_z;
+  double module_scale_factor;
+  double factor;
 
   // solver
   EigenSolver m_e_solver;

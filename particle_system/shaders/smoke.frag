@@ -14,12 +14,13 @@ uniform int enable_light_tracing;
 
 layout(binding = 0) uniform sampler3D densityTex;
 layout(binding = 1) uniform sampler3D occupiedTex;
+layout(binding = 2) uniform sampler3D transparencyTex;
 
 layout(location = 0) out vec4 fragmentColor;
 
 int numSamples = 50;
-float step = 0.02;
-float modelScale = 20;
+float step = 1.0 / numSamples;
+float modelScale = 10;
 
 // parallel light, from the right
 vec3 light_dir;
@@ -29,7 +30,7 @@ float getTray(vec3 pos, vec3 dir) {
     for(int s = 0; s < numSamples; ++s) {
         pos += dir * step;
         float density = texture(densityTex, pos).x;
-        if (density < 0.01)
+        if(density < 0.01)
             continue;
 
         Tl *= exp(-factor * density * step);
@@ -61,11 +62,12 @@ void main() {
             light_dir = normalize(worldSpaceLightPosition - wpos);
             float dist = length(worldSpaceLightPosition - wpos);
 
-            float Tray = getTray(pos, light_dir);
+            // float Tray = getTray(pos, light_dir);
+            float Tray = texture(transparencyTex, pos).x;
 
             float Tvox = exp(-factor * density * step);
 
-            float Lvox = pointLightIntensity * (1 - Tvox) * Tray/ dist / dist;
+            float Lvox = pointLightIntensity * (1 - Tvox) * Tray / dist / dist;
 
             Lo += Lvox * T;
         }
@@ -74,5 +76,5 @@ void main() {
         wpos += modelScale * eyeDir * step;
     }
 
-    fragmentColor = vec4(Lo, 1-T);
+    fragmentColor = vec4(Lo, 1 - T);
 }
