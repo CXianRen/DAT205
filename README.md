@@ -42,4 +42,4 @@ make GLEW_DEST=YOUR_INSTALLING_PATH install
 
 # Demo
 + you should see something like this:
-![figher](./Doc/smoke_case_1_empty_N_50.gif)
+![smoke](./Doc/smoke_case_1_empty_N_50.gif)
