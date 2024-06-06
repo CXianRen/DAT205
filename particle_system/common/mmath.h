@@ -32,11 +32,6 @@
 
 #define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
 
-#define ACCESS3D(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
-#define ACCESS3D_X(x, y, z) ((x) + (y) * (dims[0] + 1) + (z) * (dims[0] + 1) * dims[1])
-#define ACCESS3D_Y(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * (dims[1] + 1))
-#define ACCESS3D_Z(x, y, z) ((x) + (y) * dims[0] + (z) * dims[0] * dims[1])
-
 template <typename T>
 PREFIX
     T
@@ -108,17 +103,6 @@ PREFIX
     // Z
     T tmp = ((T)(1) - fractz) * tmp1234 + fractz * tmp5678;
     return tmp;
-}
-
-template <typename T>
-T linearInterpolation3D(const Vec3 &pt, T *src, int *dims, int *maxXYZ)
-{
-    return linearInterpolation3D<T>(
-        pt.n,
-        src,
-        dims[0], dims[1], dims[2],
-        maxXYZ[0], maxXYZ[1], maxXYZ[2],
-        VOXEL_SIZE);
 }
 
 /*

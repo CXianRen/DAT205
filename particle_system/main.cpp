@@ -241,9 +241,9 @@ void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::ma
 					modelMatrix = glm::scale(glm::vec3(0.2, 0.2, 0.2)) * modelMatrix;
 					modelMatrix = glm::translate(
 									  glm::vec3(
-										  10.f / Nx * i - 5,
-										  5 + 10.f / Nx * j,
-										  10.f / Nx * k - 5)) *
+										  10.f / Nx * i,
+										  10.f / Nx * j,
+										  10.f / Nx * k)) *
 								  modelMatrix;
 					labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
 											  projectionMatrix * viewMatrix * modelMatrix);
