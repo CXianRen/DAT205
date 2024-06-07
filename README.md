@@ -1,7 +1,8 @@
 # Description
 This repository is for the Advanced Computer Graphics course given at Chalmers University of Technology. 
 
-A real time GPU(cuda) smoke simulator was implemented, based on gird method, using semi-lagrance method and linear interpolation.
+
+A real time GPU(cuda) smoke simulator was implemented ([Visual Simulation of Smoke](https://physbam.stanford.edu/~fedkiw/papers/stanford2001-01.pdf), [Stable Fluids](https://dl.acm.org/doi/epdf/10.1145/311535.311548)), based on gird method, using semi-lagrance method and linear interpolation.
 A render using ray marching to perform self-shadowing is provide. And in order to speed up rendering in our lab machine which uses llvm opengl (cpu), the light intensive of each voxel is computed by a cuda kernel too. 
 
 Some results are showed below:
