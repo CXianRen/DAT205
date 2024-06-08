@@ -18,11 +18,6 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-#define POS(i, j, k) ACC3D(i, j, k, Ny, Nx)
-#define POS_X(i, j, k) ACC3D(i, j, k, Ny, Nx + 1)
-#define POS_Y(i, j, k) ACC3D(i, j, k, Ny + 1, Nx)
-#define POS_Z(i, j, k) ACC3D(i, j, k, Ny, Nx)
-
 #define ACC3D(x, y, z, ny, nx) ((x) + (y) * (nx) + (z) * (nx) * (ny))
 #define ACC3D_X(x, y, z, ny, nx) ACC3D(x, y, z, ny, nx + 1)
 #define ACC3D_Y(x, y, z, ny, nx) ACC3D(x, y, z, ny + 1, nx)

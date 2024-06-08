@@ -50,7 +50,7 @@ void setTexture(T *t_data, uint32_t id)
         {
             for (int x = 0; x < Nx; ++x)
             {
-                auto f = t_data[POS(x, y, z)];
+                auto f = t_data[ACC3D(x, y, z, Ny, Nx)];
                 *ptr++ = std::max(0, std::min(255, (int)std::floor((float)f * 256.0)));
             }
         }

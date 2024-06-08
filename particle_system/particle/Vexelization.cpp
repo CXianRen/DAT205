@@ -24,7 +24,7 @@ generate_vexelized_sphere(int radius)
                 (k - Nz / 2) * (k - Nz / 2) <=
             radius * radius)
         {
-            sphere[POS(i, j, k)] = true;
+            sphere[ACC3D(i, j, k, Ny, Nx)] = true;
         }
     }
     return sphere;
@@ -49,7 +49,7 @@ generate_vexelized_cube(int length)
             j >= y0 && j <= y1 &&
             k >= z0 && k <= z1)
         {
-            cube[POS(i, j, k)] = true;
+            cube[ACC3D(i, j, k, Ny, Nx)] = true;
         }
     }
     return cube;
@@ -151,7 +151,7 @@ generate_vexel(std::vector<glm::vec3> &m_positions, float &max_length)
                 // std::cout << x0 << " " << x1 << std::endl;
                 for (int x = x0; x < x1; x++)
                 {
-                    object[POS(x, j, k)] = true;
+                    object[ACC3D(x, j, k, Ny, Nx)] = true;
                 }
             }
         }
