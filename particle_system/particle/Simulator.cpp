@@ -244,11 +244,11 @@ void Simulator::calculate_external_force()
 {
     FOR_EACH_CELL
     {
-        fx[POS(i, j, k)] = 0.0;
-        fy[POS(i, j, k)] =
+        fx[ ACC3D(i, j, k, Ny, Nx)] = 0.0;
+        fy[ ACC3D(i, j, k, Ny, Nx)] =
             -ALPHA * density(i, j, k) +
             BETA * (temperature(i, j, k) - T_AMBIENT);
-        fz[POS(i, j, k)] = 0.0;
+        fz[ ACC3D(i, j, k, Ny, Nx)] = 0.0;
     }
 }
 
@@ -257,9 +257,9 @@ void Simulator::calculate_vorticity()
 
     FOR_EACH_CELL
     {
-        avg_u[POS(i, j, k)] = (u(i, j, k) + u(i + 1, j, k)) * 0.5;
-        avg_v[POS(i, j, k)] = (v(i, j, k) + v(i, j + 1, k)) * 0.5;
-        avg_w[POS(i, j, k)] = (w(i, j, k) + w(i, j, k + 1)) * 0.5;
+        avg_u[ ACC3D(i, j, k, Ny, Nx)] = (u(i, j, k) + u(i + 1, j, k)) * 0.5;
+        avg_v[ ACC3D(i, j, k, Ny, Nx)] = (v(i, j, k) + v(i, j + 1, k)) * 0.5;
+        avg_w[ ACC3D(i, j, k, Ny, Nx)] = (w(i, j, k) + w(i, j, k + 1)) * 0.5;
     }
 
     FOR_EACH_CELL
@@ -274,9 +274,9 @@ void Simulator::calculate_vorticity()
             continue;
         }
 
-        omg_x[POS(i, j, k)] = (avg_w[POS(i, j + 1, k)] - avg_w[POS(i, j - 1, k)] - avg_v[POS(i, j, k + 1)] + avg_v[POS(i, j, k - 1)]) * 0.5 / VOXEL_SIZE;
-        omg_y[POS(i, j, k)] = (avg_u[POS(i, j, k + 1)] - avg_u[POS(i, j, k - 1)] - avg_w[POS(i + 1, j, k)] + avg_w[POS(i - 1, j, k)]) * 0.5 / VOXEL_SIZE;
-        omg_z[POS(i, j, k)] = (avg_v[POS(i + 1, j, k)] - avg_v[POS(i - 1, j, k)] - avg_u[POS(i, j + 1, k)] + avg_u[POS(i, j - 1, k)]) * 0.5 / VOXEL_SIZE;
+        omg_x[ ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+        omg_y[ ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+        omg_z[ ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
     }
 
     FOR_EACH_CELL
@@ -292,16 +292,16 @@ void Simulator::calculate_vorticity()
         }
         // compute gradient of vorticity
         double p, q;
-        p = Vec3(omg_x[POS(i + 1, j, k)], omg_y[POS(i + 1, j, k)], omg_z[POS(i + 1, j, k)]).norm();
-        q = Vec3(omg_x[POS(i - 1, j, k)], omg_y[POS(i - 1, j, k)], omg_z[POS(i - 1, j, k)]).norm();
+        p = Vec3(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]).norm();
+        q = Vec3(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]).norm();
         double grad1 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = Vec3(omg_x[POS(i, j + 1, k)], omg_y[POS(i, j + 1, k)], omg_z[POS(i, j + 1, k)]).norm();
-        q = Vec3(omg_x[POS(i, j - 1, k)], omg_y[POS(i, j - 1, k)], omg_z[POS(i, j - 1, k)]).norm();
+        p = Vec3(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]).norm();
+        q = Vec3(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]).norm();
         double grad2 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = Vec3(omg_x[POS(i, j, k + 1)], omg_y[POS(i, j, k + 1)], omg_z[POS(i, j, k + 1)]).norm();
-        q = Vec3(omg_x[POS(i, j, k - 1)], omg_y[POS(i, j, k - 1)], omg_z[POS(i, j, k - 1)]).norm();
+        p = Vec3(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]).norm();
+        q = Vec3(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]).norm();
         double grad3 = (p - q) * 0.5 / VOXEL_SIZE;
 
         Vec3 gradVort(grad1, grad2, grad3);
@@ -313,12 +313,12 @@ void Simulator::calculate_vorticity()
             N_ijk = gradVort / gradVort.norm();
         }
 
-        Vec3 vorticity = Vec3(omg_x[POS(i, j, k)], omg_y[POS(i, j, k)], omg_z[POS(i, j, k)]);
+        Vec3 vorticity = Vec3(omg_x[ ACC3D(i, j, k, Ny, Nx)], omg_y[ ACC3D(i, j, k, Ny, Nx)], omg_z[ ACC3D(i, j, k, Ny, Nx)]);
         Vec3 f = VORT_EPS * VOXEL_SIZE * vorticity.cross(N_ijk);
-        vort[POS(i, j, k)] = f.norm();
-        fx[POS(i, j, k)] += f[0];
-        fy[POS(i, j, k)] += f[1];
-        fz[POS(i, j, k)] += f[2];
+        vort[ ACC3D(i, j, k, Ny, Nx)] = f.norm();
+        fx[ ACC3D(i, j, k, Ny, Nx)] += f[0];
+        fy[ ACC3D(i, j, k, Ny, Nx)] += f[1];
+        fz[ ACC3D(i, j, k, Ny, Nx)] += f[2];
     }
 }
 
@@ -328,15 +328,15 @@ void Simulator::apply_external_force()
     {
         if (i < Nx - 1)
         {
-            u(i + 1, j, k) += DT * (fx[POS(i, j, k)] + fx[POS(i + 1, j, k)]) * 0.5;
+            u(i + 1, j, k) += DT * (fx[ ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
         }
         if (j < Ny - 1)
         {
-            v(i, j + 1, k) += DT * (fy[POS(i, j, k)] + fx[POS(i, j + 1, k)]) * 0.5;
+            v(i, j + 1, k) += DT * (fy[ ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
         }
         if (k < Nz - 1)
         {
-            w(i, j, k + 1) += DT * (fz[POS(i, j, k)] + fx[POS(i, j, k + 1)]) * 0.5;
+            w(i, j, k + 1) += DT * (fz[ ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
         }
     }
 }
@@ -371,9 +371,9 @@ void Simulator::calculate_pressure()
 
         for (int n = 0; n < 6; ++n)
         {
-            b(POS(i, j, k)) += D[n] * F[n] * U[n];
+            b( ACC3D(i, j, k, Ny, Nx)) += D[n] * F[n] * U[n];
         }
-        b(POS(i, j, k)) *= coeff;
+        b( ACC3D(i, j, k, Ny, Nx)) *= coeff;
     }
 
     T_END("\tBuild b")
@@ -395,8 +395,8 @@ void Simulator::calculate_pressure()
     T_START
     FOR_EACH_CELL
     {
-        // pressure(i, j, k) = x(POS(i, j, k)) * t_coeff;
-        pressure.m_data[POS(i, j, k)] = x(POS(i, j, k)) * t_coeff;
+        // pressure(i, j, k) = x( ACC3D(i, j, k, Ny, Nx)) * t_coeff;
+        pressure.m_data[ ACC3D(i, j, k, Ny, Nx)] = x( ACC3D(i, j, k, Ny, Nx)) * t_coeff;
     }
     T_END("\tUpdate pressure")
 }
@@ -490,7 +490,7 @@ void Simulator::fix_occupied_voxels()
 {
     FOR_EACH_CELL
     {
-        if (m_occupied_voxels[POS(i, j, k)])
+        if (m_occupied_voxels[ ACC3D(i, j, k, Ny, Nx)])
         {
             u(i, j, k) = 0.0;
             v(i, j, k) = 0.0;
@@ -526,7 +526,7 @@ generateSphereDensity()
         // a ball in the center, radius is 1/3 Nx
         if (pow(i - Nx / 2, 2) + pow(j - Ny / 2, 2) + pow(k - Nz / 2, 2) < pow(Nx / 4, 2))
         {
-            density[POS(i, j, k)] = 0.5;
+            density[ ACC3D(i, j, k, Ny, Nx)] = 0.5;
         }
     }
     return density;
@@ -542,9 +542,9 @@ generateCubeDensity()
         // a cube in the center, side length is 1/3 Nx
         if (abs(i - Nx / 2) < Nx / 3 && abs(j - Ny / 2) < 5 && abs(k - Nz / 2) < 5)
         {
-            density[POS(i, j, k)] = 0.5;
+            density[ ACC3D(i, j, k, Ny, Nx)] = 0.5;
         }
-        //  density[POS(i, j, k)] = 0.5;
+        //  density[ ACC3D(i, j, k, Ny, Nx)] = 0.5;
     }
     return density;
 }
