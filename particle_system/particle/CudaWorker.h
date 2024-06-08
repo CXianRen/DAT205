@@ -1,8 +1,5 @@
 #ifndef __CUDA_WORKER_H__
 #define __CUDA_WORKER_H__
-#include "common/debug.h"
-#include "common/mmath.h"
-#include "SimBase.h"
 
 namespace MCUDA
 {

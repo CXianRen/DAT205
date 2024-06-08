@@ -234,7 +234,7 @@ void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::ma
 		{
 			for (int k = 0; k < Nz; k++)
 			{
-				if (occupied_voxels[POS(i, j, k)])
+				if (occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
 				{
 
 					glm::mat4 modelMatrix = glm::mat4(1.0f);

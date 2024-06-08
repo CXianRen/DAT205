@@ -1,5 +1,12 @@
 #include "CudaWorker.h"
+
 #include <cuda_runtime.h>
+
+#include "common/debug.h"
+#include "common/mmath.h"
+#include "SimBase.h"
+
+
 
 #define VEC3_NORM(x, y, z) \
     sqrt((x) * (x) + (y) * (y) + (z) * (z))
@@ -9,6 +16,13 @@
     y = z1 * x2 - x1 * z2;                         \
     z = x1 * y2 - y1 * x2;
 
+#define CUDA_FOR_EACH \
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; \
+    /*calculate the index of the cell*/              \
+    int i = idx % Nx;                                \
+    int j = (idx / Nx) % Ny;                         \
+    int k = idx / (Nx * Ny);
+
 namespace MCUDA
 {
     __global__ void calculateAverageVelocityKernel(
@@ -16,19 +30,22 @@ namespace MCUDA
         double *avg_u, double *avg_v, double *avg_w,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-        // calculate the index of the cell
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
-
+        CUDA_FOR_EACH;
         if (idx < workSize)
         {
             // calculate average velocity
-            avg_u[POS(i, j, k)] = (u[POS_X(i, j, k)] + u[POS_X(i + 1, j, k)]) * 0.5;
-            avg_v[POS(i, j, k)] = (v[POS_Y(i, j, k)] + v[POS_Y(i, j + 1, k)]) * 0.5;
-            avg_w[POS(i, j, k)] = (w[POS_Z(i, j, k)] + w[POS_Z(i, j, k + 1)]) * 0.5;
+            avg_u[ACC3D(i, j, k, Ny, Nx)] = 
+                (u[ACC3D_X(i, j, k, Ny, Nx)] + 
+                 u[ACC3D_X(i + 1, j, k, Ny, Nx)]
+                ) * 0.5;
+            avg_v[ACC3D(i, j, k, Ny, Nx)] = 
+                (v[ACC3D_Y(i, j, k, Ny, Nx)] +
+                 v[ACC3D_Y(i, j + 1, k, Ny, Nx)]
+                ) * 0.5;
+            avg_w[ACC3D(i, j, k, Ny, Nx)] = 
+                (w[ACC3D_Z(i, j, k, Ny, Nx)] + 
+                 w[ACC3D_Z(i, j, k + 1, Ny, Nx)]
+                ) * 0.5;
         }
     }
 
@@ -37,12 +54,7 @@ namespace MCUDA
         double *omg_x, double *omg_y, double *omg_z,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
-
+        CUDA_FOR_EACH
         if (idx < workSize)
         {
             // ignore boundary cells
@@ -55,9 +67,9 @@ namespace MCUDA
                 return;
             }
             // calculate vorticity
-            omg_x[POS(i, j, k)] = (avg_w[POS(i, j + 1, k)] - avg_w[POS(i, j - 1, k)] - avg_v[POS(i, j, k + 1)] + avg_v[POS(i, j, k - 1)]) * 0.5 / VOXEL_SIZE;
-            omg_y[POS(i, j, k)] = (avg_u[POS(i, j, k + 1)] - avg_u[POS(i, j, k - 1)] - avg_w[POS(i + 1, j, k)] + avg_w[POS(i - 1, j, k)]) * 0.5 / VOXEL_SIZE;
-            omg_z[POS(i, j, k)] = (avg_v[POS(i + 1, j, k)] - avg_v[POS(i - 1, j, k)] - avg_u[POS(i, j + 1, k)] + avg_u[POS(i, j - 1, k)]) * 0.5 / VOXEL_SIZE;
+            omg_x[ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+            omg_y[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+            omg_z[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
         }
     }
 
@@ -85,17 +97,17 @@ namespace MCUDA
             }
             // compute gradient of vorticity
             double p, q;
-            p = VEC3_NORM(omg_x[POS(i + 1, j, k)], omg_y[POS(i + 1, j, k)], omg_z[POS(i + 1, j, k)]);
-            q = VEC3_NORM(omg_x[POS(i - 1, j, k)], omg_y[POS(i - 1, j, k)], omg_z[POS(i - 1, j, k)]);
+            p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
+            q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
 
             double grad1 = (p - q) / (2.0 * VOXEL_SIZE);
 
-            p = VEC3_NORM(omg_x[POS(i, j + 1, k)], omg_y[POS(i, j + 1, k)], omg_z[POS(i, j + 1, k)]);
-            q = VEC3_NORM(omg_x[POS(i, j - 1, k)], omg_y[POS(i, j - 1, k)], omg_z[POS(i, j - 1, k)]);
+            p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
+            q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
             double grad2 = (p - q) / (2.0 * VOXEL_SIZE);
 
-            p = VEC3_NORM(omg_x[POS(i, j, k + 1)], omg_y[POS(i, j, k + 1)], omg_z[POS(i, j, k + 1)]);
-            q = VEC3_NORM(omg_x[POS(i, j, k - 1)], omg_y[POS(i, j, k - 1)], omg_z[POS(i, j, k - 1)]);
+            p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
+            q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
             double grad3 = (p - q) / (2.0 * VOXEL_SIZE);
 
             double norm = VEC3_NORM(grad1, grad2, grad3);
@@ -111,15 +123,15 @@ namespace MCUDA
             double f1, f2, f3;
 
             VEC_CROSS(
-                omg_x[POS(i, j, k)],
-                omg_y[POS(i, j, k)],
-                omg_z[POS(i, j, k)],
+                omg_x[ACC3D(i, j, k, Ny, Nx)],
+                omg_y[ACC3D(i, j, k, Ny, Nx)],
+                omg_z[ACC3D(i, j, k, Ny, Nx)],
                 ni, nj, nk,
                 f1, f2, f3);
 
-            f_x[POS(i, j, k)] += VORT_EPS * VOXEL_SIZE * f1;
-            f_y[POS(i, j, k)] += VORT_EPS * VOXEL_SIZE * f2;
-            f_z[POS(i, j, k)] += VORT_EPS * VOXEL_SIZE * f3;
+            f_x[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
+            f_y[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
+            f_z[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
         }
     }
 
@@ -138,15 +150,15 @@ namespace MCUDA
         {
             if (i < Nx - 1)
             {
-                u[POS_X(i + 1, j, k)] += DT * (f_x[POS(i, j, k)] + f_x[POS(i + 1, j, k)]) * 0.5;
+                u[ACC3D_X(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
             }
             if (j < Ny - 1)
             {
-                v[POS_Y(i, j + 1, k)] += DT * (f_y[POS(i, j, k)] + f_x[POS(i, j + 1, k)]) * 0.5;
+                v[ACC3D_Y(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
             }
             if (k < Nz - 1)
             {
-                w[POS_Z(i, j, k + 1)] += DT * (f_z[POS(i, j, k)] + f_x[POS(i, j, k + 1)]) * 0.5;
+                w[ACC3D_Z(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
             }
         }
     }
@@ -201,7 +213,7 @@ namespace MCUDA
             pos_cell[1] -= vel_cell[1] * DT;
             pos_cell[2] -= vel_cell[2] * DT;
 
-            field[POS(i, j, k)] = getScalar<double>(
+            field[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
                 pos_cell,
                 field_0,
                 Nx, Ny, Nz);

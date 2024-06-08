@@ -18,19 +18,26 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-#define POS(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
-#define POS_X(i, j, k) ((i) + (Nx + 1) * (j) + (Nx + 1) * (Ny) * (k))
-#define POS_Y(i, j, k) ((i) + Nx * (j) + Nx * (Ny + 1) * (k))
-#define POS_Z(i, j, k) ((i) + Nx * (j) + Nx * Ny * (k))
+#define POS(i, j, k) ACC3D(i, j, k, Ny, Nx)
+#define POS_X(i, j, k) ACC3D(i, j, k, Ny, Nx + 1)
+#define POS_Y(i, j, k) ACC3D(i, j, k, Ny + 1, Nx)
+#define POS_Z(i, j, k) ACC3D(i, j, k, Ny, Nx)
+
+#define ACC3D(x, y, z, ny, nx) ((x) + (y) * (nx) + (z) * (nx) * (ny))
+#define ACC3D_X(x, y, z, ny, nx) ACC3D(x, y, z, ny, nx + 1)
+#define ACC3D_Y(x, y, z, ny, nx) ACC3D(x, y, z, ny + 1, nx)
+#define ACC3D_Z(x, y, z, ny, nx) ACC3D(x, y, z, ny, nx)
+
+#define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
+
+
+
 
 #define FOR_EACH_CELL                \
     for (int k = 0; k < Nz; ++k)     \
         for (int j = 0; j < Ny; ++j) \
             for (int i = 0; i < Nx; ++i)
 
-#define ACC3D(x, y, z, ny, nx) ((x) + (y) * (nx) + (z) * (nx) * (ny))
-
-#define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
 
 template <typename T>
 PREFIX

@@ -4,14 +4,6 @@
 #include "mmath.h"
 #include "constants.h"
 
-#define ACC3D_X(x, y, z, rows, cols) \
-    ACC3D(x, y, z, rows, cols + 1)
-
-#define ACC3D_Y(x, y, z, rows, cols) \
-    ACC3D(x, y, z, rows + 1, cols)
-
-#define ACC3D_Z(x, y, z, rows, cols) \
-    ACC3D(x, y, z, rows, cols)
 
 template <typename T>
 PREFIX
