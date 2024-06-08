@@ -78,12 +78,8 @@ namespace MCUDA
         double *f_x, double *f_y, double *f_z,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
-
+        CUDA_FOR_EACH
         if (idx < workSize)
         {
             // ignore boundary cells
@@ -140,12 +136,7 @@ namespace MCUDA
         double *f_x, double *f_y, double *f_z,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
-
+        CUDA_FOR_EACH
         if (idx < workSize)
         {
             if (i < Nx - 1)
@@ -168,10 +159,7 @@ namespace MCUDA
         double *u_0, double *v_0, double *w_0,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
+        CUDA_FOR_EACH
         if (idx < workSize)
         {
             advectVelocityBody<double>(
@@ -187,10 +175,7 @@ namespace MCUDA
         double *u_0, double *v_0, double *w_0,
         int workSize, int Nx, int Ny, int Nz)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
+        CUDA_FOR_EACH
         if (idx < workSize)
         {
             double half_dx = 0.5 * VOXEL_SIZE;
@@ -560,16 +545,12 @@ namespace MCUDA
         double module_scale_factor,
         double factor)
     {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        int i = idx % Nx;
-        int j = (idx / Nx) % Ny;
-        int k = idx / (Nx * Ny);
-
-        double sample_count = Nx;
-        double step = 1.0;
-
+        CUDA_FOR_EACH
         if (idx < Nx * Ny * Nz)
         {
+            double sample_count = Nx;
+            double step = 1.0;
+
             double half_dx = 0.5 * VOXEL_SIZE;
 
             double pos_cell[3];
@@ -587,25 +568,6 @@ namespace MCUDA
             dir[0] /= norm;
             dir[1] /= norm;
             dir[2] /= norm;
-
-            if (idx == 1)
-            {
-                printf("norm: %f\n", norm);
-                // print direction
-                printf("dir: %f %f %f\n", dir[0], dir[1], dir[2]);
-                // print step
-                printf("step: %f\n", step);
-                // print pos
-                printf("pos: %f %f %f\n",
-                       pos_cell[0],
-                       pos_cell[1],
-                       pos_cell[2]);
-                // print factor
-                printf("factor: %f\n", factor);
-                // print module_scale_factor
-                printf("module_scale_factor: %f\n",
-                       module_scale_factor);
-            }
 
             double Tl = 1.0;
             for (int s = 0; s < sample_count; s++)
