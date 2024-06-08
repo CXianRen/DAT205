@@ -2,6 +2,16 @@
 #define __MSIMBASE_H__
 
 #include "mmath.h"
+#include "constants.h"
+
+#define ACC3D_X(x, y, z, rows, cols) \
+    ACC3D(x, y, z, rows, cols + 1)
+
+#define ACC3D_Y(x, y, z, rows, cols) \
+    ACC3D(x, y, z, rows + 1, cols)
+
+#define ACC3D_Z(x, y, z, rows, cols) \
+    ACC3D(x, y, z, rows, cols)
 
 template <typename T>
 PREFIX
@@ -142,17 +152,17 @@ PREFIX inline void advectVelocityBody(
     pos_w[1] -= DT * vel_w[1];
     pos_w[2] -= DT * vel_w[2];
 
-    u[POS_X(i, j, k)] = getVelocityX<double>(
+    u[ACC3D_X(i, j, k, Ny, Nx)] = getVelocityX<double>(
         pos_u,
         u_0,
         Nx, Ny, Nz);
 
-    v[POS_Y(i, j, k)] = getVelocityY<double>(
+    v[ACC3D_Y(i, j, k, Ny, Nx)] = getVelocityY<double>(
         pos_v,
         v_0,
         Nx, Ny, Nz);
 
-    w[POS_Z(i, j, k)] = getVelocityZ<double>(
+    w[ACC3D_Z(i, j, k, Ny, Nx)] = getVelocityZ<double>(
         pos_w,
         w_0,
         Nx, Ny, Nz);

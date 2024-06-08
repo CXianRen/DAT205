@@ -28,9 +28,9 @@
         for (int j = 0; j < Ny; ++j) \
             for (int i = 0; i < Nx; ++i)
 
-#define ACC3D(x, y, z, rows, cols) ((x) + (y) * cols + (z) * cols * rows)
+#define ACC3D(x, y, z, ny, nx) ((x) + (y) * (nx) + (z) * (nx) * (ny))
 
-#define ACC2D(x, y, cols) ACC3D(x, y, 0, 0, cols)
+#define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
 
 template <typename T>
 PREFIX
