@@ -16,6 +16,18 @@ void new_measurement(const std::string &d, double t)
     times.push_back(t);
 }
 
+void update_measurement(const std::string &d, double t){
+    for (int i = 0; i < desc.size(); i++)
+    {
+        if (desc[i] == d)
+        {
+            times[i] = t;
+            return;
+        }
+    }
+    new_measurement(d, t);
+}
+
 void clear_measurement()
 {
     times.clear();
@@ -25,8 +37,6 @@ void clear_measurement()
 std::string get_mesaurement_info()
 {
     std::stringstream ss;
-    // .3f means 3 decimal places
-    // ss << "Total time: " << std::setprecision(3) << total_time << " ms\n";
 
     for (int i = 0; i < desc.size(); i++)
     {

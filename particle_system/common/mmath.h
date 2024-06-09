@@ -26,8 +26,6 @@
 #define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
 
 
-
-
 #define FOR_EACH_CELL                \
     for (int k = 0; k < Nz; ++k)     \
         for (int j = 0; j < Ny; ++j) \
