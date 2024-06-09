@@ -18,10 +18,10 @@ Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
     // initial environment temperature
     FOR_EACH_CELL
     {
-        // temperature(i, j, k) = (j / (float)Ny) * T_AMP + T_AMBIENT;
-        // temperature(i, j, k) = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
-        // temperature(i, j, k) = dist(engine);
-        temperature(i, j, k) = T_AMBIENT;
+        // temperature[ACC3D(i, j, k, Ny, Nx)] = (j / (float)Ny) * T_AMP + T_AMBIENT;
+        // temperature[ACC3D(i, j, k, Ny, Nx)] = (j / (float)Ny) * T_AMP + dist(engine) + T_AMBIENT;
+        // temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
+        temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
     }
 
     addSource();
@@ -98,8 +98,8 @@ void Simulator::update()
     CW.setDensityField(density.m_data.data());
     CW.setPreviosDensityField(density0.m_data.data());
 
-    CW.setTemperatureField(temperature.m_data.data());
-    CW.setPreviosTemperatureField(temperature0.m_data.data());
+    CW.setTemperatureField(temperature);
+    CW.setPreviosTemperatureField(temperature0);
     T_END
 
     CW.advectScalarField();
@@ -107,8 +107,8 @@ void Simulator::update()
     CW.getDensityField(density.m_data.data());
     CW.getPreviosDensityField(density0.m_data.data());
 
-    CW.getTemperatureField(temperature.m_data.data());
-    CW.getPreviosTemperatureField(temperature0.m_data.data());
+    CW.getTemperatureField(temperature);
+    CW.getPreviosTemperatureField(temperature0);
 
     T_END
     // T_START
@@ -156,13 +156,13 @@ void Simulator::addSource()
                 // for (int i = 20; i < 20 + SOURCE_SIZE_X; ++i)
                 {
                     density(i, j, k) = INIT_DENSITY;
-                    temperature(i, j, k) = dist(engine);
+                    temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
                 }
 
                 // for (int i = Nx/2 + 10; i < Nx/2 + 20; ++i)
                 // {
                 //     density(i, j, k) = INIT_DENSITY;
-                //     temperature(i, j, k) = dist(engine);
+                //     temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
                 // }
             }
         }
@@ -181,7 +181,7 @@ void Simulator::addSource()
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
                     density(i, j, k) = INIT_DENSITY;
-                    temperature(i, j, k) = dist(engine);
+                    temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
                 }
             }
         }
@@ -247,7 +247,7 @@ void Simulator::calculate_external_force()
         fx[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         fy[ACC3D(i, j, k, Ny, Nx)] =
             -ALPHA * density(i, j, k) +
-            BETA * (temperature(i, j, k) - T_AMBIENT);
+            BETA * (temperature[ACC3D(i, j, k, Ny, Nx)] - T_AMBIENT);
         fz[ACC3D(i, j, k, Ny, Nx)] = 0.0;
     }
 }
@@ -396,7 +396,7 @@ void Simulator::calculate_pressure()
     FOR_EACH_CELL
     {
         // pressure(i, j, k) = x( ACC3D(i, j, k, Ny, Nx)) * t_coeff;
-        pressure.m_data[ACC3D(i, j, k, Ny, Nx)] = x(ACC3D(i, j, k, Ny, Nx)) * t_coeff;
+        pressure[ACC3D(i, j, k, Ny, Nx)] = x(ACC3D(i, j, k, Ny, Nx)) * t_coeff;
     }
     T_END
 }
@@ -409,15 +409,18 @@ void Simulator::apply_pressure()
         // compute gradient of pressure
         if (i < Nx - 1)
         {
-            u(i + 1, j, k) -= DT * (pressure(i + 1, j, k) - pressure(i, j, k)) / VOXEL_SIZE;
+            u(i + 1, j, k) -=
+                DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         }
         if (j < Ny - 1)
         {
-            v(i, j + 1, k) -= DT * (pressure(i, j + 1, k) - pressure(i, j, k)) / VOXEL_SIZE;
+            v(i, j + 1, k) -=
+                DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         }
         if (k < Nz - 1)
         {
-            w(i, j, k + 1) -= DT * (pressure(i, j, k + 1) - pressure(i, j, k)) / VOXEL_SIZE;
+            w(i, j, k + 1) -=
+                DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         }
     }
 }
@@ -456,7 +459,9 @@ void Simulator::advect_scalar_field()
     std::copy(w.begin(), w.end(), w0.begin());
 
     std::copy(density.begin(), density.end(), density0.begin());
-    std::copy(temperature.begin(), temperature.end(), temperature0.begin());
+    // std::copy(temperature.begin(), temperature.end(), temperature0.begin());
+    std::copy(temperature, temperature + SIZE, temperature0);
+
     T_END
 
     FOR_EACH_CELL
@@ -479,9 +484,9 @@ void Simulator::advect_scalar_field()
             density0.m_data.data(),
             Nx, Ny, Nz);
 
-        temperature(i, j, k) = getScalar<double>(
+        temperature[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
             pos_cell.n,
-            temperature0.m_data.data(),
+            temperature0,
             Nx, Ny, Nz);
     }
 }
@@ -495,7 +500,7 @@ void Simulator::fix_occupied_voxels()
             u(i, j, k) = 0.0;
             v(i, j, k) = 0.0;
             w(i, j, k) = 0.0;
-            temperature(i, j, k) = T_AMBIENT;
+            temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
             density(i, j, k) = 0.0;
         }
     }

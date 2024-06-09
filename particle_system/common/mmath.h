@@ -25,12 +25,18 @@
 
 #define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
 
-
 #define FOR_EACH_CELL                \
     for (int k = 0; k < Nz; ++k)     \
         for (int j = 0; j < Ny; ++j) \
             for (int i = 0; i < Nx; ++i)
 
+#define VEC3_NORM(x, y, z) \
+    sqrt((x) * (x) + (y) * (y) + (z) * (z))
+
+#define VEC3_CROSS(x1, y1, z1, x2, y2, z2, x, y, z) \
+    x = y1 * z2 - z1 * y2;                          \
+    y = z1 * x2 - x1 * z2;                          \
+    z = x1 * y2 - y1 * x2;
 
 template <typename T>
 PREFIX

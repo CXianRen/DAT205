@@ -6,17 +6,7 @@
 #include "common/mmath.h"
 #include "SimBase.h"
 
-
-
-#define VEC3_NORM(x, y, z) \
-    sqrt((x) * (x) + (y) * (y) + (z) * (z))
-
-#define VEC_CROSS(x1, y1, z1, x2, y2, z2, x, y, z) \
-    x = y1 * z2 - z1 * y2;                         \
-    y = z1 * x2 - x1 * z2;                         \
-    z = x1 * y2 - y1 * x2;
-
-#define CUDA_FOR_EACH \
+#define CUDA_FOR_EACH                                \
     int idx = blockIdx.x * blockDim.x + threadIdx.x; \
     /*calculate the index of the cell*/              \
     int i = idx % Nx;                                \
@@ -34,18 +24,18 @@ namespace MCUDA
         if (idx < workSize)
         {
             // calculate average velocity
-            avg_u[ACC3D(i, j, k, Ny, Nx)] = 
-                (u[ACC3D_X(i, j, k, Ny, Nx)] + 
-                 u[ACC3D_X(i + 1, j, k, Ny, Nx)]
-                ) * 0.5;
-            avg_v[ACC3D(i, j, k, Ny, Nx)] = 
+            avg_u[ACC3D(i, j, k, Ny, Nx)] =
+                (u[ACC3D_X(i, j, k, Ny, Nx)] +
+                 u[ACC3D_X(i + 1, j, k, Ny, Nx)]) *
+                0.5;
+            avg_v[ACC3D(i, j, k, Ny, Nx)] =
                 (v[ACC3D_Y(i, j, k, Ny, Nx)] +
-                 v[ACC3D_Y(i, j + 1, k, Ny, Nx)]
-                ) * 0.5;
-            avg_w[ACC3D(i, j, k, Ny, Nx)] = 
-                (w[ACC3D_Z(i, j, k, Ny, Nx)] + 
-                 w[ACC3D_Z(i, j, k + 1, Ny, Nx)]
-                ) * 0.5;
+                 v[ACC3D_Y(i, j + 1, k, Ny, Nx)]) *
+                0.5;
+            avg_w[ACC3D(i, j, k, Ny, Nx)] =
+                (w[ACC3D_Z(i, j, k, Ny, Nx)] +
+                 w[ACC3D_Z(i, j, k + 1, Ny, Nx)]) *
+                0.5;
         }
     }
 
@@ -118,7 +108,7 @@ namespace MCUDA
 
             double f1, f2, f3;
 
-            VEC_CROSS(
+            VEC3_CROSS(
                 omg_x[ACC3D(i, j, k, Ny, Nx)],
                 omg_y[ACC3D(i, j, k, Ny, Nx)],
                 omg_z[ACC3D(i, j, k, Ny, Nx)],
