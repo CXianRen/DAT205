@@ -96,16 +96,6 @@ private:
   /**   Semi-Lagarance method  **/
   double &m_time;
 
-  Vec3 getCenter(int i, int j, int k)
-  {
-    double half_dx = 0.5 * VOXEL_SIZE;
-
-    double x = half_dx + i * VOXEL_SIZE;
-    double y = half_dx + j * VOXEL_SIZE;
-    double z = half_dx + k * VOXEL_SIZE;
-    return Vec3(x, y, z);
-  }
-
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
   // velocity field

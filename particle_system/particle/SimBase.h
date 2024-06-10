@@ -4,6 +4,16 @@
 #include "mmath.h"
 #include "constants.h"
 
+template <typename T>
+PREFIX inline void
+getCenter(
+    int i, int j, int k,
+    T *center)
+{
+    center[0] = 0.5 * VOXEL_SIZE + i * VOXEL_SIZE;
+    center[1] = 0.5 * VOXEL_SIZE + j * VOXEL_SIZE;
+    center[2] = 0.5 * VOXEL_SIZE + k * VOXEL_SIZE;
+}
 
 template <typename T>
 PREFIX

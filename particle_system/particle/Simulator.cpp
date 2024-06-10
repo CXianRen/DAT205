@@ -127,7 +127,6 @@ void Simulator::update()
 
     if (m_time < EMIT_DURATION)
     {
-
         addSource();
         setEmitterVelocity();
     }
@@ -459,26 +458,30 @@ void Simulator::advectScalarField()
 
     FOR_EACH_CELL
     {
-        Vec3 pos_cell = getCenter(i, j, k);
-        Vec3 vel_cell;
+        double pos_cell[3];
+        double vel_cell[3];
+        getCenter(i, j, k, pos_cell);
 
         getVelocity<double>(
-            pos_cell.n,
-            vel_cell.n,
+            pos_cell,
+            vel_cell,
             u0.m_data.data(),
             v0.m_data.data(),
             w0.m_data.data(),
             Nx, Ny, Nz);
 
-        pos_cell -= DT * vel_cell;
+        pos_cell[0] -= DT * vel_cell[0];
+        pos_cell[1] -= DT * vel_cell[1];
+        pos_cell[2] -= DT * vel_cell[2];
+
 
         density[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
-            pos_cell.n,
+            pos_cell,
             density0,
             Nx, Ny, Nz);
 
         temperature[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
-            pos_cell.n,
+            pos_cell,
             temperature0,
             Nx, Ny, Nz);
     }

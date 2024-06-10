@@ -168,12 +168,9 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            double half_dx = 0.5 * VOXEL_SIZE;
-
             double pos_cell[3];
-            pos_cell[0] = half_dx + i * VOXEL_SIZE;
-            pos_cell[1] = half_dx + j * VOXEL_SIZE;
-            pos_cell[2] = half_dx + k * VOXEL_SIZE;
+            getCenter<double>(i, j, k, pos_cell);
+
 
             double vel_cell[3];
             getVelocity<double>(
@@ -541,12 +538,8 @@ namespace MCUDA
             double sample_count = Nx;
             double step = 1.0;
 
-            double half_dx = 0.5 * VOXEL_SIZE;
-
             double pos_cell[3];
-            pos_cell[0] = half_dx + i * VOXEL_SIZE;
-            pos_cell[1] = half_dx + j * VOXEL_SIZE;
-            pos_cell[2] = half_dx + k * VOXEL_SIZE;
+            getCenter<double>(i, j, k, pos_cell);
 
             double dir[3] = {
                 light_x - pos_cell[0] / Nx * module_scale_factor,
