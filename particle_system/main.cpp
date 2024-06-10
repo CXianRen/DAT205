@@ -683,8 +683,8 @@ int main(int argc, char *argv[])
 				std::lock_guard<std::mutex> lock(simLock);
 				// copy the density
 				std::copy(
-					simulator->getDensity().begin(), 
-					simulator->getDensity().end(), 
+					simulator->getDensity(), 
+					simulator->getDensity()+SIZE, 
 					density.begin()
 				);
 				std::copy(simulator->getTransparency(), 

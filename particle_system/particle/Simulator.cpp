@@ -95,8 +95,8 @@ void Simulator::update()
     T_START("\tupdate density and temperature to gpu")
     CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
 
-    CW.setDensityField(density.m_data.data());
-    CW.setPreviosDensityField(density0.m_data.data());
+    CW.setDensityField(density);
+    CW.setPreviosDensityField(density0);
 
     CW.setTemperatureField(temperature);
     CW.setPreviosTemperatureField(temperature0);
@@ -104,8 +104,8 @@ void Simulator::update()
 
     CW.advectScalarField();
 
-    CW.getDensityField(density.m_data.data());
-    CW.getPreviosDensityField(density0.m_data.data());
+    CW.getDensityField(density);
+    CW.getPreviosDensityField(density0);
 
     CW.getTemperatureField(temperature);
     CW.getPreviosTemperatureField(temperature0);
@@ -155,15 +155,9 @@ void Simulator::addSource()
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 // for (int i = 20; i < 20 + SOURCE_SIZE_X; ++i)
                 {
-                    density(i, j, k) = INIT_DENSITY;
+                    density[ACC3D(i, j, k, Ny, Nx)] = INIT_DENSITY;
                     temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
                 }
-
-                // for (int i = Nx/2 + 10; i < Nx/2 + 20; ++i)
-                // {
-                //     density(i, j, k) = INIT_DENSITY;
-                //     temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
-                // }
             }
         }
         break;
@@ -180,7 +174,7 @@ void Simulator::addSource()
                 // (32-8) / 2 = 12, (32+8) / 2 = 20
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    density(i, j, k) = INIT_DENSITY;
+                    density[ACC3D(i, j, k, Ny, Nx)] = INIT_DENSITY;
                     temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
                 }
             }
@@ -246,7 +240,7 @@ void Simulator::calculate_external_force()
     {
         fx[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         fy[ACC3D(i, j, k, Ny, Nx)] =
-            -ALPHA * density(i, j, k) +
+            -ALPHA * density[ACC3D(i, j, k, Ny, Nx)] +
             BETA * (temperature[ACC3D(i, j, k, Ny, Nx)] - T_AMBIENT);
         fz[ACC3D(i, j, k, Ny, Nx)] = 0.0;
     }
@@ -458,8 +452,7 @@ void Simulator::advect_scalar_field()
     std::copy(v.begin(), v.end(), v0.begin());
     std::copy(w.begin(), w.end(), w0.begin());
 
-    std::copy(density.begin(), density.end(), density0.begin());
-    // std::copy(temperature.begin(), temperature.end(), temperature0.begin());
+    std::copy(density, density + SIZE, density0);
     std::copy(temperature, temperature + SIZE, temperature0);
 
     T_END
@@ -479,9 +472,9 @@ void Simulator::advect_scalar_field()
 
         pos_cell -= DT * vel_cell;
 
-        density(i, j, k) = getScalar<double>(
+        density[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
             pos_cell.n,
-            density0.m_data.data(),
+            density0,
             Nx, Ny, Nz);
 
         temperature[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
@@ -501,7 +494,7 @@ void Simulator::fix_occupied_voxels()
             v(i, j, k) = 0.0;
             w(i, j, k) = 0.0;
             temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
-            density(i, j, k) = 0.0;
+            density[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         }
     }
 }
@@ -512,13 +505,6 @@ void Simulator::genTransparencyMap()
         light_x, light_y, light_z,
         module_scale_factor, factor);
     CW.getTransparencyMap(transparency);
-
-    // print the first 100 values
-    // for (int i = 0; i < 100; ++i)
-    // {
-    //     printf("%f ", transparency[i]);
-    // }
-    // printf("\n");
 }
 
 std::array<double, SIZE> &

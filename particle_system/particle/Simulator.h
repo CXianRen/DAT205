@@ -25,9 +25,9 @@ public:
 
   void update();
 
-  const std::array<double, SIZE> &getDensity()
+  const double * getDensity()
   {
-    return density.m_data;
+    return density;
   }
 
   std::string get_performance_info()
@@ -67,11 +67,10 @@ public:
 
   void reset()
   {
-    density.m_data.fill(0.0);
-    density0.m_data.fill(0.0);
-    // refill the temperature field
     for (int i = 0; i < SIZE; ++i)
     {
+      density[i] = 0.0;
+      density0[i] = 0.0;
       temperature[i] = T_AMBIENT;
       temperature0[i] = T_AMBIENT;
     }
@@ -140,7 +139,7 @@ private:
   double temperature0[SIZE], temperature[SIZE];
 
   // density field
-  MDataScalar density, density0;
+  double density[SIZE], density0[SIZE];
 
   double transparency[SIZE];
   double light_x, light_y, light_z;
