@@ -148,13 +148,10 @@ private:
 
   // solver
   EigenSolver m_e_solver;
-
-  Eigen::SparseMatrix<double, Eigen::RowMajor> A;
   Eigen::VectorXd b;
   Eigen::VectorXd x;
 
   CudaSolver m_solver;
-
   MCUDA::CudaWorker CW;
 
   // ocuppied voxels
