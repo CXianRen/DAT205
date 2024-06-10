@@ -43,21 +43,21 @@ void Simulator::update()
 
     T_START("update total")
 
-    T_START("calculate_external_force")
-    calculate_external_force();
+    T_START("calculateExternalForce")
+    calculateExternalForce();
     T_END
 
-    T_START("\tgpu calculate_vorticity")
+    T_START("\tgpu calculateVorticity")
     CW.setforceField(fx, fy, fz);
     CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
     CW.calculateVorticity();
     T_END
 
     // T_START
-    // calculate_vorticity();
-    // T_END("calculate_vorticity")
+    // calculateVorticity();
+    // T_END("calculateVorticity")
 
-    T_START("\tgpu apply_external_force")
+    T_START("\tgpu applyExternalForce")
     CW.applyExternalForce();
     CW.getVelocityField(
         u.m_data.data(),
@@ -67,10 +67,10 @@ void Simulator::update()
 
     // T_START
     // CW.getforceField(fx, fy, fz);
-    // apply_external_force();
-    // T_END("apply_external_force")
+    // applyExternalForce();
+    // T_END("applyExternalForce")
 
-    T_START("gpu advect_velocity")
+    T_START("gpu advectVelocity")
     CW.advectVelocityField();
     CW.getVelocityField(
         u.m_data.data(),
@@ -82,15 +82,15 @@ void Simulator::update()
         w0.m_data.data());
     T_END
 
-    T_START("gpu calculate_pressure")
-    calculate_pressure();
+    T_START("gpu calculatePressure")
+    calculatePressure();
     T_END
 
-    T_START("apply_pressure")
-    apply_pressure();
+    T_START("applyPressure")
+    applyPressure();
     T_END
 
-    T_START("gpu advect_scalar_field")
+    T_START("gpu advectScalarField")
 
     T_START("\tupdate density and temperature to gpu")
     CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
@@ -112,8 +112,8 @@ void Simulator::update()
 
     T_END
     // T_START
-    // advect_scalar_field();
-    // T_END("advect_scalar_field")
+    // advectScalarField();
+    // T_END("advectScalarField")
 
     T_START("fix_occupied_voxels")
     fix_occupied_voxels();
@@ -234,7 +234,7 @@ void Simulator::setEmitterVelocity()
     }
 }
 
-void Simulator::calculate_external_force()
+void Simulator::calculateExternalForce()
 {
     FOR_EACH_CELL
     {
@@ -246,7 +246,7 @@ void Simulator::calculate_external_force()
     }
 }
 
-void Simulator::calculate_vorticity()
+void Simulator::calculateVorticity()
 {
 
     FOR_EACH_CELL
@@ -316,7 +316,7 @@ void Simulator::calculate_vorticity()
     }
 }
 
-void Simulator::apply_external_force()
+void Simulator::applyExternalForce()
 {
     FOR_EACH_CELL
     {
@@ -335,7 +335,7 @@ void Simulator::apply_external_force()
     }
 }
 
-void Simulator::calculate_pressure()
+void Simulator::calculatePressure()
 {
     b.setZero();
     // x.setZero();
@@ -395,7 +395,7 @@ void Simulator::calculate_pressure()
     T_END
 }
 
-void Simulator::apply_pressure()
+void Simulator::applyPressure()
 {
 
     FOR_EACH_CELL
@@ -419,7 +419,7 @@ void Simulator::apply_pressure()
     }
 }
 
-void Simulator::advect_velocity()
+void Simulator::advectVelocity()
 {
     T_START("\tcopy data")
     std::copy(u.begin(), u.end(), u0.begin());
@@ -445,7 +445,7 @@ void Simulator::advect_velocity()
     }
 }
 
-void Simulator::advect_scalar_field()
+void Simulator::advectScalarField()
 {
     T_START("\tcopy data")
     std::copy(u.begin(), u.end(), u0.begin());

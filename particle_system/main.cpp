@@ -691,7 +691,7 @@ int main(int argc, char *argv[])
 					simulator->getTransparency() + SIZE,  
 					transparency);
 					
-				simulator_info = simulator->get_performance_info();
+				simulator_info = simulator->getPerformanceInfo();
 			}
 		} });
 

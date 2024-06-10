@@ -25,12 +25,16 @@ public:
 
   void update();
 
-  const double * getDensity()
+  const double *getDensity()
   {
     return density;
   }
+  const double *getTransparency()
+  {
+    return transparency;
+  }
 
-  std::string get_performance_info()
+  const std::string getPerformanceInfo()
   {
     auto time_str = get_mesaurement_info();
     // get solver info
@@ -58,13 +62,6 @@ public:
     this->factor = factor;
   }
 
-  void genTransparencyMap();
-
-  double *getTransparency()
-  {
-    return transparency;
-  }
-
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
@@ -88,24 +85,13 @@ private:
   void setEmitterVelocity();
   void addSource();
 
-  /**     General step in update function         **/
-  /*
-   * is to calculate the external force field
-   * which is the buoyancy force and the gravity force
-   * and store the result in fx, fy, fz
-   * fx, fy, fz are the external force field
-   * fx, fy, fz are the same size as the grid
-   * fx, fy, fz are the force field in x, y, z direction
-   * fx, fy, fz are the force field at the center of the grid
-   * f_buoyancy = alpha * density * (0, 1, 0) + beta * (T - T_ambient) * (0, 1, 0)
-   */
-  void calculate_external_force();
-  void calculate_vorticity();
-  void apply_external_force();
-  void calculate_pressure();
-  void apply_pressure();
-  void advect_velocity();
-  void advect_scalar_field();
+  void calculateExternalForce();
+  void calculateVorticity();
+  void applyExternalForce();
+  void calculatePressure();
+  void applyPressure();
+  void advectVelocity();
+  void advectScalarField();
 
   /**   Semi-Lagarance method  **/
   double &m_time;
@@ -141,6 +127,7 @@ private:
   // density field
   double density[SIZE], density0[SIZE];
 
+  // transparency field
   double transparency[SIZE];
   double light_x, light_y, light_z;
   double module_scale_factor;
@@ -156,8 +143,9 @@ private:
 
   // ocuppied voxels
   std::array<bool, SIZE> m_occupied_voxels;
-
   void fix_occupied_voxels();
+
+  void genTransparencyMap();
 };
 
 std::array<double, SIZE> &
