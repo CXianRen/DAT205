@@ -5,21 +5,6 @@
 #include <cmath>
 #include "constants.h"
 
-#define FOR_EACH_FACE_X          \
-  for (int k = 0; k < Nz; ++k)   \
-    for (int j = 0; j < Ny; ++j) \
-      for (int i = 0; i < Nx + 1; ++i)
-
-#define FOR_EACH_FACE_Y              \
-  for (int k = 0; k < Nz; ++k)       \
-    for (int j = 0; j < Ny + 1; ++j) \
-      for (int i = 0; i < Nx; ++i)
-
-#define FOR_EACH_FACE_Z            \
-  for (int k = 0; k < Nz + 1; ++k) \
-    for (int j = 0; j < Ny; ++j)   \
-      for (int i = 0; i < Nx; ++i)
-
 template <int X, int Y, int Z>
 class MData
 {

@@ -115,8 +115,8 @@ void Simulator::update()
     // advectScalarField();
     // T_END("advectScalarField")
 
-    T_START("fix_occupied_voxels")
-    fix_occupied_voxels();
+    T_START("fixOccupiedVoxels")
+    fixOccupiedVoxels();
     T_END
 
     T_START("gpu genTransparencyMap")
@@ -494,7 +494,7 @@ void Simulator::advectScalarField()
     }
 }
 
-void Simulator::fix_occupied_voxels()
+void Simulator::fixOccupiedVoxels()
 {
     FOR_EACH_CELL
     {

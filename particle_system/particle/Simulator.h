@@ -134,7 +134,7 @@ private:
 
   // ocuppied voxels
   std::array<bool, SIZE> m_occupied_voxels;
-  void fix_occupied_voxels();
+  void fixOccupiedVoxels();
 
   void genTransparencyMap();
 };
