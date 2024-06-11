@@ -71,6 +71,7 @@ public:
       density0[i] = 0.0;
       temperature[i] = T_AMBIENT;
       temperature0[i] = T_AMBIENT;
+      pressure[i] = 0.0;
     }
     u.m_data.fill(0.0);
     u0.m_data.fill(0.0);
@@ -78,7 +79,7 @@ public:
     v0.m_data.fill(0.0);
     w.m_data.fill(0.0);
     w0.m_data.fill(0.0);
-    memset(pressure, 0, sizeof(float) * SIZE);
+
     m_time = 0.0;
   }
 
