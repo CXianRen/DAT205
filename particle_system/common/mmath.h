@@ -7,7 +7,6 @@
 #include <Eigen/Sparse>
 
 #include "constants.h"
-#include "Vec3.h"
 
 #ifdef __CUDACC__
 #define PREFIX __device__

@@ -29,6 +29,7 @@ public:
   {
     return density;
   }
+
   const double *getTransparency()
   {
     return transparency;

@@ -4,8 +4,6 @@
 #include <cassert>
 #include <cmath>
 #include "constants.h"
-#include "Vec3.h"
-
 
 #define FOR_EACH_FACE_X          \
   for (int k = 0; k < Nz; ++k)   \

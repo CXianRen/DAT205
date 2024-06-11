@@ -624,17 +624,3 @@ namespace MCUDA
     }
 
 }
-
-__global__ void addKernel()
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-}
-
-void test_cuda()
-{
-    // launch kernel
-    DEBUG_PRINT("Launching kernel\n");
-    addKernel<<<4, 256>>>();
-    cudaDeviceSynchronize();
-    DEBUG_PRINT("Kernel finished\n");
-}

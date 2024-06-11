@@ -285,33 +285,41 @@ void Simulator::calculateVorticity()
         }
         // compute gradient of vorticity
         double p, q;
-        p = Vec3(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]).norm();
-        q = Vec3(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]).norm();
+        p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
         double grad1 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = Vec3(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]).norm();
-        q = Vec3(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]).norm();
+        p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
         double grad2 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = Vec3(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]).norm();
-        q = Vec3(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]).norm();
+        p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
         double grad3 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        Vec3 gradVort(grad1, grad2, grad3);
-        // compute N vector
-        Vec3 N_ijk(0, 0, 0);
-        double norm = gradVort.norm();
+        double norm = VEC3_NORM(grad1, grad2, grad3);
+
+        double ni = 0.0, nj = 0.0, nk = 0.0;
+
         if (norm != 0)
         {
-            N_ijk = gradVort / gradVort.norm();
+            ni = grad1 / norm;
+            nj = grad2 / norm;
+            nk = grad3 / norm;
         }
 
-        Vec3 vorticity = Vec3(omg_x[ACC3D(i, j, k, Ny, Nx)], omg_y[ACC3D(i, j, k, Ny, Nx)], omg_z[ACC3D(i, j, k, Ny, Nx)]);
-        Vec3 f = VORT_EPS * VOXEL_SIZE * vorticity.cross(N_ijk);
-        vort[ACC3D(i, j, k, Ny, Nx)] = f.norm();
-        fx[ACC3D(i, j, k, Ny, Nx)] += f[0];
-        fy[ACC3D(i, j, k, Ny, Nx)] += f[1];
-        fz[ACC3D(i, j, k, Ny, Nx)] += f[2];
+        double f1, f2, f3;
+
+        VEC3_CROSS(
+            omg_x[ACC3D(i, j, k, Ny, Nx)],
+            omg_y[ACC3D(i, j, k, Ny, Nx)],
+            omg_z[ACC3D(i, j, k, Ny, Nx)],
+            ni, nj, nk,
+            f1, f2, f3);
+
+        fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
+        fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
+        fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
     }
 }
 
@@ -473,7 +481,6 @@ void Simulator::advectScalarField()
         pos_cell[0] -= DT * vel_cell[0];
         pos_cell[1] -= DT * vel_cell[1];
         pos_cell[2] -= DT * vel_cell[2];
-
 
         density[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
             pos_cell,
