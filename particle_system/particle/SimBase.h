@@ -153,6 +153,31 @@ PREFIX inline void applyExternalForceBody(
 
 }
 
+template <typename T>
+PREFIX inline void applyPressureBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *pressure,
+    T *u, T *v, T *w
+){
+           // compute gradient of pressure
+        if (i < Nx - 1)
+        {
+            u[ACC3D_X(i + 1, j, k, Ny, Nx)] -=
+                DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+        }
+        if (j < Ny - 1)
+        {
+            v[ACC3D_Y(i, j + 1, k, Ny, Nx)] -=
+                DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+        }
+        if (k < Nz - 1)
+        {
+            w[ACC3D_Z(i, j, k + 1, Ny, Nx)] -=
+                DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+        } 
+}
+
 
 template <typename T>
 PREFIX inline void calculateVorticityBody(

@@ -358,22 +358,13 @@ void Simulator::applyPressure()
 
     FOR_EACH_CELL
     {
-        // compute gradient of pressure
-        if (i < Nx - 1)
-        {
-            u(i + 1, j, k) -=
-                DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        }
-        if (j < Ny - 1)
-        {
-            v(i, j + 1, k) -=
-                DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        }
-        if (k < Nz - 1)
-        {
-            w(i, j, k + 1) -=
-                DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        }
+        applyPressureBody<double>(
+            i, j, k,
+            Nx, Ny, Nz,
+            pressure,
+            u.m_data.data(),
+            v.m_data.data(),
+            w.m_data.data());
     }
 }
 
