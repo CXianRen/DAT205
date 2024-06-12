@@ -23,19 +23,11 @@ namespace MCUDA
         CUDA_FOR_EACH;
         if (idx < workSize)
         {
-            // calculate average velocity
-            avg_u[ACC3D(i, j, k, Ny, Nx)] =
-                (u[ACC3D_X(i, j, k, Ny, Nx)] +
-                 u[ACC3D_X(i + 1, j, k, Ny, Nx)]) *
-                0.5;
-            avg_v[ACC3D(i, j, k, Ny, Nx)] =
-                (v[ACC3D_Y(i, j, k, Ny, Nx)] +
-                 v[ACC3D_Y(i, j + 1, k, Ny, Nx)]) *
-                0.5;
-            avg_w[ACC3D(i, j, k, Ny, Nx)] =
-                (w[ACC3D_Z(i, j, k, Ny, Nx)] +
-                 w[ACC3D_Z(i, j, k + 1, Ny, Nx)]) *
-                0.5;
+            calculateAverageVelocity(
+                i, j, k,
+                Nx, Ny, Nz,
+                u, v, w,
+                avg_u, avg_v, avg_w);
         }
     }
 
@@ -47,19 +39,11 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            // ignore boundary cells
-            if (i == 0 || j == 0 || k == 0)
-            {
-                return;
-            }
-            if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
-            {
-                return;
-            }
-            // calculate vorticity
-            omg_x[ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
-            omg_y[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
-            omg_z[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+            calculateGradient(
+                i, j, k,
+                Nx, Ny, Nz,
+                avg_u, avg_v, avg_w,
+                omg_x, omg_y, omg_z);
         }
     }
 
@@ -72,52 +56,11 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            // ignore boundary cells
-            if (i == 0 || j == 0 || k == 0)
-            {
-                return;
-            }
-            if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
-            {
-                return;
-            }
-            // compute gradient of vorticity
-            double p, q;
-            p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
-            q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
-
-            double grad1 = (p - q) / (2.0 * VOXEL_SIZE);
-
-            p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
-            q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
-            double grad2 = (p - q) / (2.0 * VOXEL_SIZE);
-
-            p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
-            q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
-            double grad3 = (p - q) / (2.0 * VOXEL_SIZE);
-
-            double norm = VEC3_NORM(grad1, grad2, grad3);
-
-            double ni = 0.0, nj = 0.0, nk = 0.0;
-            if (norm != 0)
-            {
-                ni = grad1 / norm;
-                nj = grad2 / norm;
-                nk = grad3 / norm;
-            }
-
-            double f1, f2, f3;
-
-            VEC3_CROSS(
-                omg_x[ACC3D(i, j, k, Ny, Nx)],
-                omg_y[ACC3D(i, j, k, Ny, Nx)],
-                omg_z[ACC3D(i, j, k, Ny, Nx)],
-                ni, nj, nk,
-                f1, f2, f3);
-
-            f_x[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
-            f_y[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
-            f_z[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
+            calculateVorticityBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                omg_x, omg_y, omg_z,
+                f_x, f_y, f_z);
         }
     }
 
@@ -129,18 +72,11 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            if (i < Nx - 1)
-            {
-                u[ACC3D_X(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
-            }
-            if (j < Ny - 1)
-            {
-                v[ACC3D_Y(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
-            }
-            if (k < Nz - 1)
-            {
-                w[ACC3D_Z(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
-            }
+            applyExternalForceBody(
+                i, j, k,
+                Nx, Ny, Nz,
+                f_x, f_y, f_z,
+                u, v, w);
         }
     }
 
@@ -170,7 +106,6 @@ namespace MCUDA
         {
             double pos_cell[3];
             getCenter<double>(i, j, k, pos_cell);
-
 
             double vel_cell[3];
             getVelocity<double>(

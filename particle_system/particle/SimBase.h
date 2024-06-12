@@ -87,6 +87,130 @@ PREFIX void getVelocity(
 }
 
 template <typename T>
+PREFIX inline void calculateAverageVelocity(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *u, T *v, T *w,
+    T *avg_u, T *avg_v, T *avg_w)
+{
+    // calculate average velocity
+    avg_u[ACC3D(i, j, k, Ny, Nx)] =
+        (u[ACC3D_X(i, j, k, Ny, Nx)] +
+            u[ACC3D_X(i + 1, j, k, Ny, Nx)]) *
+        0.5;
+    avg_v[ACC3D(i, j, k, Ny, Nx)] =
+        (v[ACC3D_Y(i, j, k, Ny, Nx)] +
+            v[ACC3D_Y(i, j + 1, k, Ny, Nx)]) *
+        0.5;
+    avg_w[ACC3D(i, j, k, Ny, Nx)] =
+        (w[ACC3D_Z(i, j, k, Ny, Nx)] +
+            w[ACC3D_Z(i, j, k + 1, Ny, Nx)]) *
+        0.5;
+}
+
+template <typename T>
+PREFIX inline void calculateGradient(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T* avg_u, T* avg_v, T* avg_w,
+    T* grad_u, T* grad_v, T* grad_w)
+{
+    // ignore boundary cells
+    if (i == 0 || j == 0 || k == 0)
+    {
+        return;
+    }
+    if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
+    {
+        return;
+    }
+    // calculate vorticity
+    grad_u[ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+    grad_v[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+    grad_w[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+}
+
+
+template <typename T>
+PREFIX inline void applyExternalForceBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *f_x, T *f_y, T *f_z,
+    T *u, T *v, T *w)
+{
+    if (i < Nx - 1)
+    {
+        u[ACC3D_X(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
+    }
+    if (j < Ny - 1)
+    {
+        v[ACC3D_Y(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
+    }
+    if (k < Nz - 1)
+    {
+        w[ACC3D_Z(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
+    }
+
+}
+
+
+template <typename T>
+PREFIX inline void calculateVorticityBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *omg_x, T *omg_y, T *omg_z,
+    T *fx, T *fy, T *fz)
+{
+
+        // ignore boundary cells
+        if (i == 0 || j == 0 || k == 0)
+        {
+            return;
+        }
+        if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
+        {
+            return;
+        }
+        // compute gradient of vorticity
+        T p, q;
+        p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
+        T grad1 = (p - q) * 0.5 / VOXEL_SIZE;
+
+        p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
+        T grad2 = (p - q) * 0.5 / VOXEL_SIZE;
+
+        p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
+        q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
+        T grad3 = (p - q) * 0.5 / VOXEL_SIZE;
+
+        T norm = VEC3_NORM(grad1, grad2, grad3);
+
+        T ni = 0.0, nj = 0.0, nk = 0.0;
+
+        if (norm != 0)
+        {
+            ni = grad1 / norm;
+            nj = grad2 / norm;
+            nk = grad3 / norm;
+        }
+
+        T f1, f2, f3;
+
+        VEC3_CROSS(
+            omg_x[ACC3D(i, j, k, Ny, Nx)],
+            omg_y[ACC3D(i, j, k, Ny, Nx)],
+            omg_z[ACC3D(i, j, k, Ny, Nx)],
+            ni, nj, nk,
+            f1, f2, f3);
+
+        fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
+        fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
+        fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;  
+}
+
+template <typename T>
 PREFIX inline void advectVelocityBody(
     T *u, T *v, T *w,
     T *u_0, T *v_0, T *w_0,

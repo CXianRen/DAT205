@@ -47,7 +47,7 @@ void Simulator::update()
     calculateExternalForce();
     T_END
 
-    T_START("\tgpu calculateVorticity")
+    T_START("gpu calculateVorticity")
     CW.setforceField(fx, fy, fz);
     CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
     CW.calculateVorticity();
@@ -250,76 +250,32 @@ void Simulator::calculateVorticity()
 
     FOR_EACH_CELL
     {
-        avg_u[ACC3D(i, j, k, Ny, Nx)] = (u(i, j, k) + u(i + 1, j, k)) * 0.5;
-        avg_v[ACC3D(i, j, k, Ny, Nx)] = (v(i, j, k) + v(i, j + 1, k)) * 0.5;
-        avg_w[ACC3D(i, j, k, Ny, Nx)] = (w(i, j, k) + w(i, j, k + 1)) * 0.5;
+
+        calculateAverageVelocity<double>(
+            i, j, k,
+            Nx, Ny, Nz,
+            u.m_data.data(),
+            v.m_data.data(),
+            w.m_data.data(),
+            avg_u, avg_v, avg_w);
     }
 
     FOR_EACH_CELL
     {
-        // ignore boundary cells
-        if (i == 0 || j == 0 || k == 0)
-        {
-            continue;
-        }
-        if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
-        {
-            continue;
-        }
-
-        omg_x[ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
-        omg_y[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
-        omg_z[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
+        calculateGradient(
+            i, j, k,
+            Nx, Ny, Nz,
+            avg_u, avg_v, avg_w,
+            omg_x, omg_y, omg_z);
     }
 
     FOR_EACH_CELL
     {
-        // ignore boundary cells
-        if (i == 0 || j == 0 || k == 0)
-        {
-            continue;
-        }
-        if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
-        {
-            continue;
-        }
-        // compute gradient of vorticity
-        double p, q;
-        p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
-        double grad1 = (p - q) * 0.5 / VOXEL_SIZE;
-
-        p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
-        double grad2 = (p - q) * 0.5 / VOXEL_SIZE;
-
-        p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
-        double grad3 = (p - q) * 0.5 / VOXEL_SIZE;
-
-        double norm = VEC3_NORM(grad1, grad2, grad3);
-
-        double ni = 0.0, nj = 0.0, nk = 0.0;
-
-        if (norm != 0)
-        {
-            ni = grad1 / norm;
-            nj = grad2 / norm;
-            nk = grad3 / norm;
-        }
-
-        double f1, f2, f3;
-
-        VEC3_CROSS(
-            omg_x[ACC3D(i, j, k, Ny, Nx)],
-            omg_y[ACC3D(i, j, k, Ny, Nx)],
-            omg_z[ACC3D(i, j, k, Ny, Nx)],
-            ni, nj, nk,
-            f1, f2, f3);
-
-        fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
-        fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
-        fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
+        calculateVorticityBody(
+            i, j, k,
+            Nx, Ny, Nz,
+            omg_x, omg_y, omg_z,
+            fx, fy, fz);
     }
 }
 
@@ -327,18 +283,13 @@ void Simulator::applyExternalForce()
 {
     FOR_EACH_CELL
     {
-        if (i < Nx - 1)
-        {
-            u(i + 1, j, k) += DT * (fx[ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
-        }
-        if (j < Ny - 1)
-        {
-            v(i, j + 1, k) += DT * (fy[ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
-        }
-        if (k < Nz - 1)
-        {
-            w(i, j, k + 1) += DT * (fz[ACC3D(i, j, k, Ny, Nx)] + fx[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
-        }
+        applyExternalForceBody(
+            i, j, k,
+            Nx, Ny, Nz,
+            fx, fy, fz,
+            u.m_data.data(), 
+            v.m_data.data(), 
+            w.m_data.data());
     }
 }
 
