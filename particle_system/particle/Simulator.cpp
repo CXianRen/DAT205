@@ -403,36 +403,25 @@ void Simulator::advectScalarField()
 
     std::copy(density, density + SIZE, density0);
     std::copy(temperature, temperature + SIZE, temperature0);
-
     T_END
 
     FOR_EACH_CELL
     {
-        double pos_cell[3];
-        double vel_cell[3];
-        getCenter(i, j, k, pos_cell);
+        advectScalarBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                density, density0,
+                u0.m_data.data(), 
+                v0.m_data.data(), 
+                w0.m_data.data());
 
-        getVelocity<double>(
-            pos_cell,
-            vel_cell,
-            u0.m_data.data(),
-            v0.m_data.data(),
-            w0.m_data.data(),
-            Nx, Ny, Nz);
-
-        pos_cell[0] -= DT * vel_cell[0];
-        pos_cell[1] -= DT * vel_cell[1];
-        pos_cell[2] -= DT * vel_cell[2];
-
-        density[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
-            pos_cell,
-            density0,
-            Nx, Ny, Nz);
-
-        temperature[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
-            pos_cell,
-            temperature0,
-            Nx, Ny, Nz);
+        advectScalarBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                temperature, temperature0,
+                u0.m_data.data(), 
+                v0.m_data.data(), 
+                w0.m_data.data());
     }
 }
 

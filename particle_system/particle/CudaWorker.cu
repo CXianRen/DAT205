@@ -104,26 +104,11 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            double pos_cell[3];
-            getCenter<double>(i, j, k, pos_cell);
-
-            double vel_cell[3];
-            getVelocity<double>(
-                pos_cell,
-                vel_cell,
-                u_0,
-                v_0,
-                w_0,
-                Nx, Ny, Nz);
-
-            pos_cell[0] -= vel_cell[0] * DT;
-            pos_cell[1] -= vel_cell[1] * DT;
-            pos_cell[2] -= vel_cell[2] * DT;
-
-            field[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
-                pos_cell,
-                field_0,
-                Nx, Ny, Nz);
+            advectScalarBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                field, field_0,
+                u_0, v_0, w_0);
         }
     }
 

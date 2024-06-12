@@ -336,4 +336,34 @@ PREFIX T getScalar(
         Nx, Ny, Nz,
         Nx - 1, Ny - 1, Nz - 1, VOXEL_SIZE);
 }
+
+template <typename T>
+PREFIX inline void advectScalarBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *field, T *field_0,
+    T *u_0, T *v_0, T *w_0)
+{
+    T pos_cell[3];
+    getCenter<double>(i, j, k, pos_cell);
+
+    T vel_cell[3];
+    getVelocity<double>(
+        pos_cell,
+        vel_cell,
+        u_0,
+        v_0,
+        w_0,
+        Nx, Ny, Nz);
+
+    pos_cell[0] -= vel_cell[0] * DT;
+    pos_cell[1] -= vel_cell[1] * DT;
+    pos_cell[2] -= vel_cell[2] * DT;
+
+    field[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
+        pos_cell,
+        field_0,
+        Nx, Ny, Nz);
+}
+
 #endif // __MSIMBASE_H__
