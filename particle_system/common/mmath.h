@@ -18,9 +18,6 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define ACC3D(x, y, z, ny, nx) ((x) + (y) * (nx) + (z) * (nx) * (ny))
-#define ACC3D_X(x, y, z, ny, nx) ACC3D(x, y, z, ny, nx + 1)
-#define ACC3D_Y(x, y, z, ny, nx) ACC3D(x, y, z, ny + 1, nx)
-#define ACC3D_Z(x, y, z, ny, nx) ACC3D(x, y, z, ny, nx)
 
 #define ACC2D(x, y, nx) ACC3D(x, y, 0, 0, nx)
 

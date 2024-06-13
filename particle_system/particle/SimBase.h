@@ -31,7 +31,7 @@ PREFIX
     return linearInterpolation3D<T>(
         tpos,
         u,
-        Nx + 1, Ny, Nz,
+        Nx, Ny, Nz,
         Nx, Ny - 1, Nz - 1, VOXEL_SIZE);
 }
 
@@ -51,7 +51,7 @@ PREFIX
     return linearInterpolation3D<T>(
         tpos,
         v,
-        Nx, Ny + 1, Nz,
+        Nx, Ny, Nz,
         Nx - 1, Ny, Nz - 1, VOXEL_SIZE);
 }
 
@@ -70,7 +70,7 @@ PREFIX
     return linearInterpolation3D<T>(
         tpos,
         w,
-        Nx, Ny, Nz + 1,
+        Nx, Ny, Nz,
         Nx - 1, Ny - 1, Nz, VOXEL_SIZE);
 }
 
@@ -94,18 +94,33 @@ PREFIX inline void calculateAverageVelocity(
     T *avg_u, T *avg_v, T *avg_w)
 {
     // calculate average velocity
-    avg_u[ACC3D(i, j, k, Ny, Nx)] =
-        (u[ACC3D_X(i, j, k, Ny, Nx)] +
-            u[ACC3D_X(i + 1, j, k, Ny, Nx)]) *
-        0.5;
-    avg_v[ACC3D(i, j, k, Ny, Nx)] =
-        (v[ACC3D_Y(i, j, k, Ny, Nx)] +
-            v[ACC3D_Y(i, j + 1, k, Ny, Nx)]) *
-        0.5;
-    avg_w[ACC3D(i, j, k, Ny, Nx)] =
-        (w[ACC3D_Z(i, j, k, Ny, Nx)] +
-            w[ACC3D_Z(i, j, k + 1, Ny, Nx)]) *
-        0.5;
+    T t0 = 0, t1 = 0;
+    
+    t0 = u[ACC3D(i, j, k, Ny, Nx)];
+    if (i < Nx - 1)
+    {
+        t1 = u[ACC3D(i + 1, j, k, Ny, Nx)];
+
+    }
+    avg_u[ACC3D(i, j, k, Ny, Nx)] = (t0 + t1) * 0.5;
+
+    t0 = v[ACC3D(i, j, k, Ny, Nx)];
+    t1 = 0;
+    if (j < Ny - 1)
+    {
+        t1 = v[ACC3D(i, j + 1, k, Ny, Nx)];
+    }
+    avg_v[ACC3D(i, j, k, Ny, Nx)] = (t0 + t1) * 0.5;
+
+    t0 = w[ACC3D(i, j, k, Ny, Nx)];
+    t1 = 0;
+    if (k < Nz - 1)
+    {
+        
+        t1 = w[ACC3D(i, j, k + 1, Ny, Nx)];
+    }
+    avg_w[ACC3D(i, j, k, Ny, Nx)] = (t0 + t1) * 0.5;
+
 }
 
 template <typename T>
@@ -140,15 +155,15 @@ PREFIX inline void applyExternalForceBody(
 {
     if (i < Nx - 1)
     {
-        u[ACC3D_X(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
+        u[ACC3D(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
     }
     if (j < Ny - 1)
     {
-        v[ACC3D_Y(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
+        v[ACC3D(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
     }
     if (k < Nz - 1)
     {
-        w[ACC3D_Z(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
+        w[ACC3D(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
     }
 
 }
@@ -163,17 +178,17 @@ PREFIX inline void applyPressureBody(
            // compute gradient of pressure
         if (i < Nx - 1)
         {
-            u[ACC3D_X(i + 1, j, k, Ny, Nx)] -=
+            u[ACC3D(i + 1, j, k, Ny, Nx)] -=
                 DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         }
         if (j < Ny - 1)
         {
-            v[ACC3D_Y(i, j + 1, k, Ny, Nx)] -=
+            v[ACC3D(i, j + 1, k, Ny, Nx)] -=
                 DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         }
         if (k < Nz - 1)
         {
-            w[ACC3D_Z(i, j, k + 1, Ny, Nx)] -=
+            w[ACC3D(i, j, k + 1, Ny, Nx)] -=
                 DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
         } 
 }
@@ -303,17 +318,17 @@ PREFIX inline void advectVelocityBody(
     pos_w[1] -= DT * vel_w[1];
     pos_w[2] -= DT * vel_w[2];
 
-    u[ACC3D_X(i, j, k, Ny, Nx)] = getVelocityX<double>(
+    u[ACC3D(i, j, k, Ny, Nx)] = getVelocityX<double>(
         pos_u,
         u_0,
         Nx, Ny, Nz);
 
-    v[ACC3D_Y(i, j, k, Ny, Nx)] = getVelocityY<double>(
+    v[ACC3D(i, j, k, Ny, Nx)] = getVelocityY<double>(
         pos_v,
         v_0,
         Nx, Ny, Nz);
 
-    w[ACC3D_Z(i, j, k, Ny, Nx)] = getVelocityZ<double>(
+    w[ACC3D(i, j, k, Ny, Nx)] = getVelocityZ<double>(
         pos_w,
         w_0,
         Nx, Ny, Nz);

@@ -99,9 +99,9 @@ private:
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
   // velocity field
-  double u[(Nx + 1) * Ny * Nz], u0[(Nx + 1) * Ny * Nz];
-  double v[Nx * (Ny + 1) * Nz], v0[Nx * (Ny + 1) * Nz];
-  double w[Nx * Ny * (Nz + 1)], w0[Nx * Ny * (Nz + 1)];
+  double u[(Nx) * Ny * Nz], u0[(Nx) * Ny * Nz];
+  double v[Nx * (Ny) * Nz], v0[Nx * (Ny) * Nz];
+  double w[Nx * Ny * (Nz)], w0[Nx * Ny * (Nz)];
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
 
   // vorticity field

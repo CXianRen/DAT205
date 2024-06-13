@@ -188,18 +188,18 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    // v[ACC3D_Y(i, j, k, Ny, Nx)] = INIT_VELOCITY;
-                    // v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
+                    // v[ACC3D(i, j, k, Ny, Nx)] = INIT_VELOCITY;
+                    // v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
                     // random velocity
-                    v[ACC3D_Y(i, j, k, Ny, Nx)] = INIT_VELOCITY * (rand() % 100) / 100.0;
-                    v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
+                    // v[ACC3D(i, j, k, Ny, Nx)] = INIT_VELOCITY * (rand() % 100) / 100.0;
+                    // v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
 
                     // random velocity for x and z (-0.5, 0.5) * INIT_VELOCITY
                     // u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
                     // u0(i, j, k) = u(i, j, k);
 
-                    // w[ACC3D_Y(i, j, k, Ny, Nx)] = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // w0[ACC3D_Y(i, j, k, Ny, Nx)] = w[ACC3D_Y(i, j, k, Ny, Nx)];
+                    // w[ACC3D(i, j, k, Ny, Nx)] = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // w0[ACC3D(i, j, k, Ny, Nx)] = w[ACC3D(i, j, k, Ny, Nx)];
                 }
             }
         }
@@ -215,8 +215,8 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    v[ACC3D_Y(i, j, k, Ny, Nx)] = -INIT_VELOCITY;
-                    v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
+                    v[ACC3D(i, j, k, Ny, Nx)] = -INIT_VELOCITY;
+                    v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
                 }
             }
         }
@@ -302,12 +302,26 @@ void Simulator::calculatePressure()
         static double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
         static double U[6];
 
-        U[0] = (double)(w[ACC3D_Z(i, j, k, Ny, Nx)]);
-        U[1] = (double)(v[ACC3D_Y(i, j, k, Ny, Nx)]);
-        U[2] = (double)(u[ACC3D_X(i, j, k, Ny, Nx)]);
-        U[3] = (double)(u[ACC3D_X(i + 1, j, k, Ny, Nx)]);
-        U[4] = (double)(v[ACC3D_Y(i, j + 1, k, Ny, Nx)]);
-        U[5] = (double)(w[ACC3D_Z(i, j, k + 1, Ny, Nx)]);
+        U[0] = (double)(w[ACC3D(i, j, k, Ny, Nx)]);
+        U[1] = (double)(v[ACC3D(i, j, k, Ny, Nx)]);
+        U[2] = (double)(u[ACC3D(i, j, k, Ny, Nx)]);
+        if (i < Nx -1)
+            U[3] = (double)(u[ACC3D(i + 1, j, k, Ny, Nx)]);
+        else
+            U[3] = 0.0;
+        // U[3] = (double)(u[ACC3D(i + 1, j, k, Ny, Nx)]);
+
+        if (j < Ny - 1)
+            U[4] = (double)(v[ACC3D(i, j + 1, k, Ny, Nx)]);
+        else
+            U[4] = 0.0;
+        // U[4] = (double)(v[ACC3D(i, j + 1, k, Ny, Nx)]);
+
+        if (k < Nz - 1)
+            U[5] = (double)(w[ACC3D(i, j, k + 1, Ny, Nx)]);
+        else
+            U[5] = 0.0;
+        // U[5] = (double)(w[ACC3D(i, j, k + 1, Ny, Nx)]);
 
         for (int n = 0; n < 6; ++n)
         {
@@ -405,9 +419,9 @@ void Simulator::fixOccupiedVoxels()
     {
         if (m_occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
         {
-            u[ACC3D_X(i, j, k, Ny, Nx)] = 0.0;
-            v[ACC3D_Y(i, j, k, Ny, Nx)] = 0.0;
-            w[ACC3D_Y(i, j, k, Ny, Nx)] = 0.0;
+            u[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+            v[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+            w[ACC3D(i, j, k, Ny, Nx)] = 0.0;
             temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
             density[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         }

@@ -176,14 +176,12 @@ namespace MCUDA
     {
         DEBUG_PRINT("Initializing CudaWorker- allocate memory");
         // allocate memory
-        // why (Nx_ + 1) * Ny_ * Nz : because we need to store ,
-        // an extra cell to call the boundary condition
-        cudaMalloc(&u, (Nx_ + 1) * Ny_ * Nz * sizeof(double));
-        cudaMalloc(&u_0, (Nx_ + 1) * Ny_ * Nz * sizeof(double));
-        cudaMalloc(&v, Nx_ * (Ny_ + 1) * Nz * sizeof(double));
-        cudaMalloc(&v_0, Nx_ * (Ny_ + 1) * Nz * sizeof(double));
-        cudaMalloc(&w, Nx_ * Ny_ * (Nz + 1) * sizeof(double));
-        cudaMalloc(&w_0, Nx_ * Ny_ * (Nz + 1) * sizeof(double));
+        cudaMalloc(&u, (Nx_) * Ny_ * Nz * sizeof(double));
+        cudaMalloc(&u_0, (Nx_) * Ny_ * Nz * sizeof(double));
+        cudaMalloc(&v, Nx_ * (Ny_) * Nz * sizeof(double));
+        cudaMalloc(&v_0, Nx_ * (Ny_) * Nz * sizeof(double));
+        cudaMalloc(&w, Nx_ * Ny_ * (Nz) * sizeof(double));
+        cudaMalloc(&w_0, Nx_ * Ny_ * (Nz) * sizeof(double));
 
         cudaMalloc(&avg_u, workSize_ * sizeof(double));
         cudaMalloc(&avg_v, workSize_ * sizeof(double));
@@ -268,9 +266,9 @@ namespace MCUDA
         double *v_src,
         double *w_src)
     {
-        copyDataToDevice(u_src, this->u, (Nx_ + 1) * Ny_ * Nz_);
-        copyDataToDevice(v_src, this->v, Nx_ * (Ny_ + 1) * Nz_);
-        copyDataToDevice(w_src, this->w, Nx_ * Ny_ * (Nz_ + 1));
+        copyDataToDevice(u_src, this->u, (Nx_) * Ny_ * Nz_);
+        copyDataToDevice(v_src, this->v, Nx_ * (Ny_) * Nz_);
+        copyDataToDevice(w_src, this->w, Nx_ * Ny_ * (Nz_));
     }
 
     void CudaWorker::getVelocityField(
@@ -278,9 +276,9 @@ namespace MCUDA
         double *v_dst,
         double *w_dst)
     {
-        copyDataToHost(this->u, u_dst, (Nx_ + 1) * Ny_ * Nz_);
-        copyDataToHost(this->v, v_dst, Nx_ * (Ny_ + 1) * Nz_);
-        copyDataToHost(this->w, w_dst, Nx_ * Ny_ * (Nz_ + 1));
+        copyDataToHost(this->u, u_dst, (Nx_) * Ny_ * Nz_);
+        copyDataToHost(this->v, v_dst, Nx_ * (Ny_) * Nz_);
+        copyDataToHost(this->w, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
     void CudaWorker::getPreviosVelocityField(
@@ -288,9 +286,9 @@ namespace MCUDA
         double *v_dst,
         double *w_dst)
     {
-        copyDataToHost(this->u_0, u_dst, (Nx_ + 1) * Ny_ * Nz_);
-        copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_ + 1) * Nz_);
-        copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_ + 1));
+        copyDataToHost(this->u_0, u_dst, (Nx_) * Ny_ * Nz_);
+        copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_) * Nz_);
+        copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
     void CudaWorker::calculateVorticity()
@@ -335,9 +333,9 @@ namespace MCUDA
     void CudaWorker::advectVelocityField()
     {
         // copy current velocity field to previous
-        cudaMemcpy(u_0, u, (Nx_ + 1) * Ny_ * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
-        cudaMemcpy(v_0, v, Nx_ * (Ny_ + 1) * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
-        cudaMemcpy(w_0, w, Nx_ * Ny_ * (Nz_ + 1) * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(u_0, u, (Nx_) * Ny_ * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(v_0, v, Nx_ * (Ny_) * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(w_0, w, Nx_ * Ny_ * (Nz_) * sizeof(double), cudaMemcpyDeviceToDevice);
 
         advectVelocityFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
@@ -418,7 +416,7 @@ namespace MCUDA
     {
         // copy velocity field to previous
         cudaMemcpy(u_0, u,
-                   (Nx_ + 1) * Ny_ * Nz_ * sizeof(double),
+                   (Nx_) * Ny_ * Nz_ * sizeof(double),
                    cudaMemcpyDeviceToDevice);
         // copy current density field to previous
         cudaMemcpy(density_0, density,
