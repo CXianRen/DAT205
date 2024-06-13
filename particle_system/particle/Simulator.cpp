@@ -49,7 +49,7 @@ void Simulator::update()
 
     T_START("gpu calculateVorticity")
     CW.setforceField(fx, fy, fz);
-    CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+    CW.setVelocityField(u, v, w);
     CW.calculateVorticity();
     T_END
 
@@ -59,10 +59,7 @@ void Simulator::update()
 
     T_START("\tgpu applyExternalForce")
     CW.applyExternalForce();
-    CW.getVelocityField(
-        u.m_data.data(),
-        v.m_data.data(),
-        w.m_data.data());
+    CW.getVelocityField(u, v, w);
     T_END
 
     // T_START
@@ -72,14 +69,9 @@ void Simulator::update()
 
     T_START("gpu advectVelocity")
     CW.advectVelocityField();
-    CW.getVelocityField(
-        u.m_data.data(),
-        v.m_data.data(),
-        w.m_data.data());
+    CW.getVelocityField(u, v, w);
     CW.getPreviosVelocityField(
-        u0.m_data.data(),
-        v0.m_data.data(),
-        w0.m_data.data());
+        u0, v0, w0);
     T_END
 
     T_START("gpu calculatePressure")
@@ -93,7 +85,7 @@ void Simulator::update()
     T_START("gpu advectScalarField")
 
     T_START("\tupdate density and temperature to gpu")
-    CW.setVelocityField(u.m_data.data(), v.m_data.data(), w.m_data.data());
+    CW.setVelocityField(u, v, w);
 
     CW.setDensityField(density);
     CW.setPreviosDensityField(density0);
@@ -196,18 +188,18 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    // v(i, j, k) = INIT_VELOCITY;
-                    // v0(i, j, k) = v(i, j, k);
+                    // v[ACC3D_Y(i, j, k, Ny, Nx)] = INIT_VELOCITY;
+                    // v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
                     // random velocity
-                    v(i, j, k) = INIT_VELOCITY * (rand() % 100) / 100.0;
-                    v0(i, j, k) = v(i, j, k);
+                    v[ACC3D_Y(i, j, k, Ny, Nx)] = INIT_VELOCITY * (rand() % 100) / 100.0;
+                    v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
 
                     // random velocity for x and z (-0.5, 0.5) * INIT_VELOCITY
                     // u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
                     // u0(i, j, k) = u(i, j, k);
 
-                    // w(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // w0(i, j, k) = w(i, j, k);
+                    // w[ACC3D_Y(i, j, k, Ny, Nx)] = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
+                    // w0[ACC3D_Y(i, j, k, Ny, Nx)] = w[ACC3D_Y(i, j, k, Ny, Nx)];
                 }
             }
         }
@@ -223,8 +215,8 @@ void Simulator::setEmitterVelocity()
             {
                 for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
                 {
-                    v(i, j, k) = -INIT_VELOCITY;
-                    v0(i, j, k) = v(i, j, k);
+                    v[ACC3D_Y(i, j, k, Ny, Nx)] = -INIT_VELOCITY;
+                    v0[ACC3D_Y(i, j, k, Ny, Nx)] = v[ACC3D_Y(i, j, k, Ny, Nx)];
                 }
             }
         }
@@ -254,9 +246,7 @@ void Simulator::calculateVorticity()
         calculateAverageVelocity<double>(
             i, j, k,
             Nx, Ny, Nz,
-            u.m_data.data(),
-            v.m_data.data(),
-            w.m_data.data(),
+            u, v, w,
             avg_u, avg_v, avg_w);
     }
 
@@ -283,13 +273,11 @@ void Simulator::applyExternalForce()
 {
     FOR_EACH_CELL
     {
-        applyExternalForceBody(
+        applyExternalForceBody<double>(
             i, j, k,
             Nx, Ny, Nz,
             fx, fy, fz,
-            u.m_data.data(), 
-            v.m_data.data(), 
-            w.m_data.data());
+            u, v, w);
     }
 }
 
@@ -314,12 +302,12 @@ void Simulator::calculatePressure()
         static double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
         static double U[6];
 
-        U[0] = (double)(w(i, j, k));
-        U[1] = (double)(v(i, j, k));
-        U[2] = (double)(u(i, j, k));
-        U[3] = (double)(u(i + 1, j, k));
-        U[4] = (double)(v(i, j + 1, k));
-        U[5] = (double)(w(i, j, k + 1));
+        U[0] = (double)(w[ACC3D_Z(i, j, k, Ny, Nx)]);
+        U[1] = (double)(v[ACC3D_Y(i, j, k, Ny, Nx)]);
+        U[2] = (double)(u[ACC3D_X(i, j, k, Ny, Nx)]);
+        U[3] = (double)(u[ACC3D_X(i + 1, j, k, Ny, Nx)]);
+        U[4] = (double)(v[ACC3D_Y(i, j + 1, k, Ny, Nx)]);
+        U[5] = (double)(w[ACC3D_Z(i, j, k + 1, Ny, Nx)]);
 
         for (int n = 0; n < 6; ++n)
         {
@@ -362,33 +350,23 @@ void Simulator::applyPressure()
             i, j, k,
             Nx, Ny, Nz,
             pressure,
-            u.m_data.data(),
-            v.m_data.data(),
-            w.m_data.data());
+            u, v, w);
     }
 }
 
 void Simulator::advectVelocity()
 {
     T_START("\tcopy data")
-    std::copy(u.begin(), u.end(), u0.begin());
-    std::copy(v.begin(), v.end(), v0.begin());
-    std::copy(w.begin(), w.end(), w0.begin());
+    std::copy(u, u + ((Nx+1) * Ny * Nz), u0);
+    std::copy(v, v + (Nx * (Ny+1) * Nz), v0);
+    std::copy(w, w + (Nx * Ny * (Nz+1)), w0);
     T_END
-
-    double *u = this->u.m_data.data();
-    double *v = this->v.m_data.data();
-    double *w = this->w.m_data.data();
-
-    double *u_0 = this->u0.m_data.data();
-    double *v_0 = this->v0.m_data.data();
-    double *w_0 = this->w0.m_data.data();
 
     FOR_EACH_CELL
     {
         advectVelocityBody<double>(
             u, v, w,
-            u_0, v_0, w_0,
+            u0, v0, w0,
             i, j, k,
             Nx, Ny, Nz);
     }
@@ -397,9 +375,9 @@ void Simulator::advectVelocity()
 void Simulator::advectScalarField()
 {
     T_START("\tcopy data")
-    std::copy(u.begin(), u.end(), u0.begin());
-    std::copy(v.begin(), v.end(), v0.begin());
-    std::copy(w.begin(), w.end(), w0.begin());
+    std::copy(u, u + ((Nx+1) * Ny * Nz), u0);
+    std::copy(v, v + (Nx * (Ny+1) * Nz), v0);
+    std::copy(w, w + (Nx * Ny * (Nz+1)), w0);
 
     std::copy(density, density + SIZE, density0);
     std::copy(temperature, temperature + SIZE, temperature0);
@@ -408,20 +386,16 @@ void Simulator::advectScalarField()
     FOR_EACH_CELL
     {
         advectScalarBody<double>(
-                i, j, k,
-                Nx, Ny, Nz,
-                density, density0,
-                u0.m_data.data(), 
-                v0.m_data.data(), 
-                w0.m_data.data());
+            i, j, k,
+            Nx, Ny, Nz,
+            density, density0,
+            u0, v0, w0);
 
         advectScalarBody<double>(
-                i, j, k,
-                Nx, Ny, Nz,
-                temperature, temperature0,
-                u0.m_data.data(), 
-                v0.m_data.data(), 
-                w0.m_data.data());
+            i, j, k,
+            Nx, Ny, Nz,
+            temperature, temperature0,
+            u0, v0, w0);
     }
 }
 
@@ -431,9 +405,9 @@ void Simulator::fixOccupiedVoxels()
     {
         if (m_occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
         {
-            u(i, j, k) = 0.0;
-            v(i, j, k) = 0.0;
-            w(i, j, k) = 0.0;
+            u[ACC3D_X(i, j, k, Ny, Nx)] = 0.0;
+            v[ACC3D_Y(i, j, k, Ny, Nx)] = 0.0;
+            w[ACC3D_Y(i, j, k, Ny, Nx)] = 0.0;
             temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
             density[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         }

@@ -5,9 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "MData.h"
 #include "mmath.h"
-
 #include "SimBase.h"
 
 #include "Solver.h"
@@ -72,13 +70,13 @@ public:
       temperature[i] = T_AMBIENT;
       temperature0[i] = T_AMBIENT;
       pressure[i] = 0.0;
+      u[i] = 0.0;
+      u0[i] = 0.0;
+      v[i] = 0.0;
+      v0[i] = 0.0;
+      w[i] = 0.0;
+      w0[i] = 0.0;
     }
-    u.m_data.fill(0.0);
-    u0.m_data.fill(0.0);
-    v.m_data.fill(0.0);
-    v0.m_data.fill(0.0);
-    w.m_data.fill(0.0);
-    w0.m_data.fill(0.0);
 
     m_time = 0.0;
   }
@@ -101,9 +99,9 @@ private:
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];
   // velocity field
-  MDataX u, u0;
-  MDataY v, v0;
-  MDataZ w, w0;
+  double u[(Nx + 1) * Ny * Nz], u0[(Nx + 1) * Ny * Nz];
+  double v[Nx * (Ny + 1) * Nz], v0[Nx * (Ny + 1) * Nz];
+  double w[Nx * Ny * (Nz + 1)], w0[Nx * Ny * (Nz + 1)];
   double avg_u[SIZE], avg_v[SIZE], avg_w[SIZE];
 
   // vorticity field
