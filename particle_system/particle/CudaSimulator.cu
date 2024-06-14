@@ -1,4 +1,4 @@
-#include "CudaWorker.h"
+#include "CudaSimulator.h"
 
 #include <cuda_runtime.h>
 
@@ -112,11 +112,11 @@ namespace MCUDA
         }
     }
 
-    CudaWorker::CudaWorker(
+    CudaSimulator::CudaSimulator(
         int workSize,
         int Nx,
         int Ny,
-        int Nz) : workSize_(workSize), Nx_(Nx), Ny_(Ny), Nz_(Nz)
+        int Nz) : CudaWorker(workSize, Nx, Ny, Nz)
     {
         // check cuda device properties
         int deviceCount;
@@ -167,19 +167,19 @@ namespace MCUDA
         DEBUG_PRINT("USING blockCount: " << blocksPerGrid_);
     }
 
-    CudaWorker::~CudaWorker()
+    CudaSimulator::~CudaSimulator()
     {
         cleanup();
     }
 
-    void CudaWorker::init()
+    void CudaSimulator::init()
     {
-        DEBUG_PRINT("Initializing CudaWorker- allocate memory");
+        DEBUG_PRINT("Initializing CudaSimulator- allocate memory");
         // allocate memory
-        cudaMalloc(&u, (Nx_) * Ny_ * Nz * sizeof(double));
-        cudaMalloc(&u_0, (Nx_) * Ny_ * Nz * sizeof(double));
-        cudaMalloc(&v, Nx_ * (Ny_) * Nz * sizeof(double));
-        cudaMalloc(&v_0, Nx_ * (Ny_) * Nz * sizeof(double));
+        cudaMalloc(&u, (Nx_)*Ny_ * Nz * sizeof(double));
+        cudaMalloc(&u_0, (Nx_)*Ny_ * Nz * sizeof(double));
+        cudaMalloc(&v, Nx_ * (Ny_)*Nz * sizeof(double));
+        cudaMalloc(&v_0, Nx_ * (Ny_)*Nz * sizeof(double));
         cudaMalloc(&w, Nx_ * Ny_ * (Nz) * sizeof(double));
         cudaMalloc(&w_0, Nx_ * Ny_ * (Nz) * sizeof(double));
 
@@ -207,9 +207,9 @@ namespace MCUDA
         cudaMalloc(&transparency, workSize_ * sizeof(double));
     }
 
-    void CudaWorker::cleanup()
+    void CudaSimulator::cleanup()
     {
-        DEBUG_PRINT("Cleaning up CudaWorker- free memory");
+        DEBUG_PRINT("Cleaning up CudaSimulator- free memory");
         // free memory
         cudaFree(avg_u);
         cudaFree(avg_v);
@@ -230,18 +230,18 @@ namespace MCUDA
         cudaFree(f_z);
     }
 
-    void CudaWorker::copyDataToDevice(
+    void CudaSimulator::copyDataToDevice(
         double *src, double *dst, int size)
     {
         cudaMemcpy(dst, src, size * sizeof(double), cudaMemcpyHostToDevice);
     }
 
-    void CudaWorker::copyDataToHost(double *src, double *dst, int size)
+    void CudaSimulator::copyDataToHost(double *src, double *dst, int size)
     {
         cudaMemcpy(dst, src, size * sizeof(double), cudaMemcpyDeviceToHost);
     }
 
-    void CudaWorker::setforceField(
+    void CudaSimulator::setforceField(
         double *f_x,
         double *f_y,
         double *f_z)
@@ -251,7 +251,7 @@ namespace MCUDA
         copyDataToDevice(f_z, this->f_z, workSize_);
     }
 
-    void CudaWorker::getforceField(
+    void CudaSimulator::getforceField(
         double *f_x,
         double *f_y,
         double *f_z)
@@ -261,37 +261,37 @@ namespace MCUDA
         copyDataToHost(this->f_z, f_z, workSize_);
     }
 
-    void CudaWorker::setVelocityField(
+    void CudaSimulator::setVelocityField(
         double *u_src,
         double *v_src,
         double *w_src)
     {
-        copyDataToDevice(u_src, this->u, (Nx_) * Ny_ * Nz_);
-        copyDataToDevice(v_src, this->v, Nx_ * (Ny_) * Nz_);
+        copyDataToDevice(u_src, this->u, (Nx_)*Ny_ * Nz_);
+        copyDataToDevice(v_src, this->v, Nx_ * (Ny_)*Nz_);
         copyDataToDevice(w_src, this->w, Nx_ * Ny_ * (Nz_));
     }
 
-    void CudaWorker::getVelocityField(
+    void CudaSimulator::getVelocityField(
         double *u_dst,
         double *v_dst,
         double *w_dst)
     {
-        copyDataToHost(this->u, u_dst, (Nx_) * Ny_ * Nz_);
-        copyDataToHost(this->v, v_dst, Nx_ * (Ny_) * Nz_);
+        copyDataToHost(this->u, u_dst, (Nx_)*Ny_ * Nz_);
+        copyDataToHost(this->v, v_dst, Nx_ * (Ny_)*Nz_);
         copyDataToHost(this->w, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
-    void CudaWorker::getPreviosVelocityField(
+    void CudaSimulator::getPreviosVelocityField(
         double *u_dst,
         double *v_dst,
         double *w_dst)
     {
-        copyDataToHost(this->u_0, u_dst, (Nx_) * Ny_ * Nz_);
-        copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_) * Nz_);
+        copyDataToHost(this->u_0, u_dst, (Nx_)*Ny_ * Nz_);
+        copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_)*Nz_);
         copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
-    void CudaWorker::calculateVorticity()
+    void CudaSimulator::calculateVorticity()
     {
         // calculate average velocity
         // DEBUG_PRINT("Launching kernel");
@@ -316,7 +316,7 @@ namespace MCUDA
         cudaDeviceSynchronize();
     }
 
-    void CudaWorker::applyExternalForce()
+    void CudaSimulator::applyExternalForce()
     {
         applyExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
@@ -330,11 +330,11 @@ namespace MCUDA
         cudaDeviceSynchronize();
     }
 
-    void CudaWorker::advectVelocityField()
+    void CudaSimulator::advectVelocityField()
     {
         // copy current velocity field to previous
-        cudaMemcpy(u_0, u, (Nx_) * Ny_ * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
-        cudaMemcpy(v_0, v, Nx_ * (Ny_) * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(u_0, u, (Nx_)*Ny_ * Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(v_0, v, Nx_ * (Ny_)*Nz_ * sizeof(double), cudaMemcpyDeviceToDevice);
         cudaMemcpy(w_0, w, Nx_ * Ny_ * (Nz_) * sizeof(double), cudaMemcpyDeviceToDevice);
 
         advectVelocityFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
@@ -356,48 +356,48 @@ namespace MCUDA
         cudaDeviceSynchronize();
     }
 
-    void CudaWorker::setDensityField(
+    void CudaSimulator::setDensityField(
         double *density)
     {
         // copy density field to device
         copyDataToDevice(density, this->density, workSize_);
     }
 
-    void CudaWorker::getDensityField(
+    void CudaSimulator::getDensityField(
         double *density)
     {
         // copy density field to host
         copyDataToHost(this->density, density, workSize_);
     }
 
-    void CudaWorker::setPreviosDensityField(
+    void CudaSimulator::setPreviosDensityField(
         double *density_0)
     {
         copyDataToDevice(density_0, this->density_0, workSize_);
     }
 
-    void CudaWorker::getPreviosDensityField(
+    void CudaSimulator::getPreviosDensityField(
         double *density_0)
     {
         copyDataToHost(this->density_0,
                        density_0, workSize_);
     }
 
-    void CudaWorker::setTemperatureField(
+    void CudaSimulator::setTemperatureField(
         double *temperature)
     {
         copyDataToDevice(temperature,
                          this->temperature, workSize_);
     }
 
-    void CudaWorker::getTemperatureField(
+    void CudaSimulator::getTemperatureField(
         double *temperature)
     {
         copyDataToHost(this->temperature,
                        temperature, workSize_);
     }
 
-    void CudaWorker::setPreviosTemperatureField(
+    void CudaSimulator::setPreviosTemperatureField(
         double *temperature_0)
     {
         copyDataToDevice(temperature_0,
@@ -405,18 +405,18 @@ namespace MCUDA
                          workSize_);
     }
 
-    void CudaWorker::getPreviosTemperatureField(
+    void CudaSimulator::getPreviosTemperatureField(
         double *temperature_0)
     {
         copyDataToHost(this->temperature_0,
                        temperature_0, workSize_);
     }
 
-    void CudaWorker::advectScalarField()
+    void CudaSimulator::advectScalarField()
     {
         // copy velocity field to previous
         cudaMemcpy(u_0, u,
-                   (Nx_) * Ny_ * Nz_ * sizeof(double),
+                   (Nx_)*Ny_ * Nz_ * sizeof(double),
                    cudaMemcpyDeviceToDevice);
         // copy current density field to previous
         cudaMemcpy(density_0, density,
@@ -507,7 +507,7 @@ namespace MCUDA
         }
     }
 
-    void CudaWorker::genTransparencyMap(
+    void CudaSimulator::genTransparencyMap(
         double light_x, double light_y, double light_z,
         double module_scale_factor,
         double factor)
@@ -535,7 +535,7 @@ namespace MCUDA
         cudaDeviceSynchronize();
     }
 
-    void CudaWorker::getTransparencyMap(
+    void CudaSimulator::getTransparencyMap(
         double *transparency)
     {
         copyDataToHost(this->transparency, transparency, workSize_);

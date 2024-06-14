@@ -7,7 +7,7 @@
 #include "mperf.h"
 
 Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
-                                     CW(MCUDA::CudaWorker(SIZE, Nx, Ny, Nz))
+                                     CW(MCUDA::CudaSimulator(SIZE, Nx, Ny, Nz))
 {
     CW.init();
 

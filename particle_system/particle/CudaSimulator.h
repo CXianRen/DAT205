@@ -3,17 +3,37 @@
 
 namespace MCUDA
 {
+
     class CudaWorker
+    {
+    protected:
+        CudaWorker(
+            int workSize,
+            int Nx,
+            int Ny,
+            int Nz) : workSize_(workSize),
+                      Nx_(Nx), Ny_(Ny), Nz_(Nz) {}
+
+        ~CudaWorker() = default;
+        //
+        int workSize_;
+        int Nx_, Ny_, Nz_;
+
+        int threadsPerBlock_;
+        int blocksPerGrid_;
+    };
+
+    class CudaSimulator : CudaWorker
     {
 
     public:
-        CudaWorker(
+        CudaSimulator(
             int workSize,
             int Nx,
             int Ny,
             int Nz);
 
-        ~CudaWorker();
+        ~CudaSimulator();
         void init();
         void cleanup();
 
@@ -86,13 +106,6 @@ namespace MCUDA
         void copyDataToDevice(double *src, double *dst, int size);
         void copyDataToHost(double *src, double *dst, int size);
 
-        //
-        int workSize_;
-        int Nx_, Ny_, Nz_;
-
-        int threadsPerBlock_;
-        int blocksPerGrid_;
-
         // data
         double *u;
         double *v;
@@ -126,7 +139,5 @@ namespace MCUDA
     };
 
 } // namespace MCUDA
-
-void test_cuda();
 
 #endif // __CUDA_WORKER_H__

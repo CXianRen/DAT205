@@ -9,7 +9,7 @@
 #include "SimBase.h"
 
 #include "Solver.h"
-#include "CudaWorker.h"
+#include "CudaSimulator.h"
 
 #include "mperf.h"
 
@@ -129,7 +129,7 @@ private:
   Eigen::VectorXd x;
 
   CudaSolver m_solver;
-  MCUDA::CudaWorker CW;
+  MCUDA::CudaSimulator CW;
 
   // ocuppied voxels
   std::array<bool, SIZE> m_occupied_voxels;
