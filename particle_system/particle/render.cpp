@@ -116,7 +116,3 @@ void SmokeRenderer::render(std::array<double, SIZE> &density, double *transparen
     // 36 : the number of indices (12 triangles * 3 vertices per triangle)
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
-
-void SmokeRenderer::render_frame(const glm::mat4 &projectionViewMatrix)
-{
-}

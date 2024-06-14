@@ -137,9 +137,3 @@ private:
 
   void genTransparencyMap();
 };
-
-std::array<double, SIZE> &
-generateSphereDensity();
-
-std::array<double, SIZE> &
-generateCubeDensity();

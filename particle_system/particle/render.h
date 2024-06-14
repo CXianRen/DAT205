@@ -15,7 +15,6 @@ public:
     ~SmokeRenderer();
 
     void render(std::array<double, SIZE> &density, double *transparency);
-    void render_frame(const glm::mat4 &projectionViewMatrix);
     void set_occupied_texture(std::array<bool, SIZE> &vexels);
 
 private:
