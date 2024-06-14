@@ -1,31 +1,12 @@
-#ifndef __CUDA_WORKER_H__
-#define __CUDA_WORKER_H__
+#ifndef __CUDA_Simulator_H__
+#define __CUDA_Simulator_H__
+
+#include "CudaWorker.h"
 
 namespace MCUDA
 {
-
-    class CudaWorker
-    {
-    protected:
-        CudaWorker(
-            int workSize,
-            int Nx,
-            int Ny,
-            int Nz) : workSize_(workSize),
-                      Nx_(Nx), Ny_(Ny), Nz_(Nz) {}
-
-        ~CudaWorker() = default;
-        //
-        int workSize_;
-        int Nx_, Ny_, Nz_;
-
-        int threadsPerBlock_;
-        int blocksPerGrid_;
-    };
-
     class CudaSimulator : CudaWorker
     {
-
     public:
         CudaSimulator(
             int workSize,
@@ -140,4 +121,4 @@ namespace MCUDA
 
 } // namespace MCUDA
 
-#endif // __CUDA_WORKER_H__
+#endif // __CUDA_Simulator_H__
