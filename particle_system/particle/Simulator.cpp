@@ -111,10 +111,6 @@ void Simulator::update()
     fixOccupiedVoxels();
     T_END
 
-    T_START("gpu genTransparencyMap")
-    genTransparencyMap();
-    T_END
-
     T_END
 
     if (m_time < EMIT_DURATION)
@@ -427,12 +423,3 @@ void Simulator::fixOccupiedVoxels()
         }
     }
 }
-
-void Simulator::genTransparencyMap()
-{
-    CW.genTransparencyMap(
-        light_x, light_y, light_z,
-        module_scale_factor, factor);
-    CW.getTransparencyMap(transparency);
-}
-

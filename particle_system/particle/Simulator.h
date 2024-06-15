@@ -28,11 +28,6 @@ public:
     return density;
   }
 
-  const double *getTransparency()
-  {
-    return transparency;
-  }
-
   const std::string getPerformanceInfo()
   {
     auto time_str = get_mesaurement_info();
@@ -48,17 +43,6 @@ public:
   void setOccupiedVoxels(std::array<bool, SIZE> &occupied_voxels)
   {
     m_occupied_voxels = occupied_voxels;
-  }
-
-  void setLightPosition(
-      double x, double y, double z,
-      double scale_factor, double factor)
-  {
-    light_x = x;
-    light_y = y;
-    light_z = z;
-    module_scale_factor = scale_factor;
-    this->factor = factor;
   }
 
   void reset()
@@ -117,12 +101,6 @@ private:
   // density field
   double density[SIZE], density0[SIZE];
 
-  // transparency field
-  double transparency[SIZE];
-  double light_x, light_y, light_z;
-  double module_scale_factor;
-  double factor;
-
   // solver
   EigenSolver m_e_solver;
   Eigen::VectorXd b;
@@ -134,6 +112,4 @@ private:
   // ocuppied voxels
   std::array<bool, SIZE> m_occupied_voxels;
   void fixOccupiedVoxels();
-
-  void genTransparencyMap();
 };

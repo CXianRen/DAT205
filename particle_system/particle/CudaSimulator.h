@@ -75,14 +75,6 @@ namespace MCUDA
 
         void advectScalarField();
 
-        void genTransparencyMap(
-            double light_x, double light_y, double light_z,
-            double module_scale_factor,
-            double factor);
-
-        void getTransparencyMap(
-            double *transparency);
-
     private:
         void copyDataToDevice(double *src, double *dst, int size);
         void copyDataToHost(double *src, double *dst, int size);
@@ -115,8 +107,6 @@ namespace MCUDA
 
         double *density;
         double *density_0;
-
-        double *transparency;
     };
 
 } // namespace MCUDA

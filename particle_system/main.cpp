@@ -9,6 +9,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include "particle/render.h"
 #include "particle/Simulator.h"
+#include "particle/CudaRender.h"
 #include "particle/Vexelization.h"
 
 #include <thread>
@@ -97,6 +98,7 @@ mat4 generalModelMatrix;
 ///////////////////////////////////////////////////////////////////////////////
 // Simulator simulator;
 std::unique_ptr<Simulator> simulator;
+std::unique_ptr<MCUDA::CudaRender> cudaRender;
 
 void loadShaders(bool is_reload)
 {
@@ -621,6 +623,8 @@ int main(int argc, char *argv[])
 {
 	// DEBUG_PRINT("MAIN cuda");
 	simulator = std::make_unique<Simulator>(ttime);
+	cudaRender = std::make_unique<MCUDA::CudaRender>(SIZE, Nx, Ny, Nz);
+	cudaRender->init();
 
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
@@ -630,10 +634,6 @@ int main(int argc, char *argv[])
 	auto startTime = std::chrono::system_clock::now();
 
 	// thred to run simulation
-	// simulator->setOccupiedVoxels(occupied_voxels_sphere);
-	// simulator->setOccupiedVoxels(occupied_voxels_cube);
-	// simulator->setOccupiedVoxels(occupied_voxels_tree);
-
 	std::thread simThread([&]()
 						  {
 		DEBUG_PRINT("Simulation thread started");
@@ -662,14 +662,6 @@ int main(int argc, char *argv[])
 				simulator->reset();
 			}
 
-			simulator->setLightPosition(
-				lightPosition.x,
-				lightPosition.y,
-				lightPosition.z,
-				10.f,
-				smoke_factor
-			);
-		
 			simulator->update();
 			// update the simulator
 			if (ttime > FINISH_TIME){
@@ -687,10 +679,16 @@ int main(int argc, char *argv[])
 					simulator->getDensity()+SIZE, 
 					density.begin()
 				);
-				std::copy(simulator->getTransparency(), 
-					simulator->getTransparency() + SIZE,  
-					transparency);
-					
+				// gen transparency
+				T_START("genTransparencyMap");
+				cudaRender->genTransparencyMap(
+					density.data(),
+					transparency,
+					lightPosition.x, lightPosition.y, lightPosition.z,
+					10.0, smoke_factor
+				);
+				T_END;
+
 				simulator_info = simulator->getPerformanceInfo();
 			}
 		} });
