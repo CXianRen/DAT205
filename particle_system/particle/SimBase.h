@@ -6,6 +6,21 @@
 
 template <typename T>
 PREFIX inline void
+calculateBuyancyForceBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *density, T *temperature,
+    T *f_x, T *f_y, T *f_z)
+{
+    f_x[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+    f_y[ACC3D(i, j, k, Ny, Nx)] =
+        -ALPHA * density[ACC3D(i, j, k, Ny, Nx)] +
+        BETA * (temperature[ACC3D(i, j, k, Ny, Nx)] - T_AMBIENT);
+    f_z[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+}
+
+template <typename T>
+PREFIX inline void
 getCenter(
     int i, int j, int k,
     T *center)
@@ -95,12 +110,11 @@ PREFIX inline void calculateAverageVelocity(
 {
     // calculate average velocity
     T t0 = 0, t1 = 0;
-    
+
     t0 = u[ACC3D(i, j, k, Ny, Nx)];
     if (i < Nx - 1)
     {
         t1 = u[ACC3D(i + 1, j, k, Ny, Nx)];
-
     }
     avg_u[ACC3D(i, j, k, Ny, Nx)] = (t0 + t1) * 0.5;
 
@@ -116,19 +130,18 @@ PREFIX inline void calculateAverageVelocity(
     t1 = 0;
     if (k < Nz - 1)
     {
-        
+
         t1 = w[ACC3D(i, j, k + 1, Ny, Nx)];
     }
     avg_w[ACC3D(i, j, k, Ny, Nx)] = (t0 + t1) * 0.5;
-
 }
 
 template <typename T>
 PREFIX inline void calculateGradient(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
-    T* avg_u, T* avg_v, T* avg_w,
-    T* grad_u, T* grad_v, T* grad_w)
+    T *avg_u, T *avg_v, T *avg_w,
+    T *grad_u, T *grad_v, T *grad_w)
 {
     // ignore boundary cells
     if (i == 0 || j == 0 || k == 0)
@@ -144,7 +157,6 @@ PREFIX inline void calculateGradient(
     grad_v[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
     grad_w[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
 }
-
 
 template <typename T>
 PREFIX inline void applyExternalForceBody(
@@ -165,7 +177,6 @@ PREFIX inline void applyExternalForceBody(
     {
         w[ACC3D(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
     }
-
 }
 
 template <typename T>
@@ -173,26 +184,25 @@ PREFIX inline void applyPressureBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *pressure,
-    T *u, T *v, T *w
-){
-           // compute gradient of pressure
-        if (i < Nx - 1)
-        {
-            u[ACC3D(i + 1, j, k, Ny, Nx)] -=
-                DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        }
-        if (j < Ny - 1)
-        {
-            v[ACC3D(i, j + 1, k, Ny, Nx)] -=
-                DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        }
-        if (k < Nz - 1)
-        {
-            w[ACC3D(i, j, k + 1, Ny, Nx)] -=
-                DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
-        } 
+    T *u, T *v, T *w)
+{
+    // compute gradient of pressure
+    if (i < Nx - 1)
+    {
+        u[ACC3D(i + 1, j, k, Ny, Nx)] -=
+            DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+    }
+    if (j < Ny - 1)
+    {
+        v[ACC3D(i, j + 1, k, Ny, Nx)] -=
+            DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+    }
+    if (k < Nz - 1)
+    {
+        w[ACC3D(i, j, k + 1, Ny, Nx)] -=
+            DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+    }
 }
-
 
 template <typename T>
 PREFIX inline void calculateVorticityBody(
@@ -202,52 +212,52 @@ PREFIX inline void calculateVorticityBody(
     T *fx, T *fy, T *fz)
 {
 
-        // ignore boundary cells
-        if (i == 0 || j == 0 || k == 0)
-        {
-            return;
-        }
-        if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
-        {
-            return;
-        }
-        // compute gradient of vorticity
-        T p, q;
-        p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
-        T grad1 = (p - q) * 0.5 / VOXEL_SIZE;
+    // ignore boundary cells
+    if (i == 0 || j == 0 || k == 0)
+    {
+        return;
+    }
+    if (i == Nx - 1 || j == Ny - 1 || k == Nz - 1)
+    {
+        return;
+    }
+    // compute gradient of vorticity
+    T p, q;
+    p = VEC3_NORM(omg_x[ACC3D(i + 1, j, k, Ny, Nx)], omg_y[ACC3D(i + 1, j, k, Ny, Nx)], omg_z[ACC3D(i + 1, j, k, Ny, Nx)]);
+    q = VEC3_NORM(omg_x[ACC3D(i - 1, j, k, Ny, Nx)], omg_y[ACC3D(i - 1, j, k, Ny, Nx)], omg_z[ACC3D(i - 1, j, k, Ny, Nx)]);
+    T grad1 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
-        T grad2 = (p - q) * 0.5 / VOXEL_SIZE;
+    p = VEC3_NORM(omg_x[ACC3D(i, j + 1, k, Ny, Nx)], omg_y[ACC3D(i, j + 1, k, Ny, Nx)], omg_z[ACC3D(i, j + 1, k, Ny, Nx)]);
+    q = VEC3_NORM(omg_x[ACC3D(i, j - 1, k, Ny, Nx)], omg_y[ACC3D(i, j - 1, k, Ny, Nx)], omg_z[ACC3D(i, j - 1, k, Ny, Nx)]);
+    T grad2 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
-        q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
-        T grad3 = (p - q) * 0.5 / VOXEL_SIZE;
+    p = VEC3_NORM(omg_x[ACC3D(i, j, k + 1, Ny, Nx)], omg_y[ACC3D(i, j, k + 1, Ny, Nx)], omg_z[ACC3D(i, j, k + 1, Ny, Nx)]);
+    q = VEC3_NORM(omg_x[ACC3D(i, j, k - 1, Ny, Nx)], omg_y[ACC3D(i, j, k - 1, Ny, Nx)], omg_z[ACC3D(i, j, k - 1, Ny, Nx)]);
+    T grad3 = (p - q) * 0.5 / VOXEL_SIZE;
 
-        T norm = VEC3_NORM(grad1, grad2, grad3);
+    T norm = VEC3_NORM(grad1, grad2, grad3);
 
-        T ni = 0.0, nj = 0.0, nk = 0.0;
+    T ni = 0.0, nj = 0.0, nk = 0.0;
 
-        if (norm != 0)
-        {
-            ni = grad1 / norm;
-            nj = grad2 / norm;
-            nk = grad3 / norm;
-        }
+    if (norm != 0)
+    {
+        ni = grad1 / norm;
+        nj = grad2 / norm;
+        nk = grad3 / norm;
+    }
 
-        T f1, f2, f3;
+    T f1, f2, f3;
 
-        VEC3_CROSS(
-            omg_x[ACC3D(i, j, k, Ny, Nx)],
-            omg_y[ACC3D(i, j, k, Ny, Nx)],
-            omg_z[ACC3D(i, j, k, Ny, Nx)],
-            ni, nj, nk,
-            f1, f2, f3);
+    VEC3_CROSS(
+        omg_x[ACC3D(i, j, k, Ny, Nx)],
+        omg_y[ACC3D(i, j, k, Ny, Nx)],
+        omg_z[ACC3D(i, j, k, Ny, Nx)],
+        ni, nj, nk,
+        f1, f2, f3);
 
-        fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
-        fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
-        fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;  
+    fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
+    fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
+    fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
 }
 
 template <typename T>
@@ -379,6 +389,23 @@ PREFIX inline void advectScalarBody(
         pos_cell,
         field_0,
         Nx, Ny, Nz);
+}
+
+template <typename T, typename U>
+PREFIX inline void applyOccupiedVoxelsBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    U occupied_voxels,
+    T *density, T *u, T *v, T *w, T *temperature)
+{
+    if (occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
+    {
+        u[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+        v[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+        w[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+        temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
+        density[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+    }
 }
 
 #endif // __MSIMBASE_H__

@@ -19,7 +19,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   Simulator(double &time);
-  ~Simulator();
+  ~Simulator() = default;
 
   void update();
 
@@ -76,6 +76,7 @@ private:
   void applyPressure();
   void advectVelocity();
   void advectScalarField();
+  void applyOccupiedVoxels();
 
   /**   Semi-Lagarance method  **/
   double &m_time;
@@ -111,5 +112,4 @@ private:
 
   // ocuppied voxels
   std::array<bool, SIZE> m_occupied_voxels;
-  void fixOccupiedVoxels();
 };

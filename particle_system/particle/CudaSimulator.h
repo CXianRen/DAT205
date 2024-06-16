@@ -67,6 +67,8 @@ namespace MCUDA
         void getPreviosTemperatureField(
             double *temperature_0);
 
+        void calculateExternalForce();
+        
         void calculateVorticity();
 
         void applyExternalForce();

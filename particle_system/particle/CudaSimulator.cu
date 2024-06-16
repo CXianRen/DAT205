@@ -5,6 +5,22 @@
 
 namespace MCUDA
 {
+    __global__ void calculateExternalForceKernel(
+        double *f_x, double *f_y, double *f_z,
+        double *density, double *temperature,
+        int workSize, int Nx, int Ny, int Nz)
+    {
+        CUDA_FOR_EACH
+        if (idx < workSize)
+        {
+            calculateBuyancyForceBody(
+                i, j, k,
+                Nx, Ny, Nz,
+                density, temperature,
+                f_x, f_y, f_z);
+        }
+    }
+
     __global__ void calculateAverageVelocityKernel(
         double *u, double *v, double *w,
         double *avg_u, double *avg_v, double *avg_w,
@@ -229,6 +245,15 @@ namespace MCUDA
         copyDataToHost(this->u_0, u_dst, (Nx_)*Ny_ * Nz_);
         copyDataToHost(this->v_0, v_dst, Nx_ * (Ny_)*Nz_);
         copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_));
+    }
+
+    void CudaSimulator::calculateExternalForce()
+    {
+        calculateExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            f_x, f_y, f_z,
+            density, temperature,
+            workSize_, Nx_, Ny_, Nz_);
+        cudaDeviceSynchronize();
     }
 
     void CudaSimulator::calculateVorticity()
