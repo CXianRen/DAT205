@@ -130,7 +130,7 @@ PREFIX
 #define GET_GRADIANT_2D_Z(i, j, data, cols, dz) \
     GET_GRADIANT_3D_Z(i, j, 0, data, 0, cols, dz)
 
-// calculate divergence \nobal /dot u
+// compute divergence \nobal /dot u
 
 #define GET_DIVERGENCE_2D_X(i, j, u, cols, dx) \
     (u[ACC2D(i + 1, j, cols)] - u[ACC2D(i, j, cols)] / dx)

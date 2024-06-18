@@ -27,7 +27,7 @@ void test_eigen_solver()
         }
     }
     // TEST_LOG("\t\t head(10): \n\t\t" << x_true.head(10).transpose());
-    // calculate b
+    // compute b
     b = L * x_true;
 
     // init solver
@@ -100,7 +100,7 @@ void test_cuda_solver()
         }
     }
     TEST_LOG("\t\t x true head(10): \n\t\t" << x_true.head(10).transpose());
-    // calculate b
+    // compute b
     b = L * x_true;
 
     // init solver

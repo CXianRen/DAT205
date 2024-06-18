@@ -6,7 +6,7 @@
 
 #define CUDA_FOR_EACH                                \
     int idx = blockIdx.x * blockDim.x + threadIdx.x; \
-    /*calculate the index of the cell*/              \
+    /*compute the index of the cell*/              \
     int i = idx % Nx;                                \
     int j = (idx / Nx) % Ny;                         \
     int k = idx / (Nx * Ny);

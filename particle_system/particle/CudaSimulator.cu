@@ -5,7 +5,7 @@
 
 namespace MCUDA
 {
-    __global__ void calculateExternalForceKernel(
+    __global__ void computeExternalForceKernel(
         double *f_x, double *f_y, double *f_z,
         double *density, double *temperature,
         int workSize, int Nx, int Ny, int Nz)
@@ -13,7 +13,7 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            calculateBuyancyForceBody(
+            computeBuyancyForceBody(
                 i, j, k,
                 Nx, Ny, Nz,
                 density, temperature,
@@ -21,7 +21,7 @@ namespace MCUDA
         }
     }
 
-    __global__ void calculateAverageVelocityKernel(
+    __global__ void computeAverageVelocityKernel(
         double *u, double *v, double *w,
         double *avg_u, double *avg_v, double *avg_w,
         int workSize, int Nx, int Ny, int Nz)
@@ -29,7 +29,7 @@ namespace MCUDA
         CUDA_FOR_EACH;
         if (idx < workSize)
         {
-            calculateAverageVelocity(
+            computeAverageVelocity(
                 i, j, k,
                 Nx, Ny, Nz,
                 u, v, w,
@@ -37,7 +37,7 @@ namespace MCUDA
         }
     }
 
-    __global__ void calculateOmgKernel(
+    __global__ void computeOmgKernel(
         double *avg_u, double *avg_v, double *avg_w,
         double *omg_x, double *omg_y, double *omg_z,
         int workSize, int Nx, int Ny, int Nz)
@@ -45,7 +45,7 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            calculateGradient(
+            computeGradient(
                 i, j, k,
                 Nx, Ny, Nz,
                 avg_u, avg_v, avg_w,
@@ -53,7 +53,7 @@ namespace MCUDA
         }
     }
 
-    __global__ void calculateVorticityForceKernel(
+    __global__ void computeVorticityForceKernel(
         double *omg_x, double *omg_y, double *omg_z,
         double *f_x, double *f_y, double *f_z,
         int workSize, int Nx, int Ny, int Nz)
@@ -62,7 +62,7 @@ namespace MCUDA
         CUDA_FOR_EACH
         if (idx < workSize)
         {
-            calculateVorticityBody<double>(
+            computeVorticityBody<double>(
                 i, j, k,
                 Nx, Ny, Nz,
                 omg_x, omg_y, omg_z,
@@ -278,34 +278,34 @@ namespace MCUDA
         copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
-    void CudaSimulator::calculateExternalForce()
+    void CudaSimulator::computeExternalForce()
     {
-        calculateExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+        computeExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             f_x, f_y, f_z,
             density, temperature,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
     }
 
-    void CudaSimulator::calculateVorticity()
+    void CudaSimulator::computeVorticity()
     {
-        // calculate average velocity
+        // compute average velocity
         // DEBUG_PRINT("Launching kernel");
-        calculateAverageVelocityKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+        computeAverageVelocityKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
             avg_u, avg_v, avg_w,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
 
-        // calculate omg
-        calculateOmgKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+        // compute omg
+        computeOmgKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             avg_u, avg_v, avg_w,
             omg_x, omg_y, omg_z,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
 
-        // calculate vorticity force
-        calculateVorticityForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+        // compute vorticity force
+        computeVorticityForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             omg_x, omg_y, omg_z,
             f_x, f_y, f_z,
             workSize_, Nx_, Ny_, Nz_);
@@ -455,7 +455,7 @@ namespace MCUDA
         }
     }
 
-    void CudaSimulator::calculatePressure()
+    void CudaSimulator::computePressure()
     {
         // build rhs
         buildRhsKernel<<<blocksPerGrid_, threadsPerBlock_>>>(

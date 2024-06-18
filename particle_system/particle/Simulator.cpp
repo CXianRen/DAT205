@@ -50,12 +50,12 @@ void Simulator::update()
     CW.setPreviosVelocityField(u0, v0, w0);
     T_END
 
-    T_START("gpu calculateExternalForce")
-    CW.calculateExternalForce();
+    T_START("gpu computeExternalForce")
+    CW.computeExternalForce();
     T_END
 
-    T_START("gpu calculateVorticity")
-    CW.calculateVorticity();
+    T_START("gpu computeVorticity")
+    CW.computeVorticity();
     T_END
 
     T_START("gpu applyExternalForce")
@@ -66,8 +66,8 @@ void Simulator::update()
     CW.advectVelocityField();
     T_END
 
-    T_START("gpu calculatePressure")
-    CW.calculatePressure();
+    T_START("gpu computePressure")
+    CW.computePressure();
     T_END
 
     T_START("gpu applyPressure")
@@ -193,11 +193,11 @@ void Simulator::setEmitterVelocity()
     }
 }
 
-void Simulator::calculateExternalForce()
+void Simulator::computeExternalForce()
 {
     FOR_EACH_CELL
     {
-        calculateBuyancyForceBody<double>(
+        computeBuyancyForceBody<double>(
             i, j, k,
             Nx, Ny, Nz,
             density, temperature,
@@ -205,13 +205,13 @@ void Simulator::calculateExternalForce()
     }
 }
 
-void Simulator::calculateVorticity()
+void Simulator::computeVorticity()
 {
 
     FOR_EACH_CELL
     {
 
-        calculateAverageVelocity<double>(
+        computeAverageVelocity<double>(
             i, j, k,
             Nx, Ny, Nz,
             u, v, w,
@@ -220,7 +220,7 @@ void Simulator::calculateVorticity()
 
     FOR_EACH_CELL
     {
-        calculateGradient(
+        computeGradient(
             i, j, k,
             Nx, Ny, Nz,
             avg_u, avg_v, avg_w,
@@ -229,7 +229,7 @@ void Simulator::calculateVorticity()
 
     FOR_EACH_CELL
     {
-        calculateVorticityBody(
+        computeVorticityBody(
             i, j, k,
             Nx, Ny, Nz,
             omg_x, omg_y, omg_z,
@@ -249,7 +249,7 @@ void Simulator::applyExternalForce()
     }
 }
 
-void Simulator::calculatePressure()
+void Simulator::computePressure()
 {
     T_START("\tBuild b")
     FOR_EACH_CELL

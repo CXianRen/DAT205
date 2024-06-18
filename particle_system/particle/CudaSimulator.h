@@ -83,13 +83,13 @@ namespace MCUDA
 
         double* getRhs(){return rhs_;}
     
-        void calculateExternalForce();
+        void computeExternalForce();
 
-        void calculateVorticity();
+        void computeVorticity();
 
         void applyExternalForce();
 
-        void calculatePressure();
+        void computePressure();
 
         void applyPressure();
 

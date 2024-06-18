@@ -57,7 +57,7 @@ layout(location = 0) out vec4 fragmentColor;
 
 
 
-vec3 calculateDirectIllumiunation(vec3 wo, vec3 n)
+vec3 computeDirectIllumiunation(vec3 wo, vec3 n)
 {
 	vec3 wi = normalize(viewSpaceLightPosition - viewSpacePosition);
 	float wi_dot_n = dot(n, wi);
@@ -89,7 +89,7 @@ vec3 calculateDirectIllumiunation(vec3 wo, vec3 n)
 	return microfacet_term;
 }
 
-vec3 calculateIndirectIllumination(vec3 wo, vec3 n)
+vec3 computeIndirectIllumination(vec3 wo, vec3 n)
 {
 	vec3 world_normal = vec3(viewInverse * vec4(n, 0.0));
 
@@ -131,10 +131,10 @@ void main()
 	vec3 n = normalize(viewSpaceNormal);
 
 	// Direct illumination
-	vec3 direct_illumination_term = visibility * calculateDirectIllumiunation(wo, n);
+	vec3 direct_illumination_term = visibility * computeDirectIllumiunation(wo, n);
 
 	// Indirect illumination
-	// vec3 indirect_illumination_term = calculateIndirectIllumination(wo, n);
+	// vec3 indirect_illumination_term = computeIndirectIllumination(wo, n);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Add emissive term. If emissive texture exists, sample this term.

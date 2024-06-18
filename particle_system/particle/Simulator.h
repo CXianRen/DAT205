@@ -69,10 +69,10 @@ private:
   void setEmitterVelocity();
   void addSource();
 
-  void calculateExternalForce();
-  void calculateVorticity();
+  void computeExternalForce();
+  void computeVorticity();
   void applyExternalForce();
-  void calculatePressure();
+  void computePressure();
   void applyPressure();
   void advectVelocity();
   void advectScalarField();

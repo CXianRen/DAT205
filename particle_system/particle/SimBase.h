@@ -6,7 +6,7 @@
 
 template <typename T>
 PREFIX inline void
-calculateBuyancyForceBody(
+computeBuyancyForceBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *density, T *temperature,
@@ -102,13 +102,13 @@ PREFIX void getVelocity(
 }
 
 template <typename T>
-PREFIX inline void calculateAverageVelocity(
+PREFIX inline void computeAverageVelocity(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *u, T *v, T *w,
     T *avg_u, T *avg_v, T *avg_w)
 {
-    // calculate average velocity
+    // compute average velocity
     T t0 = 0, t1 = 0;
 
     t0 = u[ACC3D(i, j, k, Ny, Nx)];
@@ -137,7 +137,7 @@ PREFIX inline void calculateAverageVelocity(
 }
 
 template <typename T>
-PREFIX inline void calculateGradient(
+PREFIX inline void computeGradient(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *avg_u, T *avg_v, T *avg_w,
@@ -152,7 +152,7 @@ PREFIX inline void calculateGradient(
     {
         return;
     }
-    // calculate vorticity
+    // compute vorticity
     grad_u[ACC3D(i, j, k, Ny, Nx)] = (avg_w[ACC3D(i, j + 1, k, Ny, Nx)] - avg_w[ACC3D(i, j - 1, k, Ny, Nx)] - avg_v[ACC3D(i, j, k + 1, Ny, Nx)] + avg_v[ACC3D(i, j, k - 1, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
     grad_v[ACC3D(i, j, k, Ny, Nx)] = (avg_u[ACC3D(i, j, k + 1, Ny, Nx)] - avg_u[ACC3D(i, j, k - 1, Ny, Nx)] - avg_w[ACC3D(i + 1, j, k, Ny, Nx)] + avg_w[ACC3D(i - 1, j, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
     grad_w[ACC3D(i, j, k, Ny, Nx)] = (avg_v[ACC3D(i + 1, j, k, Ny, Nx)] - avg_v[ACC3D(i - 1, j, k, Ny, Nx)] - avg_u[ACC3D(i, j + 1, k, Ny, Nx)] + avg_u[ACC3D(i, j - 1, k, Ny, Nx)]) * 0.5 / VOXEL_SIZE;
@@ -206,7 +206,7 @@ PREFIX inline void applyPressureBody(
 }
 
 template <typename T>
-PREFIX inline void calculateVorticityBody(
+PREFIX inline void computeVorticityBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *omg_x, T *omg_y, T *omg_z,
