@@ -41,13 +41,16 @@ void Simulator::update()
 
     T_START("update total")
 
-    // T_START("calculateExternalForce")
-    // calculateExternalForce();
-    // T_END
-    T_START("gpu calculateExternalForce")
+    T_START("update data to gpu")
     CW.setDensityField(density);
+    CW.setPreviosDensityField(density0);
     CW.setTemperatureField(temperature);
+    CW.setPreviosTemperatureField(temperature0);
     CW.setVelocityField(u, v, w);
+    CW.setPreviosVelocityField(u0, v0, w0);
+    T_END
+
+    T_START("gpu calculateExternalForce")
     CW.calculateExternalForce();
     T_END
 
@@ -55,61 +58,34 @@ void Simulator::update()
     CW.calculateVorticity();
     T_END
 
-    // T_START
-    // calculateVorticity();
-    // T_END("calculateVorticity")
-
-    T_START("\tgpu applyExternalForce")
+    T_START("gpu applyExternalForce")
     CW.applyExternalForce();
-    CW.getVelocityField(u, v, w);
     T_END
-
-    // T_START
-    // CW.getforceField(fx, fy, fz);
-    // applyExternalForce();
-    // T_END("applyExternalForce")
 
     T_START("gpu advectVelocity")
     CW.advectVelocityField();
-    CW.getVelocityField(u, v, w);
-    CW.getPreviosVelocityField(
-        u0, v0, w0);
     T_END
 
     T_START("gpu calculatePressure")
-    // calculatePressure();
     CW.calculatePressure();
-    CW.getPressureField(pressure);
     T_END
 
-    T_START("applyPressure")
-    applyPressure();
+    T_START("gpu applyPressure")
+    CW.applyPressure();
     T_END
 
     T_START("gpu advectScalarField")
-
-    T_START("\tupdate density and temperature to gpu")
-    CW.setVelocityField(u, v, w);
-
-    CW.setDensityField(density);
-    CW.setPreviosDensityField(density0);
-
-    CW.setTemperatureField(temperature);
-    CW.setPreviosTemperatureField(temperature0);
+    CW.advectScalarField();
     T_END
 
-    CW.advectScalarField();
-
+    T_START("get data from gpu")
     CW.getDensityField(density);
     CW.getPreviosDensityField(density0);
-
     CW.getTemperatureField(temperature);
     CW.getPreviosTemperatureField(temperature0);
-
+    CW.getVelocityField(u, v, w);
+    CW.getPreviosVelocityField(u0, v0, w0);
     T_END
-    // T_START
-    // advectScalarField();
-    // T_END("advectScalarField")
 
     T_START("applyOccupiedVoxels")
     applyOccupiedVoxels();

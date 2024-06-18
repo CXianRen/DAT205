@@ -258,6 +258,16 @@ namespace MCUDA
         copyDataToHost(this->w, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
+    void CudaSimulator::setPreviosVelocityField(
+        double *u,
+        double *v,
+        double *w)
+    {
+        copyDataToDevice(u, this->u_0, (Nx_)*Ny_ * Nz_);
+        copyDataToDevice(v, this->v_0, Nx_ * (Ny_)*Nz_);
+        copyDataToDevice(w, this->w_0, Nx_ * Ny_ * (Nz_));
+    }
+
     void CudaSimulator::getPreviosVelocityField(
         double *u_dst,
         double *v_dst,
@@ -473,5 +483,37 @@ namespace MCUDA
         double *rhs)
     {
         copyDataToHost(rhs_, rhs, workSize_);
+    }
+
+    __global__ void applyPressureKernel(
+        double *u, double *v, double *w,
+        double *pressure,
+        int workSize, int Nx, int Ny, int Nz)
+    {
+        CUDA_FOR_EACH
+        if (idx < workSize)
+        {
+            applyPressureBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                pressure,
+                u, v, w);
+        }
+    }
+
+    void CudaSimulator::applyPressure()
+    {
+        applyPressureKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            u, v, w,
+            pressure,
+            workSize_, Nx_, Ny_, Nz_);
+        // check error
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+        {
+            DEBUG_PRINT("Error at applyPressureKernel: " << cudaGetErrorString(error));
+        }
+
+        cudaDeviceSynchronize();
     }
 }

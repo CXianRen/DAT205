@@ -39,6 +39,11 @@ namespace MCUDA
             double *v,
             double *w);
 
+        void setPreviosVelocityField(
+            double *u,
+            double *v,
+            double *w);
+
         void getPreviosVelocityField(
             double *u,
             double *v,
@@ -85,6 +90,8 @@ namespace MCUDA
         void applyExternalForce();
 
         void calculatePressure();
+
+        void applyPressure();
 
         void advectVelocityField();
 
