@@ -30,6 +30,7 @@ int case_id = 0;
 
 // lock for simulator
 std::mutex simLock;
+bool simulator_rest_trigger = false;
 std::array<double, SIZE> density;
 double transparency[SIZE];
 
@@ -596,8 +597,14 @@ void ControlPanel()
 		cameraPosition = vec3(5.f, 5.0f, 30.f);
 		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
 	}
-	// select the light color
-	ImGui::ColorEdit3("Light color", &point_light_color[0]);
+	
+
+	// reset button, to reset simulator
+	if (ImGui::Button("Reset"))
+	{
+		simulator_rest_trigger = true;
+	}
+
 
 	ImGui::End();
 }
@@ -639,6 +646,12 @@ int main(int argc, char *argv[])
 		DEBUG_PRINT("Simulation thread started");
 		while (!stopRendering)
 		{	
+			if (simulator_rest_trigger)
+			{
+				simulator->reset();
+				simulator_rest_trigger = false;
+			}
+
 			static int current_case = -1;
 			if(current_case != case_id){
 				current_case = case_id;
