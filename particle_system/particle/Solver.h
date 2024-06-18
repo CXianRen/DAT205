@@ -30,7 +30,7 @@ class EigenSolver : public Solver
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    
+
     EigenSolver()
     {
         // set tolerance
@@ -98,23 +98,48 @@ public:
 
     void getError(double &error) override;
 
+    /**
+     * will first copy the data to
+     * the gpu and then solve the system
+     * and the data will be copied back to the host
+     * store the result in x
+     */
     void solve(
         Eigen::VectorXd &x,
         Eigen::VectorXd &b) override;
+
+    void solve(
+        double *x,
+        double *b);
+
+    /**
+     * data from gpu
+     * @todo due to current implementation
+     * we need to copy the data from gpu to gpu
+    */
+    void solve_from_gpu(
+        double *x,
+        double *b);
 
     void solveWithGuess(
         Eigen::VectorXd &x,
         Eigen::VectorXd &b) override {};
 
 private:
+    /**
+     * x and b is already on the gpu
+     */
+    void solve_nocp(double *x, double *b);
+
+
     const int max_iter = 1000;
     const double tol = 1e-6f;
 
     int N = 0;  // size of the matrix, rows
     int nz = 0; // number of non-zero elements
     // data on the host
-    int *I = NULL;     // row indices
-    int *J = NULL;     // column indices
+    int *I = NULL;      // row indices
+    int *J = NULL;      // column indices
     double *val = NULL; // values
 
     double *x, *rhs; // solution and right hand side
@@ -147,7 +172,5 @@ private:
     cusparseDnVecDescr_t vecp = NULL;
     cusparseDnVecDescr_t vecAx = NULL;
 };
-
-
 
 #endif // __M_CUSOLVER_H__

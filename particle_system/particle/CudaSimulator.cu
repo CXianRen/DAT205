@@ -161,6 +161,18 @@ namespace MCUDA
         // allocate memory for temperature field
         cudaMalloc(&temperature, workSize_ * sizeof(double));
         cudaMalloc(&temperature_0, workSize_ * sizeof(double));
+
+        // allocate memory for pressure
+        cudaMalloc(&pressure, workSize_ * sizeof(double));
+        // fill pressure with zeros
+        cudaMemset(pressure, 0, workSize_ * sizeof(double));
+
+        // allocate memory for rhs
+        cudaMalloc(&rhs_, workSize_ * sizeof(double));
+        // init solver
+        static auto L = build_3d_laplace<double>(Nx_, Ny_, Nz_);
+        DEBUG_PRINT("Solver initialized");
+        solver_.compute(L);
     }
 
     void CudaSimulator::cleanup()
@@ -184,6 +196,15 @@ namespace MCUDA
         cudaFree(f_x);
         cudaFree(f_y);
         cudaFree(f_z);
+
+        cudaFree(density);
+        cudaFree(density_0);
+
+        cudaFree(temperature);
+        cudaFree(temperature_0);
+
+        cudaFree(pressure);
+        cudaFree(rhs_);
     }
 
     void CudaSimulator::copyDataToDevice(
@@ -405,5 +426,52 @@ namespace MCUDA
             u_0, v_0, w_0,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
+    }
+
+    __global__ void buildRhsKernel(
+        double *rhs,
+        double *u, double *v, double *w,
+        int workSize, int Nx, int Ny, int Nz)
+    {
+        CUDA_FOR_EACH
+        if (idx < workSize)
+        {
+            rhs[idx] = 0.0;
+            buildRhsBody<double>(
+                i, j, k,
+                Nx, Ny, Nz,
+                u, v, w,
+                rhs);
+        }
+    }
+
+    void CudaSimulator::calculatePressure()
+    {
+        // build rhs
+        buildRhsKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
+            rhs_, u, v, w,
+            workSize_, Nx_, Ny_, Nz_);
+        // check error
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess)
+        {
+            DEBUG_PRINT("Error at buildRhsKernel: " << cudaGetErrorString(error));
+        }
+        cudaDeviceSynchronize();
+
+        // solve pressure
+        solver_.solve_from_gpu(pressure, rhs_);
+    }
+
+    void CudaSimulator::getPressureField(
+        double *pressure)
+    {
+        copyDataToHost(this->pressure, pressure, workSize_);
+    }
+
+    void CudaSimulator::getRhsField(
+        double *rhs)
+    {
+        copyDataToHost(rhs_, rhs, workSize_);
     }
 }

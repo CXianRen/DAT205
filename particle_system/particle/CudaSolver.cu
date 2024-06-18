@@ -81,16 +81,8 @@ void CudaSolver::getError(double &error)
     error = err;
 }
 
-void CudaSolver::solve(
-    Eigen::VectorXd &xt,
-    Eigen::VectorXd &bt)
+void CudaSolver::solve_nocp(double *d_x, double *d_r)
 {
-    x = xt.data();
-    rhs = bt.data();
-    /* Initialize problem data */
-    cudaMemcpy(d_x, x, N * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_r, rhs, N * sizeof(double), cudaMemcpyHostToDevice);
-
     alpha = 1.0;
     alpham1 = -1.0;
     beta = 0.0;
@@ -157,12 +149,37 @@ void CudaSolver::solve(
 
         k++;
     }
-    
-    // printf("lowest error = %e\n", lowest);
-    // printf("iteration = %3d, residual = %e\n", k, sqrt(r1));
+}
+
+void CudaSolver::solve_from_gpu(
+    double *xt,
+    double *bt)
+{
+    // Device to device copy
+    cudaMemcpy(d_r, bt, N * sizeof(double), cudaMemcpyDeviceToDevice);
+    solve_nocp(d_x, d_r);
+    cudaMemcpy(xt, d_x, N * sizeof(double), cudaMemcpyDeviceToDevice);
+}
+
+void CudaSolver::solve(
+    double *xt,
+    double *bt)
+{
+    /* Initialize problem data */
+    // cudaMemcpy(d_x, x, N * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_r, bt, N * sizeof(double), cudaMemcpyHostToDevice);
+
+    solve_nocp(d_x, d_r);
 
     // copy result back to host
-    cudaMemcpy(x, d_x, N * sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(xt, d_x, N * sizeof(double), cudaMemcpyDeviceToHost);
+}
+
+void CudaSolver::solve(
+    Eigen::VectorXd &xt,
+    Eigen::VectorXd &bt)
+{
+    solve(xt.data(), bt.data());
 }
 
 CudaSolver::~CudaSolver()

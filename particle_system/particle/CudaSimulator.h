@@ -2,6 +2,7 @@
 #define __CUDA_Simulator_H__
 
 #include "CudaWorker.h"
+#include "Solver.h"
 
 namespace MCUDA
 {
@@ -67,11 +68,23 @@ namespace MCUDA
         void getPreviosTemperatureField(
             double *temperature_0);
 
+        void getPressureField(
+            double *pressure);
+
+        double* getPressure(){return pressure;}
+
+        void getRhsField(
+            double *rhs);
+
+        double* getRhs(){return rhs_;}
+    
         void calculateExternalForce();
-        
+
         void calculateVorticity();
 
         void applyExternalForce();
+
+        void calculatePressure();
 
         void advectVelocityField();
 
@@ -109,6 +122,13 @@ namespace MCUDA
 
         double *density;
         double *density_0;
+
+        // presure field
+        double *pressure;
+
+        // presure solver
+        CudaSolver solver_;
+        double *rhs_;
     };
 
 } // namespace MCUDA

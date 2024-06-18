@@ -187,20 +187,21 @@ PREFIX inline void applyPressureBody(
     T *u, T *v, T *w)
 {
     // compute gradient of pressure
+    // @todo optimize this (VOXEL_SIZE / DT) * DT
     if (i < Nx - 1)
     {
         u[ACC3D(i + 1, j, k, Ny, Nx)] -=
-            DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            (VOXEL_SIZE / DT) * DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
     if (j < Ny - 1)
     {
         v[ACC3D(i, j + 1, k, Ny, Nx)] -=
-            DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            (VOXEL_SIZE / DT) * DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
     if (k < Nz - 1)
     {
         w[ACC3D(i, j, k + 1, Ny, Nx)] -=
-            DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            (VOXEL_SIZE / DT)* DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
 }
 
@@ -405,6 +406,49 @@ PREFIX inline void applyOccupiedVoxelsBody(
         w[ACC3D(i, j, k, Ny, Nx)] = 0.0;
         temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
         density[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+    }
+}
+
+template <typename T>
+PREFIX inline void buildRhsBody(
+    int i, int j, int k,
+    int Nx, int Ny, int Nz,
+    T *u, T *v, T *w,
+    T *b)
+{
+    double F[6] = {
+        static_cast<double>(k > 0),
+        static_cast<double>(j > 0),
+        static_cast<double>(i > 0),
+        static_cast<double>(i < Nx - 1),
+        static_cast<double>(j < Ny - 1),
+        static_cast<double>(k < Nz - 1)};
+
+    double U[6];
+
+    U[0] = w[ACC3D(i, j, k, Ny, Nx)];
+    U[1] = v[ACC3D(i, j, k, Ny, Nx)];
+    U[2] = u[ACC3D(i, j, k, Ny, Nx)];
+
+    U[3] = 0.0;
+    if (i < Nx - 1)
+        U[3] = (double)(u[ACC3D(i + 1, j, k, Ny, Nx)]);
+
+    U[4] = 0.0;
+    if (j < Ny - 1)
+        U[4] = (double)(v[ACC3D(i, j + 1, k, Ny, Nx)]);
+
+    U[5] = 0.0;
+    if (k < Nz - 1)
+        U[5] = (double)(w[ACC3D(i, j, k + 1, Ny, Nx)]);
+
+    for (int n = 0; n < 3; ++n)
+    {
+        b[ACC3D(i, j, k, Ny, Nx)] -= F[n] * U[n];
+    }
+    for (int n = 3; n < 6; ++n)
+    {
+        b[ACC3D(i, j, k, Ny, Nx)] += F[n] * U[n];
     }
 }
 

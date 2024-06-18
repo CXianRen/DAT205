@@ -12,8 +12,8 @@ Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
     CW.init();
 
     static auto L = build_3d_laplace<double>(Nx, Ny, Nz);
-    m_e_solver.compute(L);
-    m_solver.compute(L);
+    // m_e_solver.compute(L);
+    // m_solver.compute(L);
 
     // initial environment temperature
     FOR_EACH_CELL
@@ -77,7 +77,9 @@ void Simulator::update()
     T_END
 
     T_START("gpu calculatePressure")
-    calculatePressure();
+    // calculatePressure();
+    CW.calculatePressure();
+    CW.getPressureField(pressure);
     T_END
 
     T_START("applyPressure")
@@ -273,66 +275,20 @@ void Simulator::applyExternalForce()
 
 void Simulator::calculatePressure()
 {
-    b.setZero();
     T_START("\tBuild b")
     FOR_EACH_CELL
     {
-        double F[6] = {
-            static_cast<double>(k > 0),
-            static_cast<double>(j > 0),
-            static_cast<double>(i > 0),
-            static_cast<double>(i < Nx - 1),
-            static_cast<double>(j < Ny - 1),
-            static_cast<double>(k < Nz - 1)};
-
-        static double D[6] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0};
-        static double U[6];
-
-        U[0] = (double)(w[ACC3D(i, j, k, Ny, Nx)]);
-        U[1] = (double)(v[ACC3D(i, j, k, Ny, Nx)]);
-        U[2] = (double)(u[ACC3D(i, j, k, Ny, Nx)]);
-        if (i < Nx - 1)
-            U[3] = (double)(u[ACC3D(i + 1, j, k, Ny, Nx)]);
-        else
-            U[3] = 0.0;
-
-        if (j < Ny - 1)
-            U[4] = (double)(v[ACC3D(i, j + 1, k, Ny, Nx)]);
-        else
-            U[4] = 0.0;
-
-        if (k < Nz - 1)
-            U[5] = (double)(w[ACC3D(i, j, k + 1, Ny, Nx)]);
-        else
-            U[5] = 0.0;
-
-        for (int n = 0; n < 6; ++n)
-        {
-            b(ACC3D(i, j, k, Ny, Nx)) += D[n] * F[n] * U[n];
-        }
+        b[ACC3D(i, j, k, Ny, Nx)] = 0.0;
+        buildRhsBody<double>(
+            i, j, k,
+            Nx, Ny, Nz,
+            u, v, w,
+            b.data());
     }
-
     T_END
 
     T_START("\tSolve")
-    m_solver.solve(x, b);
-    T_END
-
-    static double err = 0.0;
-    m_solver.getError(err);
-    // printf("solver error: %f\n", err);
-    static int it = 0;
-    m_solver.getIterations(it);
-    // printf("solver iterations: %d\n", it);
-
-    // printf("#iterations:     %d \n", static_cast<int>(ICCG.iterations()));
-    // printf("estimated error: %e \n", ICCG.error());
-    static float t_coeff = (VOXEL_SIZE / DT);
-    T_START("\tUpdate pressure")
-    FOR_EACH_CELL
-    {
-        pressure[ACC3D(i, j, k, Ny, Nx)] = x(ACC3D(i, j, k, Ny, Nx)) * t_coeff;
-    }
+    m_solver.solve(pressure, b.data());
     T_END
 }
 
