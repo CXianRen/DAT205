@@ -134,8 +134,10 @@ namespace MCUDA
         double *pressure;
 
         // presure solver
-        CudaSolver solver_;
         double *rhs_;
+        public:
+        CudaSolver solver_;
+        
     };
 
 } // namespace MCUDA

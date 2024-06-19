@@ -6,20 +6,111 @@
 #include "mmath.h"
 #include "mperf.h"
 
-Simulator::Simulator(double &time) : m_time(time), b(SIZE), x(SIZE),
-                                     CW(MCUDA::CudaSimulator(SIZE, Nx, Ny, Nz))
+Simulator::Simulator(double &time)
+    : m_time(time),
+      CudaSim(SIZE, Nx, Ny, Nz),
+      CPUSim(SIZE, Nx, Ny, Nz)
 {
-    CW.init();
-
-    static auto L = build_3d_laplace<double>(Nx, Ny, Nz);
-    // m_e_solver.compute(L);
-    // m_solver.compute(L);
+    CPUSim.init();
+    CudaSim.init();
 
     // initial environment temperature
     FOR_EACH_CELL
     {
         temperature[ACC3D(i, j, k, Ny, Nx)] = T_AMBIENT;
     }
+}
+
+void Simulator::update_gpu()
+{
+    T_START("update data to gpu")
+    CudaSim.setDensityField(density);
+    CudaSim.setPreviosDensityField(density0);
+    CudaSim.setTemperatureField(temperature);
+    CudaSim.setPreviosTemperatureField(temperature0);
+    CudaSim.setVelocityField(u, v, w);
+    CudaSim.setPreviosVelocityField(u0, v0, w0);
+    T_END
+
+    T_START("gpu computeExternalForce")
+    CudaSim.computeExternalForce();
+    T_END
+
+    T_START("gpu computeVorticity")
+    CudaSim.computeVorticity();
+    T_END
+
+    T_START("gpu applyExternalForce")
+    CudaSim.applyExternalForce();
+    T_END
+
+    T_START("gpu advectVelocity")
+    CudaSim.advectVelocityField();
+    T_END
+
+    T_START("gpu computePressure")
+    CudaSim.computePressure();
+    T_END
+
+    T_START("gpu applyPressure")
+    CudaSim.applyPressure();
+    T_END
+
+    T_START("gpu advectScalarField")
+    CudaSim.advectScalarField();
+    T_END
+
+    T_START("get data from gpu")
+    CudaSim.getDensityField(density);
+    CudaSim.getPreviosDensityField(density0);
+    CudaSim.getTemperatureField(temperature);
+    CudaSim.getPreviosTemperatureField(temperature0);
+    CudaSim.getVelocityField(u, v, w);
+    CudaSim.getPreviosVelocityField(u0, v0, w0);
+    T_END
+}
+
+void Simulator::update_cpu()
+{
+    CPUSim.setDensityField(density);
+    CPUSim.setPreviosDensityField(density0);
+    CPUSim.setTemperatureField(temperature);
+    CPUSim.setPreviosTemperatureField(temperature0);
+    CPUSim.setVelocityField(u, v, w);
+    CPUSim.setPreviosVelocityField(u0, v0, w0);
+    CPUSim.setforceField(fx, fy, fz);
+    CPUSim.setAvgVelocityField(avg_u, avg_v, avg_w);
+    CPUSim.setVorticityField(omg_x, omg_y, omg_z);
+    CPUSim.setPressureField(pressure);
+
+    T_START("cpu computeExternalForce")
+    CPUSim.computeExternalForce();
+    T_END
+
+    T_START("cpu computeVorticity")
+    CPUSim.computeVorticity();
+    T_END
+
+    T_START("cpu applyExternalForce")
+    CPUSim.applyExternalForce();
+    T_END
+
+    T_START("cpu advectVelocity")
+    CPUSim.advectVelocityField();
+    T_END
+
+    T_START("cpu computePressure")
+    CPUSim.computePressure();
+    T_END
+
+    T_START("cpu applyPressure")
+    CPUSim.applyPressure();
+    T_END
+
+    T_START("cpu advectScalarField")
+    CPUSim.advectScalarField();
+    T_END
+
 }
 
 void Simulator::update()
@@ -41,52 +132,9 @@ void Simulator::update()
 
     T_START("update total")
 
-    T_START("update data to gpu")
-    CW.setDensityField(density);
-    CW.setPreviosDensityField(density0);
-    CW.setTemperatureField(temperature);
-    CW.setPreviosTemperatureField(temperature0);
-    CW.setVelocityField(u, v, w);
-    CW.setPreviosVelocityField(u0, v0, w0);
-    T_END
-
-    T_START("gpu computeExternalForce")
-    CW.computeExternalForce();
-    T_END
-
-    T_START("gpu computeVorticity")
-    CW.computeVorticity();
-    T_END
-
-    T_START("gpu applyExternalForce")
-    CW.applyExternalForce();
-    T_END
-
-    T_START("gpu advectVelocity")
-    CW.advectVelocityField();
-    T_END
-
-    T_START("gpu computePressure")
-    CW.computePressure();
-    T_END
-
-    T_START("gpu applyPressure")
-    CW.applyPressure();
-    T_END
-
-    T_START("gpu advectScalarField")
-    CW.advectScalarField();
-    T_END
-
-    T_START("get data from gpu")
-    CW.getDensityField(density);
-    CW.getPreviosDensityField(density0);
-    CW.getTemperatureField(temperature);
-    CW.getPreviosTemperatureField(temperature0);
-    CW.getVelocityField(u, v, w);
-    CW.getPreviosVelocityField(u0, v0, w0);
-    T_END
-
+    // update_gpu();
+    update_cpu();
+    
     T_START("applyOccupiedVoxels")
     applyOccupiedVoxels();
     T_END
@@ -190,139 +238,6 @@ void Simulator::setEmitterVelocity()
         }
         break;
     }
-    }
-}
-
-void Simulator::computeExternalForce()
-{
-    FOR_EACH_CELL
-    {
-        computeBuyancyForceBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            density, temperature,
-            fx, fy, fz);
-    }
-}
-
-void Simulator::computeVorticity()
-{
-
-    FOR_EACH_CELL
-    {
-
-        computeAverageVelocity<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            u, v, w,
-            avg_u, avg_v, avg_w);
-    }
-
-    FOR_EACH_CELL
-    {
-        computeGradient(
-            i, j, k,
-            Nx, Ny, Nz,
-            avg_u, avg_v, avg_w,
-            omg_x, omg_y, omg_z);
-    }
-
-    FOR_EACH_CELL
-    {
-        computeVorticityBody(
-            i, j, k,
-            Nx, Ny, Nz,
-            omg_x, omg_y, omg_z,
-            fx, fy, fz);
-    }
-}
-
-void Simulator::applyExternalForce()
-{
-    FOR_EACH_CELL
-    {
-        applyExternalForceBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            fx, fy, fz,
-            u, v, w);
-    }
-}
-
-void Simulator::computePressure()
-{
-    T_START("\tBuild b")
-    FOR_EACH_CELL
-    {
-        b[ACC3D(i, j, k, Ny, Nx)] = 0.0;
-        buildRhsBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            u, v, w,
-            b.data());
-    }
-    T_END
-
-    T_START("\tSolve")
-    m_solver.solve(pressure, b.data());
-    T_END
-}
-
-void Simulator::applyPressure()
-{
-
-    FOR_EACH_CELL
-    {
-        applyPressureBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            pressure,
-            u, v, w);
-    }
-}
-
-void Simulator::advectVelocity()
-{
-    T_START("\tcopy data")
-    std::copy(u, u + ((Nx + 1) * Ny * Nz), u0);
-    std::copy(v, v + (Nx * (Ny + 1) * Nz), v0);
-    std::copy(w, w + (Nx * Ny * (Nz + 1)), w0);
-    T_END
-
-    FOR_EACH_CELL
-    {
-        advectVelocityBody<double>(
-            u, v, w,
-            u0, v0, w0,
-            i, j, k,
-            Nx, Ny, Nz);
-    }
-}
-
-void Simulator::advectScalarField()
-{
-    T_START("\tcopy data")
-    std::copy(u, u + ((Nx + 1) * Ny * Nz), u0);
-    std::copy(v, v + (Nx * (Ny + 1) * Nz), v0);
-    std::copy(w, w + (Nx * Ny * (Nz + 1)), w0);
-
-    std::copy(density, density + SIZE, density0);
-    std::copy(temperature, temperature + SIZE, temperature0);
-    T_END
-
-    FOR_EACH_CELL
-    {
-        advectScalarBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            density, density0,
-            u0, v0, w0);
-
-        advectScalarBody<double>(
-            i, j, k,
-            Nx, Ny, Nz,
-            temperature, temperature0,
-            u0, v0, w0);
     }
 }
 

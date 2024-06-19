@@ -6,10 +6,9 @@
 #include <Eigen/Sparse>
 
 #include "mmath.h"
-#include "SimBase.h"
 
-#include "Solver.h"
 #include "CudaSimulator.h"
+#include "CpuSimulator.h"
 
 #include "mperf.h"
 
@@ -34,8 +33,8 @@ public:
     // get solver info
     int iter;
     double error;
-    m_solver.getIterations(iter);
-    m_solver.getError(error);
+    // CudaSim.solver_.getIterations(iter);
+    // CudaSim.solver_.getError(error);
     return time_str + "Solver Iterations: " +
            std::to_string(iter) + " Solver Error: " + std::to_string(error) + "\n";
   }
@@ -69,16 +68,11 @@ private:
   void setEmitterVelocity();
   void addSource();
 
-  void computeExternalForce();
-  void computeVorticity();
-  void applyExternalForce();
-  void computePressure();
-  void applyPressure();
-  void advectVelocity();
-  void advectScalarField();
+  void update_gpu();
+  void update_cpu();
+
   void applyOccupiedVoxels();
 
-  /**   Semi-Lagarance method  **/
   double &m_time;
 
   // external force
@@ -91,7 +85,6 @@ private:
 
   // vorticity field
   double omg_x[SIZE], omg_y[SIZE], omg_z[SIZE];
-  double vort[SIZE];
 
   // pressure field
   double pressure[SIZE];
@@ -102,14 +95,11 @@ private:
   // density field
   double density[SIZE], density0[SIZE];
 
-  // solver
-  EigenSolver m_e_solver;
-  Eigen::VectorXd b;
-  Eigen::VectorXd x;
+  MCUDA::CudaSimulator CudaSim;
 
-  CudaSolver m_solver;
-  MCUDA::CudaSimulator CW;
+  CPUSIM::CpuSimulator CPUSim;
 
   // ocuppied voxels
-  std::array<bool, SIZE> m_occupied_voxels;
+  std::array<bool, SIZE>
+      m_occupied_voxels;
 };
