@@ -1,10 +1,13 @@
 #include "CpuSimulator.h"
 
+#include <omp.h>
+
 namespace CPUSIM
 {
 
     void CpuSimulator::computeExternalForce()
     {
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             computeBuyancyForceBody<double>(
@@ -16,7 +19,8 @@ namespace CPUSIM
     }
 
     void CpuSimulator::computeVorticity()
-    {
+    {   
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
 
@@ -27,6 +31,7 @@ namespace CPUSIM
                 avg_u, avg_v, avg_w);
         }
 
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             computeGradient(
@@ -36,6 +41,7 @@ namespace CPUSIM
                 omg_x, omg_y, omg_z);
         }
 
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             computeVorticityBody(
@@ -48,6 +54,7 @@ namespace CPUSIM
 
     void CpuSimulator::applyExternalForce()
     {
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             applyExternalForceBody<double>(
@@ -60,6 +67,7 @@ namespace CPUSIM
 
     void CpuSimulator::computePressure()
     {
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             b[ACC3D(i, j, k, Ny_, Nx_)] = 0.0;
@@ -69,8 +77,10 @@ namespace CPUSIM
                 u, v, w,
                 b.data());
         }
-        solver_.solve(x, b);
+        // solver_.solve(x, b);
+        solver_.solveWithGuess(x, b);
         
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             pressure[ACC3D(i, j, k, Ny_, Nx_)] = x(ACC3D(i, j, k, Ny_, Nx_));
@@ -78,7 +88,8 @@ namespace CPUSIM
     }
 
     void CpuSimulator::applyPressure()
-    {
+    {   
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             applyPressureBody<double>(
@@ -95,6 +106,7 @@ namespace CPUSIM
         std::copy(v, v + SIZE, v_0);
         std::copy(w, w + SIZE, w_0);
 
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             advectVelocityBody<double>(
@@ -115,6 +127,7 @@ namespace CPUSIM
         std::copy(density, density + SIZE, density_0);
         std::copy(temperature, temperature + SIZE, temperature_0);
 
+        #pragma omp parallel for
         FOR_EACH_CELL
         {
             advectScalarBody<double>(

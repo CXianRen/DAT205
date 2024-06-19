@@ -3,7 +3,8 @@
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-
+#include <iostream>
+#include <omp.h>
 class Solver
 {
 public:
@@ -35,6 +36,14 @@ public:
     {
         // set tolerance
         ICCG.setTolerance(1e-6);
+        Eigen::initParallel();
+        // get the physical core of the machine by omp
+        // according to the Eigen documentation, the best 
+        // performance is achieved when the number of threads
+        // is the physical core of the machine not the logical threads!
+        int cores = omp_get_num_procs()/2;
+        Eigen::setNbThreads(cores);
+        std::cout << "[DEBUG] : EIGEN Thread:" << Eigen::nbThreads() << std::endl;
     }
 
     ~EigenSolver() = default;

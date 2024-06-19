@@ -7,6 +7,7 @@ project ( particle_system LANGUAGES CXX CUDA )
 
 set(CMAKE_CUDA_ARCHITECTURES 61 75)
 
+find_package(OpenMP REQUIRED)
 
 file(GLOB_RECURSE CPP_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp"
@@ -45,6 +46,7 @@ target_link_libraries (
     ${CUDA_cusolver_LIBRARY} 
     ${CUDA_cusparse_LIBRARY}
     ${CUDA_cublas_LIBRARY}
+    OpenMP::OpenMP_CXX
 )
 config_build_output()
 
