@@ -28,7 +28,7 @@ constexpr double INIT_VELOCITY = 0.0;
 constexpr double T_AMBIENT = 25.0;
 
 constexpr double VORT_EPS = 30.0;
-constexpr double ALPHA = -0.1;
+constexpr double ALPHA = 0.1;
 constexpr double BETA = 5.0;
 
 constexpr double EMIT_DURATION = 5.0;

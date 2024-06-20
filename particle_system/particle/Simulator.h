@@ -49,6 +49,16 @@ public:
     envTemp_ = temp;
   }
 
+  void setAlpha(double alpha)
+  {
+    alpha_ = alpha;
+  }
+
+  void setBeta(double beta)
+  {
+    beta_ = beta;
+  }
+  
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)

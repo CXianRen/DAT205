@@ -33,7 +33,7 @@ void Simulator::update_gpu()
     T_END
 
     T_START("gpu computeExternalForce")
-    CudaSim.computeExternalForce(ALPHA, BETA, envTemp_);
+    CudaSim.computeExternalForce(alpha_, beta_, envTemp_);
     T_END
 
     T_START("gpu computeVorticity")
@@ -84,7 +84,7 @@ void Simulator::update_cpu()
     CPUSim.setPressureField(pressure);
 
     T_START("cpu computeExternalForce")
-    CPUSim.computeExternalForce(ALPHA, BETA, envTemp_);
+    CPUSim.computeExternalForce(alpha_, beta_, envTemp_);
     T_END
 
     T_START("cpu computeVorticity")
