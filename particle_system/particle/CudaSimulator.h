@@ -83,7 +83,10 @@ namespace MCUDA
 
         double* getRhs(){return rhs_;}
     
-        void computeExternalForce();
+        void computeExternalForce(
+            double alpha, 
+            double beta, 
+            double t_ambient);
 
         void computeVorticity();
 

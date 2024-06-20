@@ -74,7 +74,8 @@ namespace CPUSIM
 
     public:
         EigenSolver solver_;
-        void computeExternalForce();
+        void computeExternalForce(
+            double alpha, double beta, double t_ambient);
         void computeVorticity();
         void applyExternalForce();
         void computePressure();

@@ -10,12 +10,13 @@ computeBuyancyForceBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *density, T *temperature,
-    T *f_x, T *f_y, T *f_z)
+    T *f_x, T *f_y, T *f_z,
+    T alpha, T beta, T t_ambient)
 {
     f_x[ACC3D(i, j, k, Ny, Nx)] = 0.0;
     f_y[ACC3D(i, j, k, Ny, Nx)] =
-        -ALPHA * density[ACC3D(i, j, k, Ny, Nx)] +
-        BETA * (temperature[ACC3D(i, j, k, Ny, Nx)] - T_AMBIENT);
+        -alpha * density[ACC3D(i, j, k, Ny, Nx)] +
+        beta * (temperature[ACC3D(i, j, k, Ny, Nx)] - t_ambient);
     f_z[ACC3D(i, j, k, Ny, Nx)] = 0.0;
 }
 

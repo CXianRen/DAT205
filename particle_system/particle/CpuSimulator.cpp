@@ -5,7 +5,8 @@
 namespace CPUSIM
 {
 
-    void CpuSimulator::computeExternalForce()
+    void CpuSimulator::computeExternalForce(
+        double alpha, double beta, double t_ambient)
     {
         #pragma omp parallel for
         FOR_EACH_CELL
@@ -14,7 +15,8 @@ namespace CPUSIM
                 i, j, k,
                 Nx_, Ny_, Nz_,
                 density, temperature,
-                f_x, f_y, f_z);
+                f_x, f_y, f_z,
+                alpha, beta, t_ambient);
         }
     }
 

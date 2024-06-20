@@ -33,6 +33,3 @@ constexpr double BETA = 5.0;
 
 constexpr double EMIT_DURATION = 5.0;
 constexpr double FINISH_TIME = 10.0;
-
-// render
-constexpr float ABSORPTION = 5.0f;

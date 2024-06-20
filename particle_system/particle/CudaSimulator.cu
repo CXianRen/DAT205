@@ -8,6 +8,7 @@ namespace MCUDA
     __global__ void computeExternalForceKernel(
         double *f_x, double *f_y, double *f_z,
         double *density, double *temperature,
+        double alpha, double beta, double t_ambient,
         int workSize, int Nx, int Ny, int Nz)
     {
         CUDA_FOR_EACH
@@ -17,7 +18,8 @@ namespace MCUDA
                 i, j, k,
                 Nx, Ny, Nz,
                 density, temperature,
-                f_x, f_y, f_z);
+                f_x, f_y, f_z,
+                alpha, beta, t_ambient);
         }
     }
 
@@ -278,11 +280,12 @@ namespace MCUDA
         copyDataToHost(this->w_0, w_dst, Nx_ * Ny_ * (Nz_));
     }
 
-    void CudaSimulator::computeExternalForce()
+    void CudaSimulator::computeExternalForce(double alpha, double beta, double t_ambient)
     {
         computeExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             f_x, f_y, f_z,
             density, temperature,
+            alpha, beta, t_ambient,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
     }

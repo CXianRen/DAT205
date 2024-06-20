@@ -44,14 +44,19 @@ public:
     m_occupied_voxels = occupied_voxels;
   }
 
+  void setEnvTemperature(double temp)
+  {
+    envTemp_ = temp;
+  }
+
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
     {
       density[i] = 0.0;
       density0[i] = 0.0;
-      temperature[i] = T_AMBIENT;
-      temperature0[i] = T_AMBIENT;
+      temperature[i] = envTemp_;
+      temperature0[i] = envTemp_;
       pressure[i] = 0.0;
       u[i] = 0.0;
       u0[i] = 0.0;
@@ -65,6 +70,11 @@ public:
   }
 
 private:
+  double &m_time;
+  double envTemp_ = T_AMBIENT;
+  double alpha_ = ALPHA;
+  double beta_ = BETA;
+
   void setEmitterVelocity();
   void addSource();
 
@@ -72,8 +82,6 @@ private:
   void update_cpu();
 
   void applyOccupiedVoxels();
-
-  double &m_time;
 
   // external force
   double fx[SIZE], fy[SIZE], fz[SIZE];

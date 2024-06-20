@@ -34,6 +34,8 @@ bool simulator_rest_trigger = false;
 std::array<double, SIZE> density;
 double transparency[SIZE];
 
+float g_env_temp = 25.0;
+
 float smoke_factor = 10.f;
 int enable_light_tracing = 1;
 
@@ -558,6 +560,7 @@ void ControlPanel()
 	ImGui::Begin("Control panel");
 	ImGui::SliderFloat("Light intensity", &point_light_intensity_multiplier, 0.0f, 100000.0f);
 	ImGui::SliderFloat("Smoke factor", &smoke_factor, 0.0f, 100.0f);
+	ImGui::SliderFloat("Env temperature", &g_env_temp, 0.0f, 1000.0f);
 
 	if (ImGui::Button("Case 0: Empty"))
 	{
@@ -597,14 +600,12 @@ void ControlPanel()
 		cameraPosition = vec3(5.f, 5.0f, 30.f);
 		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
 	}
-	
 
 	// reset button, to reset simulator
 	if (ImGui::Button("Reset"))
 	{
 		simulator_rest_trigger = true;
 	}
-
 
 	ImGui::End();
 }
@@ -647,7 +648,8 @@ int main(int argc, char *argv[])
 		while (!stopRendering)
 		{	
 			if (simulator_rest_trigger)
-			{
+			{	
+				simulator->setEnvTemperature(g_env_temp);
 				simulator->reset();
 				simulator_rest_trigger = false;
 			}
