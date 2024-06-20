@@ -57,7 +57,7 @@ namespace MCUDA
 
     __global__ void computeVorticityForceKernel(
         double *omg_x, double *omg_y, double *omg_z,
-        double *f_x, double *f_y, double *f_z,
+        double *f_x, double *f_y, double *f_z, double vort_eps,
         int workSize, int Nx, int Ny, int Nz)
     {
 
@@ -68,7 +68,7 @@ namespace MCUDA
                 i, j, k,
                 Nx, Ny, Nz,
                 omg_x, omg_y, omg_z,
-                f_x, f_y, f_z);
+                f_x, f_y, f_z, vort_eps);
         }
     }
 
@@ -290,7 +290,7 @@ namespace MCUDA
         cudaDeviceSynchronize();
     }
 
-    void CudaSimulator::computeVorticity()
+    void CudaSimulator::computeVorticity(double vort_eps)
     {
         // compute average velocity
         // DEBUG_PRINT("Launching kernel");
@@ -310,7 +310,7 @@ namespace MCUDA
         // compute vorticity force
         computeVorticityForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             omg_x, omg_y, omg_z,
-            f_x, f_y, f_z,
+            f_x, f_y, f_z, vort_eps,
             workSize_, Nx_, Ny_, Nz_);
         cudaDeviceSynchronize();
     }

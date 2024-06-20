@@ -37,7 +37,7 @@ void Simulator::update_gpu()
     T_END
 
     T_START("gpu computeVorticity")
-    CudaSim.computeVorticity();
+    CudaSim.computeVorticity(vort_eps_);
     T_END
 
     T_START("gpu applyExternalForce")
@@ -88,7 +88,7 @@ void Simulator::update_cpu()
     T_END
 
     T_START("cpu computeVorticity")
-    CPUSim.computeVorticity();
+    CPUSim.computeVorticity(vort_eps_);
     T_END
 
     T_START("cpu applyExternalForce")

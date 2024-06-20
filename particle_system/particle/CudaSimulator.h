@@ -88,7 +88,7 @@ namespace MCUDA
             double beta, 
             double t_ambient);
 
-        void computeVorticity();
+        void computeVorticity(double vort_eps);
 
         void applyExternalForce();
 

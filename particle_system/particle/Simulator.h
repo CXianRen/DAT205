@@ -58,7 +58,12 @@ public:
   {
     beta_ = beta;
   }
-  
+
+  void setVortEps(double vort_eps)
+  {
+    vort_eps_ = vort_eps;
+  }
+
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
@@ -84,6 +89,7 @@ private:
   double envTemp_ = T_AMBIENT;
   double alpha_ = ALPHA;
   double beta_ = BETA;
+  double vort_eps_ = VORT_EPS;
 
   void setEmitterVelocity();
   void addSource();

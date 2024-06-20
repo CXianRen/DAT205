@@ -20,7 +20,7 @@ namespace CPUSIM
         }
     }
 
-    void CpuSimulator::computeVorticity()
+    void CpuSimulator::computeVorticity( double vort_eps)
     {   
         #pragma omp parallel for
         FOR_EACH_CELL
@@ -50,7 +50,7 @@ namespace CPUSIM
                 i, j, k,
                 Nx_, Ny_, Nz_,
                 omg_x, omg_y, omg_z,
-                f_x, f_y, f_z);
+                f_x, f_y, f_z, vort_eps);
         }
     }
 

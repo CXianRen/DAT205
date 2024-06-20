@@ -35,8 +35,9 @@ std::array<double, SIZE> density;
 double transparency[SIZE];
 
 float g_env_temp = 25.0;
-float g_alpha = 0.1;
-float g_beta = 10;
+float g_alpha = ALPHA;
+float g_beta = BETA;
+float g_vort_eps = VORT_EPS ;
 
 float smoke_factor = 10.f;
 int enable_light_tracing = 1;
@@ -565,6 +566,7 @@ void ControlPanel()
 	ImGui::SliderFloat("Env temperature", &g_env_temp, 0.0f, 1000.0f);
 	ImGui::SliderFloat("Alpha", &g_alpha, 0, 10);
 	ImGui::SliderFloat("Beta", &g_beta, 0, 10);
+	ImGui::SliderFloat("Vort Eps", &g_vort_eps, 0, 100);
 
 	if (ImGui::Button("Case 0: Empty"))
 	{
@@ -653,6 +655,7 @@ int main(int argc, char *argv[])
 		{	
 			simulator->setAlpha(g_alpha);
 			simulator->setBeta(g_beta);
+			simulator->setVortEps(g_vort_eps);
 			if (simulator_rest_trigger)
 			{	
 				simulator->setEnvTemperature(g_env_temp);

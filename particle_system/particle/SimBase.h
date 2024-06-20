@@ -211,7 +211,7 @@ PREFIX inline void computeVorticityBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *omg_x, T *omg_y, T *omg_z,
-    T *fx, T *fy, T *fz)
+    T *fx, T *fy, T *fz, T vort_eps)
 {
 
     // ignore boundary cells
@@ -257,9 +257,9 @@ PREFIX inline void computeVorticityBody(
         ni, nj, nk,
         f1, f2, f3);
 
-    fx[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f1;
-    fy[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f2;
-    fz[ACC3D(i, j, k, Ny, Nx)] += VORT_EPS * VOXEL_SIZE * f3;
+    fx[ACC3D(i, j, k, Ny, Nx)] += vort_eps * VOXEL_SIZE * f1;
+    fy[ACC3D(i, j, k, Ny, Nx)] += vort_eps * VOXEL_SIZE * f2;
+    fz[ACC3D(i, j, k, Ny, Nx)] += vort_eps * VOXEL_SIZE * f3;
 }
 
 template <typename T>
