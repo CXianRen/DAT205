@@ -35,6 +35,7 @@ namespace CPUSIM
         int Nx_;
         int Ny_;
         int Nz_;
+        double dt_;
 
         // data
         double *u;
@@ -73,6 +74,12 @@ namespace CPUSIM
         Eigen::VectorXd x;
 
     public:
+
+        void setDt(double dt)
+        {
+            dt_ = dt;
+        }
+
         EigenSolver solver_;
         void computeExternalForce(
             double alpha, double beta, double t_ambient);

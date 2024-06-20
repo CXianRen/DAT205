@@ -14,6 +14,7 @@ Simulator::Simulator(double &time)
     CPUSim.init();
     CudaSim.init();
 
+    setDt(DT);
     // initial environment temperature
     FOR_EACH_CELL
     {
@@ -125,7 +126,7 @@ void Simulator::update()
         setEmitterVelocity();
     }
 
-    m_time += DT;
+    m_time += dt_;
 
     clear_measurement();
 
@@ -251,13 +252,12 @@ void Simulator::applyOccupiedVoxels()
             density,
             u, v, w,
             temperature);
-        
+
         // decay temperature, speed
         temperature[ACC3D(i, j, k, Ny, Nx)] *= decay_factor_;
         u[ACC3D(i, j, k, Ny, Nx)] *= decay_factor_;
         v[ACC3D(i, j, k, Ny, Nx)] *= decay_factor_;
         w[ACC3D(i, j, k, Ny, Nx)] *= decay_factor_;
         density[ACC3D(i, j, k, Ny, Nx)] *= decay_factor_;
-
     }
 }

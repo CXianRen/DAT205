@@ -68,7 +68,14 @@ public:
   {
     decay_factor_ = decay_factor;
   }
-  
+
+  void setDt(double dt)
+  {
+    dt_ = dt;
+    CudaSim.setDt(dt);
+    CPUSim.setDt(dt);
+  }
+
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
@@ -91,6 +98,7 @@ public:
 
 private:
   double &m_time;
+  double dt_ = DT;
   double envTemp_ = T_AMBIENT;
   double alpha_ = ALPHA;
   double beta_ = BETA;

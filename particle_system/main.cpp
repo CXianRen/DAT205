@@ -39,6 +39,7 @@ float g_alpha = ALPHA;
 float g_beta = BETA;
 float g_vort_eps = VORT_EPS;
 float g_decay_factor = 0.99;
+float g_dt = DT;
 
 float smoke_factor = 10.f;
 int enable_light_tracing = 1;
@@ -565,10 +566,11 @@ void ControlPanel()
 	ImGui::SliderFloat("Light intensity", &point_light_intensity_multiplier, 0.0f, 100000.0f);
 	ImGui::SliderFloat("Smoke factor", &smoke_factor, 0.0f, 100.0f);
 	ImGui::SliderFloat("Env temperature", &g_env_temp, 0.0f, 1000.0f);
-	ImGui::SliderFloat("Alpha", &g_alpha, 0, 10);
+	ImGui::SliderFloat("Alpha", &g_alpha, 0, 100);
 	ImGui::SliderFloat("Beta", &g_beta, 0, 10);
 	ImGui::SliderFloat("Vort Eps", &g_vort_eps, 0, 100);
 	ImGui::SliderFloat("Decay Factor", &g_decay_factor, 0.9, 1);
+	ImGui::SliderFloat("Dt", &g_dt, 0.001, 0.05);
 
 	if (ImGui::Button("Case 0: Empty"))
 	{
@@ -659,6 +661,7 @@ int main(int argc, char *argv[])
 			simulator->setBeta(g_beta);
 			simulator->setVortEps(g_vort_eps);
 			simulator->setDecayFactor(g_decay_factor);
+			simulator->setDt(g_dt);
 			
 			if (simulator_rest_trigger)
 			{	

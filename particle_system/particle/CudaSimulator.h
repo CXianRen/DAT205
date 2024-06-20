@@ -76,16 +76,16 @@ namespace MCUDA
         void getPressureField(
             double *pressure);
 
-        double* getPressure(){return pressure;}
+        double *getPressure() { return pressure; }
 
         void getRhsField(
             double *rhs);
 
-        double* getRhs(){return rhs_;}
-    
+        double *getRhs() { return rhs_; }
+
         void computeExternalForce(
-            double alpha, 
-            double beta, 
+            double alpha,
+            double beta,
             double t_ambient);
 
         void computeVorticity(double vort_eps);
@@ -100,9 +100,16 @@ namespace MCUDA
 
         void advectScalarField();
 
+        void setDt(double dt)
+        {
+            dt_ = dt;
+        }
+
     private:
         void copyDataToDevice(double *src, double *dst, int size);
         void copyDataToHost(double *src, double *dst, int size);
+
+        double dt_;
 
         // data
         double *u;
@@ -138,9 +145,9 @@ namespace MCUDA
 
         // presure solver
         double *rhs_;
-        public:
+
+    public:
         CudaSolver solver_;
-        
     };
 
 } // namespace MCUDA

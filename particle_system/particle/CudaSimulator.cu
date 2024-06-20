@@ -75,7 +75,7 @@ namespace MCUDA
     __global__ void applyExternalForceKernel(
         double *u, double *v, double *w,
         double *f_x, double *f_y, double *f_z,
-        int workSize, int Nx, int Ny, int Nz)
+        int workSize, int Nx, int Ny, int Nz, double dt)
     {
         CUDA_FOR_EACH
         if (idx < workSize)
@@ -84,14 +84,14 @@ namespace MCUDA
                 i, j, k,
                 Nx, Ny, Nz,
                 f_x, f_y, f_z,
-                u, v, w);
+                u, v, w, dt);
         }
     }
 
     __global__ void advectVelocityFieldKernel(
         double *u, double *v, double *w,
         double *u_0, double *v_0, double *w_0,
-        int workSize, int Nx, int Ny, int Nz)
+        int workSize, int Nx, int Ny, int Nz, double dt)
     {
         CUDA_FOR_EACH
         if (idx < workSize)
@@ -100,14 +100,14 @@ namespace MCUDA
                 u, v, w,
                 u_0, v_0, w_0,
                 i, j, k,
-                Nx, Ny, Nz);
+                Nx, Ny, Nz, dt);
         }
     }
 
     __global__ void advectScalarFieldKernel(
         double *field, double *field_0,
         double *u_0, double *v_0, double *w_0,
-        int workSize, int Nx, int Ny, int Nz)
+        int workSize, int Nx, int Ny, int Nz, double dt)
     {
         CUDA_FOR_EACH
         if (idx < workSize)
@@ -116,7 +116,7 @@ namespace MCUDA
                 i, j, k,
                 Nx, Ny, Nz,
                 field, field_0,
-                u_0, v_0, w_0);
+                u_0, v_0, w_0, dt);
         }
     }
 
@@ -320,7 +320,7 @@ namespace MCUDA
         applyExternalForceKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
             f_x, f_y, f_z,
-            workSize_, Nx_, Ny_, Nz_);
+            workSize_, Nx_, Ny_, Nz_, dt_);
         cudaError_t error = cudaGetLastError();
         if (error != cudaSuccess)
         {
@@ -339,7 +339,7 @@ namespace MCUDA
         advectVelocityFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             u, v, w,
             u_0, v_0, w_0,
-            workSize_, Nx_, Ny_, Nz_);
+            workSize_, Nx_, Ny_, Nz_, dt_);
         // check error
         cudaError_t error = cudaGetLastError();
         if (error != cudaSuccess)
@@ -430,14 +430,14 @@ namespace MCUDA
         advectScalarFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             density, density_0,
             u_0, v_0, w_0,
-            workSize_, Nx_, Ny_, Nz_);
+            workSize_, Nx_, Ny_, Nz_, dt_);
         cudaDeviceSynchronize();
 
         // advect temperature field
         advectScalarFieldKernel<<<blocksPerGrid_, threadsPerBlock_>>>(
             temperature, temperature_0,
             u_0, v_0, w_0,
-            workSize_, Nx_, Ny_, Nz_);
+            workSize_, Nx_, Ny_, Nz_, dt_);
         cudaDeviceSynchronize();
     }
 

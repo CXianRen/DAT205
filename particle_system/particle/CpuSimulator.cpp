@@ -63,7 +63,7 @@ namespace CPUSIM
                 i, j, k,
                 Nx_, Ny_, Nz_,
                 f_x, f_y, f_z,
-                u, v, w);
+                u, v, w, dt_);
         }
     }
 
@@ -115,7 +115,7 @@ namespace CPUSIM
                 u, v, w,
                 u_0, v_0, w_0,
                 i, j, k,
-                Nx_, Ny_, Nz_);
+                Nx_, Ny_, Nz_, dt_);
         }
     }
 
@@ -136,13 +136,13 @@ namespace CPUSIM
                 i, j, k,
                 Nx_, Ny_, Nz_,
                 density, density_0,
-                u_0, v_0, w_0);
+                u_0, v_0, w_0, dt_);
 
             advectScalarBody<double>(
                 i, j, k,
                 Nx, Ny, Nz,
                 temperature, temperature_0,
-                u_0, v_0, w_0);
+                u_0, v_0, w_0, dt_);
         }
     }
 

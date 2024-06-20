@@ -164,19 +164,19 @@ PREFIX inline void applyExternalForceBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *f_x, T *f_y, T *f_z,
-    T *u, T *v, T *w)
+    T *u, T *v, T *w, T dt = DT)
 {
     if (i < Nx - 1)
     {
-        u[ACC3D(i + 1, j, k, Ny, Nx)] += DT * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
+        u[ACC3D(i + 1, j, k, Ny, Nx)] += dt * (f_x[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i + 1, j, k, Ny, Nx)]) * 0.5;
     }
     if (j < Ny - 1)
     {
-        v[ACC3D(i, j + 1, k, Ny, Nx)] += DT * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
+        v[ACC3D(i, j + 1, k, Ny, Nx)] += dt * (f_y[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j + 1, k, Ny, Nx)]) * 0.5;
     }
     if (k < Nz - 1)
     {
-        w[ACC3D(i, j, k + 1, Ny, Nx)] += DT * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
+        w[ACC3D(i, j, k + 1, Ny, Nx)] += dt * (f_z[ACC3D(i, j, k, Ny, Nx)] + f_x[ACC3D(i, j, k + 1, Ny, Nx)]) * 0.5;
     }
 }
 
@@ -188,21 +188,24 @@ PREFIX inline void applyPressureBody(
     T *u, T *v, T *w)
 {
     // compute gradient of pressure
-    // @todo optimize this (VOXEL_SIZE / DT) * DT
+    // optimize (VOXEL_SIZE / DT) * DT
     if (i < Nx - 1)
     {
         u[ACC3D(i + 1, j, k, Ny, Nx)] -=
-            (VOXEL_SIZE / DT) * DT * (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            // (VOXEL_SIZE / DT) * DT *
+            (pressure[ACC3D(i + 1, j, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
     if (j < Ny - 1)
     {
         v[ACC3D(i, j + 1, k, Ny, Nx)] -=
-            (VOXEL_SIZE / DT) * DT * (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            // (VOXEL_SIZE / DT) * DT *
+            (pressure[ACC3D(i, j + 1, k, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
     if (k < Nz - 1)
     {
         w[ACC3D(i, j, k + 1, Ny, Nx)] -=
-            (VOXEL_SIZE / DT)* DT * (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
+            // (VOXEL_SIZE / DT) * DT *
+            (pressure[ACC3D(i, j, k + 1, Ny, Nx)] - pressure[ACC3D(i, j, k, Ny, Nx)]) / VOXEL_SIZE;
     }
 }
 
@@ -267,7 +270,7 @@ PREFIX inline void advectVelocityBody(
     T *u, T *v, T *w,
     T *u_0, T *v_0, T *w_0,
     int i, int j, int k,
-    int Nx, int Ny, int Nz)
+    int Nx, int Ny, int Nz, T dt = DT)
 {
     double half_dx = 0.5 * VOXEL_SIZE;
 
@@ -318,17 +321,17 @@ PREFIX inline void advectVelocityBody(
         w_0,
         Nx, Ny, Nz);
 
-    pos_u[0] -= DT * vel_u[0];
-    pos_u[1] -= DT * vel_u[1];
-    pos_u[2] -= DT * vel_u[2];
+    pos_u[0] -= dt * vel_u[0];
+    pos_u[1] -= dt * vel_u[1];
+    pos_u[2] -= dt * vel_u[2];
 
-    pos_v[0] -= DT * vel_v[0];
-    pos_v[1] -= DT * vel_v[1];
-    pos_v[2] -= DT * vel_v[2];
+    pos_v[0] -= dt * vel_v[0];
+    pos_v[1] -= dt * vel_v[1];
+    pos_v[2] -= dt * vel_v[2];
 
-    pos_w[0] -= DT * vel_w[0];
-    pos_w[1] -= DT * vel_w[1];
-    pos_w[2] -= DT * vel_w[2];
+    pos_w[0] -= dt * vel_w[0];
+    pos_w[1] -= dt * vel_w[1];
+    pos_w[2] -= dt * vel_w[2];
 
     u[ACC3D(i, j, k, Ny, Nx)] = getVelocityX<double>(
         pos_u,
@@ -369,7 +372,7 @@ PREFIX inline void advectScalarBody(
     int i, int j, int k,
     int Nx, int Ny, int Nz,
     T *field, T *field_0,
-    T *u_0, T *v_0, T *w_0)
+    T *u_0, T *v_0, T *w_0, T dt = DT)
 {
     T pos_cell[3];
     getCenter<double>(i, j, k, pos_cell);
@@ -383,9 +386,9 @@ PREFIX inline void advectScalarBody(
         w_0,
         Nx, Ny, Nz);
 
-    pos_cell[0] -= vel_cell[0] * DT;
-    pos_cell[1] -= vel_cell[1] * DT;
-    pos_cell[2] -= vel_cell[2] * DT;
+    pos_cell[0] -= vel_cell[0] * dt;
+    pos_cell[1] -= vel_cell[1] * dt;
+    pos_cell[2] -= vel_cell[2] * dt;
 
     field[ACC3D(i, j, k, Ny, Nx)] = getScalar<double>(
         pos_cell,
