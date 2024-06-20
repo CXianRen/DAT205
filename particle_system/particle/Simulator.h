@@ -64,6 +64,11 @@ public:
     vort_eps_ = vort_eps;
   }
 
+  void setDecayFactor(double decay_factor)
+  {
+    decay_factor_ = decay_factor;
+  }
+  
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
@@ -90,6 +95,7 @@ private:
   double alpha_ = ALPHA;
   double beta_ = BETA;
   double vort_eps_ = VORT_EPS;
+  double decay_factor_ = 0.99;
 
   void setEmitterVelocity();
   void addSource();
