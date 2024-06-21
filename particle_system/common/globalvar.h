@@ -20,13 +20,51 @@ using namespace glm;
 #include "hdr.h"
 #include "fbo.h"
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // Shader programs
 ///////////////////////////////////////////////////////////////////////////////
-extern GLuint shaderProgram;	   // Shader for rendering the final image
+extern GLuint shaderProgram;       // Shader for rendering the final image
 extern GLuint simpleShaderProgram; // Shader used to draw the shadow map
 extern GLuint backgroundProgram;
-extern GLuint debugLineProgram;    // Shader used to draw debug lines
-extern GLuint smokeProgram;       // Shader used to draw smoke
+extern GLuint debugLineProgram; // Shader used to draw debug lines
+extern GLuint smokeProgram;     // Shader used to draw smoke
+
+///////////////////////////////////////////////////////////////////////////////
+// Camera parameters.
+///////////////////////////////////////////////////////////////////////////////
+extern glm::vec3 cameraPosition;
+extern glm::vec3 cameraDirection;
+extern float cameraSpeed;
+extern const vec3 worldUp;
+
+// light 
+extern float g_point_light_intensity;
+extern glm::vec3 g_light_position;
+extern glm::vec3 g_point_light_color;
+
+// time setting 
+extern float currentTime;
+extern float previousTime;
+extern float deltaTime;
+
+// case id
+extern int g_case_id;
+
+// simulator parameters
+extern std::string simulator_info;
+
+extern float g_env_temp;
+extern float g_alpha;
+extern float g_beta;
+extern float g_vort_eps;
+extern float g_decay_factor;
+extern float g_dt;
+
+#include <mutex>
+extern std::mutex g_sim_lock;
+extern bool g_simulator_rest;
+
+// smoke render parameters
+extern float g_smoke_factor;
+
 #endif // __M_GLOBALVAR_H__

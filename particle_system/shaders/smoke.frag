@@ -10,7 +10,6 @@ uniform vec3 worldSpaceLightPosition;
 uniform float pointLightIntensity;
 uniform vec3 worldSpaceCameraPosition;
 uniform float factor;
-uniform int enable_light_tracing;
 
 layout(binding = 0) uniform sampler3D densityTex;
 layout(binding = 1) uniform sampler3D occupiedTex;

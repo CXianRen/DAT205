@@ -30,7 +30,7 @@ uniform float environment_multiplier;
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
 uniform vec3 point_light_color = vec3(1.0, 1.0, 1.0);
-uniform float point_light_intensity_multiplier = 50.0;
+uniform float pointLightIntensity = 50.0;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -66,7 +66,7 @@ vec3 computeDirectIllumiunation(vec3 wo, vec3 n)
 		return vec3(0.0);
 	}
 	float d = length(viewSpaceLightPosition - viewSpacePosition);
-	vec3 Li = point_light_color * point_light_intensity_multiplier / (d * d);
+	vec3 Li = point_light_color * pointLightIntensity / (d * d);
 	vec3 diffuse = material_color * wi_dot_n * Li * 1.0/PI;	
 
     // brdf

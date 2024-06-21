@@ -1,8 +1,3 @@
-
-#ifdef _WIN32
-extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
-#endif
-
 #include "common/debug.h"
 #include "common/globalvar.h"
 #include "common/mperf.h"
@@ -15,9 +10,9 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <thread>
 #include <mutex>
 
-double ttime = 0.0;
+#include "common/gui.h"
 
-std::string simulator_info;
+double ttime = 0.0;
 
 std::array<bool, SIZE> occupied_voxels_sphere = generate_vexelized_sphere((int)(10));
 std::array<bool, SIZE> occupied_voxels_cube = generate_vexelized_cube((int)(12));
@@ -26,45 +21,16 @@ std::array<bool, SIZE> empty_voxels;
 float tree_max_length = 0.0f;
 std::array<bool, SIZE> occupied_voxels_tree;
 
-int case_id = 0;
-
-// lock for simulator
-std::mutex simLock;
-bool simulator_rest_trigger = false;
 std::array<double, SIZE> density;
 double transparency[SIZE];
-
-float g_env_temp = 25.0;
-float g_alpha = ALPHA;
-float g_beta = BETA;
-float g_vort_eps = VORT_EPS;
-float g_decay_factor = 0.99;
-float g_dt = DT;
-
-float smoke_factor = 10.f;
-int enable_light_tracing = 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
 ///////////////////////////////////////////////////////////////////////////////
 SDL_Window *g_window = nullptr;
-float currentTime = 0.0f;
-float previousTime = 0.0f;
-float deltaTime = 0.0f;
 int windowWidth, windowHeight;
 std::vector<FboInfo> FBOList;
 
-// Mouse input
-ivec2 g_prevMouseCoords = {-1, -1};
-bool g_isMouseDragging = false;
-
-///////////////////////////////////////////////////////////////////////////////
-// Camera parameters.
-///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(45.0f, 45.0f, 45.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-float cameraSpeed = 10.f;
-vec3 worldUp(0.0f, 1.0f, 0.0f);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
@@ -74,14 +40,6 @@ GLuint environmentMap;
 GLuint irradianceMap;
 GLuint reflectionMap;
 const std::string envmap_base_name = "001";
-
-///////////////////////////////////////////////////////////////////////////////
-// Light source
-///////////////////////////////////////////////////////////////////////////////
-vec3 lightPosition = vec4(80.0f, 25.0f, 25.0f, 1.0f);
-vec3 point_light_color = vec3(1.f, 1.f, 1.f);
-
-float point_light_intensity_multiplier = 15000.0f;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Models
@@ -275,13 +233,13 @@ void drawScene(GLuint currentShaderProgram,
 {
 	glUseProgram(currentShaderProgram);
 	// Light source
-	vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1.0f);
-	labhelper::setUniformSlow(currentShaderProgram, "point_light_color", point_light_color);
-	labhelper::setUniformSlow(currentShaderProgram, "point_light_intensity_multiplier",
-							  point_light_intensity_multiplier);
+	vec4 viewSpaceLightPosition = viewMatrix * vec4(g_light_position, 1.0f);
+	labhelper::setUniformSlow(currentShaderProgram, "g_point_light_color", g_point_light_color);
+	labhelper::setUniformSlow(currentShaderProgram, "pointLightIntensity",
+							  g_point_light_intensity);
 	labhelper::setUniformSlow(currentShaderProgram, "viewSpaceLightPosition", vec3(viewSpaceLightPosition));
 	labhelper::setUniformSlow(currentShaderProgram, "viewSpaceLightDir",
-							  normalize(vec3(viewMatrix * vec4(-lightPosition, 0.0f))));
+							  normalize(vec3(viewMatrix * vec4(-g_light_position, 0.0f))));
 
 	// Environment
 	labhelper::setUniformSlow(currentShaderProgram, "environment_multiplier", environment_multiplier);
@@ -332,7 +290,7 @@ void drawScene(GLuint currentShaderProgram,
 	// debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
 	// debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
 
-	switch (case_id)
+	switch (g_case_id)
 	{
 	case 0:
 		break;
@@ -352,10 +310,10 @@ void drawScene(GLuint currentShaderProgram,
 
 	{
 		static int current_case = -1;
-		if (current_case != case_id)
+		if (current_case != g_case_id)
 		{
-			current_case = case_id;
-			switch (case_id)
+			current_case = g_case_id;
+			switch (g_case_id)
 			{
 			case 0:
 				mmRender->set_occupied_texture(empty_voxels);
@@ -382,19 +340,17 @@ void drawScene(GLuint currentShaderProgram,
 		labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
 								  projectionMatrix * viewMatrix * testModelMatrix);
 		labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
-		labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", lightPosition);
-		labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", point_light_intensity_multiplier);
+		labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", g_light_position);
+		labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", g_point_light_intensity);
 		labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
-		labhelper::setUniformSlow(smokeProgram, "factor", smoke_factor);
-		labhelper::setUniformSlow(smokeProgram, "enable_light_tracing", enable_light_tracing);
-
+		labhelper::setUniformSlow(smokeProgram, "factor", g_smoke_factor);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		// mmRender->render(generateSphereDensity());
 		// mmRender->render(generateCubeDensity());
 		// try to lock the simulator
 		{
-			std::lock_guard<std::mutex> lock(simLock);
+			std::lock_guard<std::mutex> lock(g_sim_lock);
 			mmRender->render(density, transparency);
 		}
 
@@ -445,7 +401,7 @@ void display(void)
 	mat4 projMatrix = perspective(radians(40.0f), float(windowWidth) / float(windowHeight), 10.f, 1000.0f);
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
-	mat4 lightViewMatrix = lookAt(lightPosition, vec3(0.0f), worldUp);
+	mat4 lightViewMatrix = lookAt(g_light_position, vec3(0.0f), worldUp);
 	static mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
 
 	///////////////////////////////////////////////////////////////////////////
@@ -467,174 +423,6 @@ void display(void)
 		labhelper::perf::Scope s("Scene");
 		drawScene(shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix);
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-/// This function is used to update the scene according to user input
-///////////////////////////////////////////////////////////////////////////////
-bool handleEvents(void)
-{
-	// check events (keyboard among other)
-	SDL_Event event;
-	bool quitEvent = false;
-	while (SDL_PollEvent(&event))
-	{
-		labhelper::processEvent(&event);
-
-		if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
-		{
-			quitEvent = true;
-		}
-		if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_g)
-		{
-			if (labhelper::isGUIvisible())
-			{
-				labhelper::hideGUI();
-			}
-			else
-			{
-				labhelper::showGUI();
-			}
-		}
-		if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && (!labhelper::isGUIvisible() || !ImGui::GetIO().WantCaptureMouse))
-		{
-			g_isMouseDragging = true;
-			int x;
-			int y;
-			SDL_GetMouseState(&x, &y);
-			g_prevMouseCoords.x = x;
-			g_prevMouseCoords.y = y;
-		}
-
-		if (!(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)))
-		{
-			g_isMouseDragging = false;
-		}
-
-		if (event.type == SDL_MOUSEMOTION && g_isMouseDragging)
-		{
-			// More info at https://wiki.libsdl.org/SDL_MouseMotionEvent
-			int delta_x = event.motion.x - g_prevMouseCoords.x;
-			int delta_y = event.motion.y - g_prevMouseCoords.y;
-			float rotationSpeed = 0.1f;
-			mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
-			mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
-								normalize(cross(cameraDirection, worldUp)));
-			cameraDirection = vec3(pitch * yaw * vec4(cameraDirection, 0.0f));
-			g_prevMouseCoords.x = event.motion.x;
-			g_prevMouseCoords.y = event.motion.y;
-		}
-	}
-
-	// check keyboard state (which keys are still pressed)
-	const uint8_t *state = SDL_GetKeyboardState(nullptr);
-	vec3 cameraRight = cross(cameraDirection, worldUp);
-
-	if (state[SDL_SCANCODE_W])
-	{
-		cameraPosition += cameraSpeed * deltaTime * cameraDirection;
-	}
-	if (state[SDL_SCANCODE_S])
-	{
-		cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
-	}
-	if (state[SDL_SCANCODE_A])
-	{
-		cameraPosition -= cameraSpeed * deltaTime * cameraRight;
-	}
-	if (state[SDL_SCANCODE_D])
-	{
-		cameraPosition += cameraSpeed * deltaTime * cameraRight;
-	}
-	if (state[SDL_SCANCODE_Q])
-	{
-		cameraPosition -= cameraSpeed * deltaTime * worldUp;
-	}
-	if (state[SDL_SCANCODE_E])
-	{
-		cameraPosition += cameraSpeed * deltaTime * worldUp;
-	}
-	return quitEvent;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-/// This function is to hold the general GUI logic
-///////////////////////////////////////////////////////////////////////////////
-void ControlPanel()
-{
-	ImGui::Begin("Control panel");
-	ImGui::SliderFloat("Light intensity", &point_light_intensity_multiplier, 0.0f, 100000.0f);
-	ImGui::SliderFloat("Smoke factor", &smoke_factor, 0.0f, 100.0f);
-	ImGui::SliderFloat("Env temperature", &g_env_temp, 0.0f, 1000.0f);
-	ImGui::SliderFloat("Alpha", &g_alpha, 0, 100);
-	ImGui::SliderFloat("Beta", &g_beta, 0, 10);
-	ImGui::SliderFloat("Vort Eps", &g_vort_eps, 0, 100);
-	ImGui::SliderFloat("Decay Factor", &g_decay_factor, 0.9, 1);
-	ImGui::SliderFloat("Dt", &g_dt, 0.001, 0.05);
-
-	if (ImGui::Button("Case 0: Empty"))
-	{
-		case_id = 0;
-	}
-
-	if (ImGui::Button("Case 1: Sphere"))
-	{
-		case_id = 1;
-	}
-
-	if (ImGui::Button("Case 2: Cube"))
-	{
-		case_id = 2;
-	}
-
-	if (ImGui::Button("Case 3: Tree"))
-	{
-		case_id = 3;
-	}
-
-	// set camera position
-	if (ImGui::Button("View Front"))
-	{
-		cameraPosition = vec3(30.f, 5.0f, 5.f);
-		cameraDirection = normalize(-vec3(1.f, 0.f, 0.f));
-	}
-	// set camera position
-	if (ImGui::Button("View Top"))
-	{
-		cameraPosition = vec3(5.f, 30.f, 5.f);
-		cameraDirection = normalize(-vec3(0.0f, 1.f, 0.1f));
-	}
-	// set camera position
-	if (ImGui::Button("View Side"))
-	{
-		cameraPosition = vec3(5.f, 5.0f, 30.f);
-		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
-	}
-
-	// reset button, to reset simulator
-	if (ImGui::Button("Reset"))
-	{
-		simulator_rest_trigger = true;
-	}
-
-	ImGui::End();
-}
-
-void gui()
-{
-	// ----------------- Set variables --------------------------
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-				ImGui::GetIO().Framerate);
-
-	{
-		std::lock_guard<std::mutex> lock(simLock);
-		ImGui::Text("Simulator Info: %s", simulator_info.c_str());
-	}
-
-	// ----------------------------------------------------------
-	labhelper::perf::drawEventsWindow();
-
-	ControlPanel();
 }
 
 int main(int argc, char *argv[])
@@ -663,17 +451,17 @@ int main(int argc, char *argv[])
 			simulator->setDecayFactor(g_decay_factor);
 			simulator->setDt(g_dt);
 			
-			if (simulator_rest_trigger)
+			if (g_simulator_rest)
 			{	
 				simulator->setEnvTemperature(g_env_temp);
 				simulator->reset();
-				simulator_rest_trigger = false;
+				g_simulator_rest = false;
 			}
 
 			static int current_case = -1;
-			if(current_case != case_id){
-				current_case = case_id;
-				switch (case_id)
+			if(current_case != g_case_id){
+				current_case = g_case_id;
+				switch (g_case_id)
 				{
 				case 0:
 					simulator->setOccupiedVoxels(empty_voxels);
@@ -703,7 +491,7 @@ int main(int argc, char *argv[])
 			}
 
 			{
-				std::lock_guard<std::mutex> lock(simLock);
+				std::lock_guard<std::mutex> lock(g_sim_lock);
 				// copy the density
 				std::copy(
 					simulator->getDensity(), 
@@ -715,8 +503,8 @@ int main(int argc, char *argv[])
 				cudaRender->genTransparencyMap(
 					density.data(),
 					transparency,
-					lightPosition.x, lightPosition.y, lightPosition.z,
-					10.0, smoke_factor
+					g_light_position.x, g_light_position.y, g_light_position.z,
+					10.0, g_smoke_factor
 				);
 				T_END;
 
