@@ -2,15 +2,12 @@
 #include <vector>
 #include <memory>
 
-#include <Eigen/Core>
-#include <Eigen/Sparse>
-
+#include "mperf.h"
 #include "mmath.h"
-
 #include "CudaSimulator.h"
 #include "CpuSimulator.h"
 
-#include "mperf.h"
+
 
 class Simulator
 {

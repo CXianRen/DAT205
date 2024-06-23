@@ -8,15 +8,15 @@ GLuint smokeProgram;
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(45.0f, 45.0f, 45.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+glm::vec3 cameraPosition(45.0f, 45.0f, 45.0f);
+glm::vec3 cameraDirection = glm::normalize(glm::vec3(0.0f) - cameraPosition);
 float cameraSpeed = 10.f;
-const vec3 worldUp(0.0f, 1.0f, 0.0f);
+const glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
 
 // light
 float g_point_light_intensity = 15000;
-glm::vec3 g_light_position = vec4(80.0f, 25.0f, 25.0f, 1.0f);
-glm::vec3 g_point_light_color = vec3(1.f, 1.f, 1.f);
+glm::vec3 g_light_position = glm::vec4(80.0f, 25.0f, 25.0f, 1.0f);
+glm::vec3 g_point_light_color = glm::vec3(1.f, 1.f, 1.f);
 
 // time setting 
 float currentTime = 0.0f;

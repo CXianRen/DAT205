@@ -38,20 +38,20 @@ void ControlPanel()
 	// set camera position
 	if (ImGui::Button("View Front"))
 	{
-		cameraPosition = vec3(30.f, 5.0f, 5.f);
-		cameraDirection = normalize(-vec3(1.f, 0.f, 0.f));
+		cameraPosition = glm::vec3(30.f, 5.0f, 5.f);
+		cameraDirection = normalize(-glm::vec3(1.f, 0.f, 0.f));
 	}
 	// set camera position
 	if (ImGui::Button("View Top"))
 	{
-		cameraPosition = vec3(5.f, 30.f, 5.f);
-		cameraDirection = normalize(-vec3(0.0f, 1.f, 0.1f));
+		cameraPosition = glm::vec3(5.f, 30.f, 5.f);
+		cameraDirection = normalize(-glm::vec3(0.0f, 1.f, 0.1f));
 	}
 	// set camera position
 	if (ImGui::Button("View Side"))
 	{
-		cameraPosition = vec3(5.f, 5.0f, 30.f);
-		cameraDirection = normalize(-vec3(0.0f, 0.f, 1.f));
+		cameraPosition = glm::vec3(5.f, 5.0f, 30.f);
+		cameraDirection = normalize(-glm::vec3(0.0f, 0.f, 1.f));
 	}
 
 	// reset button, to reset simulator
@@ -80,7 +80,7 @@ void gui()
 }
 
 // Mouse input
-ivec2 g_prevMouseCoords = {-1, -1};
+glm::ivec2 g_prevMouseCoords = {-1, -1};
 bool g_isMouseDragging = false;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,10 +131,10 @@ bool handleEvents(void)
 			int delta_x = event.motion.x - g_prevMouseCoords.x;
 			int delta_y = event.motion.y - g_prevMouseCoords.y;
 			float rotationSpeed = 0.1f;
-			mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
-			mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
+			glm::mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
+			glm::mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
 								normalize(cross(cameraDirection, worldUp)));
-			cameraDirection = vec3(pitch * yaw * vec4(cameraDirection, 0.0f));
+			cameraDirection = glm::vec3(pitch * yaw * glm::vec4(cameraDirection, 0.0f));
 			g_prevMouseCoords.x = event.motion.x;
 			g_prevMouseCoords.y = event.motion.y;
 		}
@@ -142,7 +142,7 @@ bool handleEvents(void)
 
 	// check keyboard state (which keys are still pressed)
 	const uint8_t *state = SDL_GetKeyboardState(nullptr);
-	vec3 cameraRight = cross(cameraDirection, worldUp);
+	glm::vec3 cameraRight = cross(cameraDirection, worldUp);
 
 	if (state[SDL_SCANCODE_W])
 	{

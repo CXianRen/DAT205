@@ -14,7 +14,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-using namespace glm;
 
 #include <Model.h>
 #include "hdr.h"
@@ -34,7 +33,7 @@ extern GLuint smokeProgram;     // Shader used to draw smoke
 extern glm::vec3 cameraPosition;
 extern glm::vec3 cameraDirection;
 extern float cameraSpeed;
-extern const vec3 worldUp;
+extern const glm::vec3 worldUp;
 
 // light
 extern float g_point_light_intensity;

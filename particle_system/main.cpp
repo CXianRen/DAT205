@@ -11,6 +11,8 @@
 #include <mutex>
 
 #include "common/gui.h"
+using namespace glm;
+
 
 double ttime = 0.0;
 
