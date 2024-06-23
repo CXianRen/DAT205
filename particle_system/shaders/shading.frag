@@ -18,13 +18,6 @@ uniform int has_color_texture;
 layout(binding = 0) uniform sampler2D colorMap;
 layout(binding = 5) uniform sampler2D emissiveMap;
 
-///////////////////////////////////////////////////////////////////////////////
-// Environment
-///////////////////////////////////////////////////////////////////////////////
-layout(binding = 6) uniform sampler2D environmentMap;
-layout(binding = 7) uniform sampler2D irradianceMap;
-layout(binding = 8) uniform sampler2D reflectionMap;
-uniform float environment_multiplier;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
@@ -89,64 +82,16 @@ vec3 computeDirectIllumiunation(vec3 wo, vec3 n)
 	return microfacet_term;
 }
 
-vec3 computeIndirectIllumination(vec3 wo, vec3 n)
-{
-	vec3 world_normal = vec3(viewInverse * vec4(n, 0.0));
-
-	float theta = acos(max(-1.0f, min(1.0f, world_normal.y)));
-	float phi = atan(world_normal.z, world_normal.x);
-	if(phi < 0.0f)
-		phi = phi + 2.0f * PI;
-	vec2 lookup = vec2(phi / (2.0 * PI), theta / PI);
-	vec3 Li = environment_multiplier * texture(irradianceMap, lookup).rgb;
-	vec3 diffuse_term = material_color * (1.0 / PI) * Li;
-
-	vec3 wi = normalize(reflect(-wo, n));
-	vec3 wr = normalize(vec3(viewInverse * vec4(wi, 0.0)));
-	theta = acos(max(-1.0f, min(1.0f, wr.y)));
-	phi = atan(wr.z, wr.x);
-	if(phi < 0.0f)
-		phi = phi + 2.0f * PI;
-	lookup = vec2(phi / (2.0 * PI), theta / PI);
-	float roughness = sqrt(sqrt(2.0 / (material_shininess + 2.0)));
-	Li = environment_multiplier * textureLod(reflectionMap, lookup, roughness * 7.0).rgb;
-	vec3 wh = normalize(wi + wo);
-	float wodotwh = max(0.0, dot(wo, wh));
-	float F = material_fresnel + (1.0 - material_fresnel) * pow(1.0 - wodotwh, 5.0);
-	vec3 dielectric_term = F * Li + (1.0 - F) * diffuse_term;
-	vec3 metal_term = F * material_color * Li;
-
-	vec3 microfacet_term = material_metalness * metal_term + (1.0 - material_metalness) * dielectric_term;
-
-	return microfacet_term;
-
-}
-
 void main()
 {
 	float visibility = 1.0;
-	float attenuation = 1.0;
 
 	vec3 wo = -normalize(viewSpacePosition);
 	vec3 n = normalize(viewSpaceNormal);
 
 	// Direct illumination
 	vec3 direct_illumination_term = visibility * computeDirectIllumiunation(wo, n);
-
-	// Indirect illumination
-	// vec3 indirect_illumination_term = computeIndirectIllumination(wo, n);
-
-	///////////////////////////////////////////////////////////////////////////
-	// Add emissive term. If emissive texture exists, sample this term.
-	///////////////////////////////////////////////////////////////////////////
-	vec3 emission_term = material_emission * material_color;
-	if(has_emission_texture == 1)
-	{
-		emission_term = texture(emissiveMap, texCoord).xyz;
-	}
-
-	// vec3 shading = direct_illumination_term + indirect_illumination_term + emission_term;
-    vec3 shading = direct_illumination_term + emission_term;
+    vec3 shading = direct_illumination_term;
 	fragmentColor = vec4(shading, 1.0);
 	
 	return;

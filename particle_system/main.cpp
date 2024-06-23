@@ -31,16 +31,6 @@ SDL_Window *g_window = nullptr;
 int windowWidth, windowHeight;
 std::vector<FboInfo> FBOList;
 
-
-///////////////////////////////////////////////////////////////////////////////
-// Environment
-///////////////////////////////////////////////////////////////////////////////
-float environment_multiplier = 1.0f;
-GLuint environmentMap;
-GLuint irradianceMap;
-GLuint reflectionMap;
-const std::string envmap_base_name = "001";
-
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
@@ -74,12 +64,6 @@ void loadShaders(bool is_reload)
 	if (shader != 0)
 	{
 		simpleShaderProgram = shader;
-	}
-
-	shader = labhelper::loadShaderProgram("./background.vert", "./background.frag", is_reload);
-	if (shader != 0)
-	{
-		backgroundProgram = shader;
 	}
 
 	shader = labhelper::loadShaderProgram("./shading.vert", "./shading.frag", is_reload);
@@ -158,23 +142,6 @@ void initialize()
 	// mmRender->set_occupied_texture(occupied_voxels_sphere);
 	// mmRender->set_occupied_texture(occupied_voxels_tree);
 
-	///////////////////////////////////////////////////////////////////////
-	// Load environment map
-	///////////////////////////////////////////////////////////////////////
-	environmentMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + ".hdr");
-
-	irradianceMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_irradiance.hdr");
-
-	// Reflection map
-	std::vector<std::string> files;
-	const int roughnesses = 8;
-	for (int i = 0; i < roughnesses; i++)
-	{
-		files.push_back("../scenes/envmaps/" + envmap_base_name + "_dl_" + std::to_string(i) + ".hdr");
-	}
-
-	reflectionMap = labhelper::loadHdrMipmapTexture(files);
-
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);	 // enables backface culling
 
@@ -241,9 +208,6 @@ void drawScene(GLuint currentShaderProgram,
 	labhelper::setUniformSlow(currentShaderProgram, "viewSpaceLightDir",
 							  normalize(vec3(viewMatrix * vec4(-g_light_position, 0.0f))));
 
-	// Environment
-	labhelper::setUniformSlow(currentShaderProgram, "environment_multiplier", environment_multiplier);
-
 	// camera
 	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
 
@@ -267,40 +231,18 @@ void drawScene(GLuint currentShaderProgram,
 	// 							  inverse(transpose(viewMatrix * sphereModelMatrix)));
 	// 	labhelper::render(sphereModel);
 	// }
-	// {
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 							  projectionMatrix * viewMatrix * cubeModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * cubeModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 							  inverse(transpose(viewMatrix * cubeModelMatrix)));
-	// 	labhelper::render(cubeModel);
-	// }
-
-	// draw a tree
-	// {
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	// 							  projectionMatrix * viewMatrix * generalModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * generalModelMatrix);
-	// 	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	// 							  inverse(transpose(viewMatrix * generalModelMatrix)));
-	// 	labhelper::render(generalModel);
-	// }
-
-	// debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
-	// debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
-	// debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
 
 	switch (g_case_id)
 	{
-	case 0:
+	case Demo::SMOKE_EMPTY:
 		break;
-	case 1:
+	case Demo::SMOKE_CUBE:
 		debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
 		break;
-	case 2:
+	case Demo::SMOKE_SPHERE:
 		debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
 		break;
-	case 3:
+	case Demo::SMOKE_TREE:
 		debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
 		break;
 
@@ -315,16 +257,16 @@ void drawScene(GLuint currentShaderProgram,
 			current_case = g_case_id;
 			switch (g_case_id)
 			{
-			case 0:
+			case Demo::SMOKE_EMPTY:
 				mmRender->set_occupied_texture(empty_voxels);
 				break;
-			case 1:
+			case Demo::SMOKE_CUBE:
 				mmRender->set_occupied_texture(occupied_voxels_sphere);
 				break;
-			case 2:
+			case Demo::SMOKE_SPHERE:
 				mmRender->set_occupied_texture(occupied_voxels_cube);
 				break;
-			case 3:
+			case Demo::SMOKE_TREE:
 				mmRender->set_occupied_texture(occupied_voxels_tree);
 				break;
 			default:
@@ -360,7 +302,8 @@ void drawScene(GLuint currentShaderProgram,
 		// mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
 		// glEnable(GL_DEPTH_TEST);
 	}
-	// draw a line
+
+	// draw coordinate system
 	glDisable(GL_DEPTH_TEST);
 	//
 	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
@@ -404,16 +347,6 @@ void display(void)
 	mat4 lightViewMatrix = lookAt(g_light_position, vec3(0.0f), worldUp);
 	static mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
 
-	///////////////////////////////////////////////////////////////////////////
-	// Bind the environment map(s) to unused texture units
-	///////////////////////////////////////////////////////////////////////////
-	glActiveTexture(GL_TEXTURE6);
-	glBindTexture(GL_TEXTURE_2D, environmentMap);
-	glActiveTexture(GL_TEXTURE7);
-	glBindTexture(GL_TEXTURE_2D, irradianceMap);
-	glActiveTexture(GL_TEXTURE8);
-	glBindTexture(GL_TEXTURE_2D, reflectionMap);
-	glActiveTexture(GL_TEXTURE0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -463,16 +396,16 @@ int main(int argc, char *argv[])
 				current_case = g_case_id;
 				switch (g_case_id)
 				{
-				case 0:
+				case Demo::SMOKE_EMPTY:
 					simulator->setOccupiedVoxels(empty_voxels);
 					break;
-				case 1:
+				case Demo::SMOKE_SPHERE:
 					simulator->setOccupiedVoxels(occupied_voxels_sphere);
 					break;
-				case 2:
+				case Demo::SMOKE_CUBE:
 					simulator->setOccupiedVoxels(occupied_voxels_cube);
 					break;
-				case 3:
+				case Demo::SMOKE_TREE:
 					simulator->setOccupiedVoxels(occupied_voxels_tree);
 					break;
 				default:

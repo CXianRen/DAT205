@@ -25,7 +25,6 @@ using namespace glm;
 ///////////////////////////////////////////////////////////////////////////////
 extern GLuint shaderProgram;       // Shader for rendering the final image
 extern GLuint simpleShaderProgram; // Shader used to draw the shadow map
-extern GLuint backgroundProgram;
 extern GLuint debugLineProgram; // Shader used to draw debug lines
 extern GLuint smokeProgram;     // Shader used to draw smoke
 
@@ -37,12 +36,12 @@ extern glm::vec3 cameraDirection;
 extern float cameraSpeed;
 extern const vec3 worldUp;
 
-// light 
+// light
 extern float g_point_light_intensity;
 extern glm::vec3 g_light_position;
 extern glm::vec3 g_point_light_color;
 
-// time setting 
+// time setting
 extern float currentTime;
 extern float previousTime;
 extern float deltaTime;
@@ -66,5 +65,15 @@ extern bool g_simulator_rest;
 
 // smoke render parameters
 extern float g_smoke_factor;
+
+// demo sence
+enum Demo
+{
+    SMOKE_EMPTY,
+    SMOKE_CUBE,
+    SMOKE_SPHERE,
+    SMOKE_TREE,
+    UNDEFINED
+};
 
 #endif // __M_GLOBALVAR_H__
