@@ -138,9 +138,6 @@ void initialize()
 	// landingPadModelMatrix = mat4(1.0f);
 
 	mmRender = new SmokeRenderer();
-	// mmRender->set_occupied_texture(occupied_voxels_cube);
-	// mmRender->set_occupied_texture(occupied_voxels_sphere);
-	// mmRender->set_occupied_texture(occupied_voxels_tree);
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);	 // enables backface culling
@@ -236,10 +233,10 @@ void drawScene(GLuint currentShaderProgram,
 	{
 	case Demo::SMOKE_EMPTY:
 		break;
-	case Demo::SMOKE_CUBE:
+	case Demo::SMOKE_SPHERE:
 		debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
 		break;
-	case Demo::SMOKE_SPHERE:
+	case Demo::SMOKE_CUBE:
 		debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
 		break;
 	case Demo::SMOKE_TREE:
@@ -260,10 +257,10 @@ void drawScene(GLuint currentShaderProgram,
 			case Demo::SMOKE_EMPTY:
 				mmRender->set_occupied_texture(empty_voxels);
 				break;
-			case Demo::SMOKE_CUBE:
+			case Demo::SMOKE_SPHERE:
 				mmRender->set_occupied_texture(occupied_voxels_sphere);
 				break;
-			case Demo::SMOKE_SPHERE:
+			case Demo::SMOKE_CUBE:
 				mmRender->set_occupied_texture(occupied_voxels_cube);
 				break;
 			case Demo::SMOKE_TREE:
