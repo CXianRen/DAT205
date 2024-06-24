@@ -45,7 +45,7 @@ labhelper::Model *treeModel = nullptr;
 SmokeRenderer *mmRender = nullptr;
 
 mat4 landingPadModelMatrix;
-mat4 testModelMatrix;
+mat4 SmokeZoneMatrix;
 mat4 sphereModelMatrix;
 mat4 cubeModelMatrix;
 mat4 treeModelMatrix;
@@ -56,34 +56,6 @@ mat4 treeModelMatrix;
 // Simulator simulator;
 std::unique_ptr<Simulator> simulator;
 std::unique_ptr<MCUDA::CudaRender> cudaRender;
-
-void loadShaders(bool is_reload)
-{
-	GLuint shader;
-
-	shader = labhelper::loadShaderProgram("./simple.vert", "./simple.frag", is_reload);
-	if (shader != 0)
-	{
-		simpleShaderProgram = shader;
-	}
-
-	shader = labhelper::loadShaderProgram("./shading.vert", "./shading.frag", is_reload);
-	if (shader != 0)
-	{
-		shaderProgram = shader;
-	}
-
-	shader = labhelper::loadShaderProgram("./line.vert", "./line.frag", is_reload);
-	if (shader != 0)
-	{
-		debugLineProgram = shader;
-	}
-	shader = labhelper::loadShaderProgram("./smoke.vert", "./smoke.frag", is_reload);
-	if (shader != 0)
-	{
-		smokeProgram = shader;
-	}
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is called once at the start of the program and never again
@@ -107,26 +79,19 @@ void initialize()
 	treeModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
 
 	float scale_factor = 10.f;
-	// testModelMatrix = mat4(1.0f);
-	// testModelMatrix = translate(scale_factor * worldUp);
-	testModelMatrix = scale(1.f * vec3(scale_factor, scale_factor, scale_factor));
+	SmokeZoneMatrix = scale(1.f * vec3(scale_factor, scale_factor, scale_factor));
 
 	sphereModelMatrix = translate(scale_factor * vec3(1, 1, 0));
 	// sphereModelMatrix *= scale(scale_factor * vec3(8.0 / Nx, 8.0 / Nx, 8.0 / Nx));
 
 	cubeModelMatrix = translate(vec3(-0.5, -0.5, -0.5));
 	cubeModelMatrix *= translate((scale_factor)*worldUp);
-
 	cubeModelMatrix *= scale(scale_factor * vec3(12.0 / Nx, 12.0 / Nx, 12.0 / Nx));
 
 	occupied_voxels_tree = generate_vexel(treeModel->m_positions, tree_max_length);
 
 	empty_voxels = std::array<bool, SIZE>();
 	std::fill(empty_voxels.begin(), empty_voxels.end(), false);
-
-	// occupied_voxels_sphere = generate_vexel(sphereModel->m_positions, sphere_max_length);
-
-	// occupied_voxels_cube = generate_vexel(cubeModel->m_positions, cube_max_length);
 
 	float offset = (scale_factor * 2.0f / Nx);
 	//@todo a bug, need to fix, walk around using offset
@@ -245,8 +210,8 @@ void drawScene(GLuint currentShaderProgram,
 
 		glUseProgram(smokeProgram);
 		labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
-								  projectionMatrix * viewMatrix * testModelMatrix);
-		labhelper::setUniformSlow(smokeProgram, "modelMatrix", testModelMatrix);
+								  projectionMatrix * viewMatrix * SmokeZoneMatrix);
+		labhelper::setUniformSlow(smokeProgram, "modelMatrix", SmokeZoneMatrix);
 		labhelper::setUniformSlow(smokeProgram, "worldSpaceLightPosition", g_light_position);
 		labhelper::setUniformSlow(smokeProgram, "pointLightIntensity", g_point_light_intensity);
 		labhelper::setUniformSlow(smokeProgram, "worldSpaceCameraPosition", cameraPosition);
@@ -260,12 +225,7 @@ void drawScene(GLuint currentShaderProgram,
 			std::lock_guard<std::mutex> lock(g_sim_lock);
 			mmRender->render(density, transparency);
 		}
-
 		glDisable(GL_BLEND);
-
-		// glDisable(GL_DEPTH_TEST);
-		// mmRender->render_frame(projectionMatrix * viewMatrix * testModelMatrix);
-		// glEnable(GL_DEPTH_TEST);
 	}
 
 	drawCoordinate(projectionMatrix * viewMatrix);

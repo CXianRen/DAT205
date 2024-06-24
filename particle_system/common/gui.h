@@ -5,6 +5,8 @@
 #include "common/globalvar.h"
 #include "particle/constants.h"
 
+void loadShaders(bool is_reload);
+
 void ControlPanel();
 
 void gui();

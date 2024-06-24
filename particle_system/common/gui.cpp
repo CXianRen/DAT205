@@ -1,5 +1,34 @@
 #include "gui.h"
 #include "common/mmath.h"
+
+void loadShaders(bool is_reload)
+{
+	GLuint shader;
+
+	shader = labhelper::loadShaderProgram("./simple.vert", "./simple.frag", is_reload);
+	if (shader != 0)
+	{
+		simpleShaderProgram = shader;
+	}
+
+	shader = labhelper::loadShaderProgram("./shading.vert", "./shading.frag", is_reload);
+	if (shader != 0)
+	{
+		shaderProgram = shader;
+	}
+
+	shader = labhelper::loadShaderProgram("./line.vert", "./line.frag", is_reload);
+	if (shader != 0)
+	{
+		debugLineProgram = shader;
+	}
+	shader = labhelper::loadShaderProgram("./smoke.vert", "./smoke.frag", is_reload);
+	if (shader != 0)
+	{
+		smokeProgram = shader;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is to hold the general GUI logic
 ///////////////////////////////////////////////////////////////////////////////
@@ -230,7 +259,6 @@ void drawCoordinate(const glm::mat4 &projectionViewModelMatrix)
 	//
 	glEnable(GL_DEPTH_TEST);
 }
-
 
 void drawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::mat4 &viewMatrix,
 			   const glm::mat4 &projectionMatrix, const labhelper::Model *model)
