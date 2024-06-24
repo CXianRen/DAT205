@@ -1,5 +1,5 @@
 #include "gui.h"
-
+#include "common/mmath.h"
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is to hold the general GUI logic
 ///////////////////////////////////////////////////////////////////////////////
@@ -133,7 +133,7 @@ bool handleEvents(void)
 			float rotationSpeed = 0.1f;
 			glm::mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
 			glm::mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
-								normalize(cross(cameraDirection, worldUp)));
+									 normalize(cross(cameraDirection, worldUp)));
 			cameraDirection = glm::vec3(pitch * yaw * glm::vec4(cameraDirection, 0.0f));
 			g_prevMouseCoords.x = event.motion.x;
 			g_prevMouseCoords.y = event.motion.y;
@@ -169,4 +169,98 @@ bool handleEvents(void)
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
 	return quitEvent;
+}
+
+void drawLine(const glm::vec3 start_pos, const glm::vec3 end_pos,
+			  const glm::mat4 &projectionViewModelMatrix,
+			  const glm::vec3 color)
+{
+	GLuint currentShaderProgram = debugLineProgram;
+	glUseProgram(currentShaderProgram);
+	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
+							  projectionViewModelMatrix);
+	labhelper::setUniformSlow(currentShaderProgram, "line_color", color);
+
+	// draw a line
+	static GLuint buffer = 0;
+	static GLuint vertexArrayObject = 0;
+	static int nofVertices = 2;
+	glm::vec3 positions[] = {start_pos, end_pos};
+	// do this initialization first time the function is called...
+	if (vertexArrayObject == 0)
+	{
+		glGenVertexArrays(1, &vertexArrayObject);
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+		CHECK_GL_ERROR();
+
+		// Now attach buffer to vertex array object.
+		glBindVertexArray(vertexArrayObject);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		glEnableVertexAttribArray(0);
+		CHECK_GL_ERROR();
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STREAM_DRAW);
+
+	glBindVertexArray(vertexArrayObject);
+	glDrawArrays(GL_LINES, 0, nofVertices);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void drawCoordinate(const glm::mat4 &projectionViewModelMatrix)
+{
+	// draw coordinate system
+	glDisable(GL_DEPTH_TEST);
+	//
+	drawLine(glm::vec3(0.0f),
+			 glm::vec3(10.0, 0.0, 0.0),
+			 projectionViewModelMatrix * glm::mat4(1.0),
+			 glm::vec3(1.0f, 0.0f, 0.0f));
+	drawLine(glm::vec3(0.0f),
+			 glm::vec3(0.0, 10.0, 0.0),
+			 projectionViewModelMatrix * glm::mat4(1.0),
+			 glm::vec3(0.0f, 1.0f, 0.0f));
+	drawLine(glm::vec3(0.0f),
+			 glm::vec3(0.0, 0.0, 10.0),
+			 projectionViewModelMatrix * glm::mat4(1.0),
+			 glm::vec3(0.0f, 0.0f, 1.0f));
+	//
+	glEnable(GL_DEPTH_TEST);
+}
+
+
+void drawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::mat4 &viewMatrix,
+			   const glm::mat4 &projectionMatrix, const labhelper::Model *model)
+{
+	glUseProgram(simpleShaderProgram);
+
+	// scale up the cube
+	// draw the occupied voxels
+	for (int i = 0; i < Nx; i++)
+	{
+		for (int j = 0; j < Ny; j++)
+		{
+			for (int k = 0; k < Nz; k++)
+			{
+				if (occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
+				{
+
+					glm::mat4 modelMatrix = glm::mat4(1.0f);
+					modelMatrix = glm::scale(glm::vec3(0.2, 0.2, 0.2)) * modelMatrix;
+					modelMatrix = glm::translate(
+									  glm::vec3(
+										  10.f / Nx * i,
+										  10.f / Nx * j,
+										  10.f / Nx * k)) *
+								  modelMatrix;
+					labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
+											  projectionMatrix * viewMatrix * modelMatrix);
+					labhelper::render(model);
+				}
+			}
+		}
+	}
 }

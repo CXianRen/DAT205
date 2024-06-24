@@ -13,7 +13,6 @@
 #include "common/gui.h"
 using namespace glm;
 
-
 double ttime = 0.0;
 
 std::array<bool, SIZE> occupied_voxels_sphere = generate_vexelized_sphere((int)(10));
@@ -41,7 +40,7 @@ labhelper::Model *landingpadModel = nullptr;
 labhelper::Model *pointLight = nullptr;
 labhelper::Model *sphereModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
-labhelper::Model *generalModel = nullptr;
+labhelper::Model *treeModel = nullptr;
 
 SmokeRenderer *mmRender = nullptr;
 
@@ -49,7 +48,7 @@ mat4 landingPadModelMatrix;
 mat4 testModelMatrix;
 mat4 sphereModelMatrix;
 mat4 cubeModelMatrix;
-mat4 generalModelMatrix;
+mat4 treeModelMatrix;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Particle system
@@ -105,7 +104,7 @@ void initialize()
 	pointLight = labhelper::loadModelFromOBJ("../scenes/point_light.obj");
 	sphereModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
 	cubeModel = labhelper::loadModelFromOBJ("../scenes/cube.obj");
-	generalModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
+	treeModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
 
 	float scale_factor = 10.f;
 	// testModelMatrix = mat4(1.0f);
@@ -120,7 +119,7 @@ void initialize()
 
 	cubeModelMatrix *= scale(scale_factor * vec3(12.0 / Nx, 12.0 / Nx, 12.0 / Nx));
 
-	occupied_voxels_tree = generate_vexel(generalModel->m_positions, tree_max_length);
+	occupied_voxels_tree = generate_vexel(treeModel->m_positions, tree_max_length);
 
 	empty_voxels = std::array<bool, SIZE>();
 	std::fill(empty_voxels.begin(), empty_voxels.end(), false);
@@ -131,9 +130,9 @@ void initialize()
 
 	float offset = (scale_factor * 2.0f / Nx);
 	//@todo a bug, need to fix, walk around using offset
-	generalModelMatrix = translate((scale_factor / 2.0f + offset) * worldUp);
+	treeModelMatrix = translate((scale_factor / 2.0f + offset) * worldUp);
 
-	generalModelMatrix *= scale((scale_factor / tree_max_length) * vec3(1.f));
+	treeModelMatrix *= scale((scale_factor / tree_max_length) * vec3(1.f));
 
 	// scale the plane
 	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
@@ -152,39 +151,6 @@ void initialize()
 	{
 		FBOList.push_back(FboInfo());
 		FBOList[i].resize(w, h);
-	}
-}
-
-void debugDrawVexel(const std::array<bool, SIZE> &occupied_voxels, const glm::mat4 &viewMatrix,
-					const glm::mat4 &projectionMatrix)
-{
-	glUseProgram(simpleShaderProgram);
-
-	// scale up the cube
-	// draw the occupied voxels
-	for (int i = 0; i < Nx; i++)
-	{
-		for (int j = 0; j < Ny; j++)
-		{
-			for (int k = 0; k < Nz; k++)
-			{
-				if (occupied_voxels[ACC3D(i, j, k, Ny, Nx)])
-				{
-
-					glm::mat4 modelMatrix = glm::mat4(1.0f);
-					modelMatrix = glm::scale(glm::vec3(0.2, 0.2, 0.2)) * modelMatrix;
-					modelMatrix = glm::translate(
-									  glm::vec3(
-										  10.f / Nx * i,
-										  10.f / Nx * j,
-										  10.f / Nx * k)) *
-								  modelMatrix;
-					labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
-											  projectionMatrix * viewMatrix * modelMatrix);
-					labhelper::render(cubeModel);
-				}
-			}
-		}
 	}
 }
 
@@ -236,13 +202,13 @@ void drawScene(GLuint currentShaderProgram,
 	case Demo::SMOKE_EMPTY:
 		break;
 	case Demo::SMOKE_SPHERE:
-		debugDrawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix);
+		drawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix, cubeModel);
 		break;
 	case Demo::SMOKE_CUBE:
-		debugDrawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix);
+		drawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix, cubeModel);
 		break;
 	case Demo::SMOKE_TREE:
-		debugDrawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix);
+		drawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix, cubeModel);
 		break;
 
 	default:
@@ -302,14 +268,7 @@ void drawScene(GLuint currentShaderProgram,
 		// glEnable(GL_DEPTH_TEST);
 	}
 
-	// draw coordinate system
-	glDisable(GL_DEPTH_TEST);
-	//
-	drawLine(vec3(0.0f), vec3(10.0, 0.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(1.0f, 0.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 10.0, 0.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 1.0f, 0.0f));
-	drawLine(vec3(0.0f), vec3(0.0, 0.0, 10.0), projectionMatrix * viewMatrix * mat4(1.0), vec3(0.0f, 0.0f, 1.0f));
-	//
-	glEnable(GL_DEPTH_TEST);
+	drawCoordinate(projectionMatrix * viewMatrix);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -345,7 +304,6 @@ void display(void)
 
 	mat4 lightViewMatrix = lookAt(g_light_position, vec3(0.0f), worldUp);
 	static mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
-
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -484,7 +442,6 @@ int main(int argc, char *argv[])
 				std::chrono::milliseconds(
 					(int)(1000.0f / 30.0f - frame_time * 1000.0f)));
 		}
-		// DEBUG_PRINT("Frame time:" << frame_time);
 	}
 	// Free Models
 	labhelper::freeModel(landingpadModel);
