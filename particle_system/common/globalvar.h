@@ -46,7 +46,15 @@ extern float previousTime;
 extern float deltaTime;
 
 // case id
-extern int g_case_id;
+enum Demo
+{
+    SMOKE_EMPTY,
+    SMOKE_CUBE,
+    SMOKE_SPHERE,
+    SMOKE_TREE,
+    UNDEFINED
+};
+extern Demo g_case_id;
 
 // simulator parameters
 extern std::string simulator_info;
@@ -65,14 +73,6 @@ extern bool g_simulator_rest;
 // smoke render parameters
 extern float g_smoke_factor;
 
-// demo sence
-enum Demo
-{
-    SMOKE_EMPTY,
-    SMOKE_CUBE,
-    SMOKE_SPHERE,
-    SMOKE_TREE,
-    UNDEFINED
-};
+
 
 #endif // __M_GLOBALVAR_H__

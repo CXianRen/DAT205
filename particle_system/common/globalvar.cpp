@@ -24,7 +24,7 @@ float previousTime = 0.0f;
 float deltaTime = 0.0f;
 
 // case id
-int g_case_id = 0;
+Demo g_case_id = SMOKE_EMPTY;
 
 // simulator parameters
 #include "particle/constants.h"

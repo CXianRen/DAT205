@@ -17,7 +17,8 @@ generate_vexelized_sphere(int radius)
     int z1 = Nz / 2 + radius;
 
     FOR_EACH_CELL
-    {
+    {   
+        sphere[ACC3D(i, j, k, Ny, Nx)] = false;
         if (
             (i - Nx / 2) * (i - Nx / 2) +
                 (j - Ny / 2) * (j - Ny / 2) +
@@ -43,7 +44,8 @@ generate_vexelized_cube(int length)
     int z1 = Nz / 2 + length / 2;
 
     FOR_EACH_CELL
-    {
+    {   
+        cube[ACC3D(i, j, k, Ny, Nx)] = false;
         if (
             i >= x0 && i <= x1 &&
             j >= y0 && j <= y1 &&

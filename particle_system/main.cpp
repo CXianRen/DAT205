@@ -1,29 +1,17 @@
-#include "common/debug.h"
-#include "common/globalvar.h"
-#include "common/mperf.h"
-
-#include "particle/render.h"
-#include "particle/Simulator.h"
-#include "particle/CudaRender.h"
-#include "particle/Vexelization.h"
-
 #include <thread>
 #include <mutex>
 
+#include "common/debug.h"
 #include "common/gui.h"
+#include "common/globalvar.h"
+#include "common/mperf.h"
+
+#include "example.h"
+#include "particle/render.h"
+#include "particle/Simulator.h"
+#include "particle/CudaRender.h"
+
 using namespace glm;
-
-double ttime = 0.0;
-
-std::array<bool, SIZE> occupied_voxels_sphere = generate_vexelized_sphere((int)(10));
-std::array<bool, SIZE> occupied_voxels_cube = generate_vexelized_cube((int)(12));
-std::array<bool, SIZE> empty_voxels;
-
-float tree_max_length = 0.0f;
-std::array<bool, SIZE> occupied_voxels_tree;
-
-std::array<double, SIZE> density;
-double transparency[SIZE];
 
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
@@ -35,27 +23,23 @@ std::vector<FboInfo> FBOList;
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
-
 labhelper::Model *landingpadModel = nullptr;
-labhelper::Model *pointLight = nullptr;
-labhelper::Model *sphereModel = nullptr;
 labhelper::Model *cubeModel = nullptr;
-labhelper::Model *treeModel = nullptr;
 
-SmokeRenderer *mmRender = nullptr;
-
-mat4 landingPadModelMatrix;
-mat4 SmokeZoneMatrix;
-mat4 sphereModelMatrix;
-mat4 cubeModelMatrix;
-mat4 treeModelMatrix;
+glm::mat4 landingPadModelMatrix;
+glm::mat4 SmokeZoneMatrix;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Particle system
 ///////////////////////////////////////////////////////////////////////////////
 // Simulator simulator;
+double ttime = 0.0;
+std::array<double, SIZE> density;
+double transparency[SIZE];
+
 std::unique_ptr<Simulator> simulator;
 std::unique_ptr<MCUDA::CudaRender> cudaRender;
+std::unique_ptr<SmokeRenderer> mmRender;
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is called once at the start of the program and never again
@@ -73,37 +57,13 @@ void initialize()
 	// Load models and set up model matrices
 	///////////////////////////////////////////////////////////////////////
 	landingpadModel = labhelper::loadModelFromOBJ("../scenes/plane.obj");
-	pointLight = labhelper::loadModelFromOBJ("../scenes/point_light.obj");
-	sphereModel = labhelper::loadModelFromOBJ("../scenes/particle.obj");
 	cubeModel = labhelper::loadModelFromOBJ("../scenes/cube.obj");
-	treeModel = labhelper::loadModelFromOBJ("../scenes/Lowpoly_tree_sample.obj");
 
 	float scale_factor = 10.f;
 	SmokeZoneMatrix = scale(1.f * vec3(scale_factor, scale_factor, scale_factor));
 
-	sphereModelMatrix = translate(scale_factor * vec3(1, 1, 0));
-	// sphereModelMatrix *= scale(scale_factor * vec3(8.0 / Nx, 8.0 / Nx, 8.0 / Nx));
-
-	cubeModelMatrix = translate(vec3(-0.5, -0.5, -0.5));
-	cubeModelMatrix *= translate((scale_factor)*worldUp);
-	cubeModelMatrix *= scale(scale_factor * vec3(12.0 / Nx, 12.0 / Nx, 12.0 / Nx));
-
-	occupied_voxels_tree = generate_vexel(treeModel->m_positions, tree_max_length);
-
-	empty_voxels = std::array<bool, SIZE>();
-	std::fill(empty_voxels.begin(), empty_voxels.end(), false);
-
-	float offset = (scale_factor * 2.0f / Nx);
-	//@todo a bug, need to fix, walk around using offset
-	treeModelMatrix = translate((scale_factor / 2.0f + offset) * worldUp);
-
-	treeModelMatrix *= scale((scale_factor / tree_max_length) * vec3(1.f));
-
 	// scale the plane
 	landingPadModelMatrix = scale(vec3(50.0f, 50.0f, 50.0f));
-	// landingPadModelMatrix = mat4(1.0f);
-
-	mmRender = new SmokeRenderer();
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);	 // enables backface culling
@@ -117,6 +77,14 @@ void initialize()
 		FBOList.push_back(FboInfo());
 		FBOList[i].resize(w, h);
 	}
+
+	// init simulator
+	mmRender = std::make_unique<SmokeRenderer>();
+	simulator = std::make_unique<Simulator>(ttime);
+	cudaRender = std::make_unique<MCUDA::CudaRender>(SIZE, Nx, Ny, Nz);
+	cudaRender->init();
+
+	init_examples();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -162,51 +130,33 @@ void drawScene(GLuint currentShaderProgram,
 	// 	labhelper::render(sphereModel);
 	// }
 
-	switch (g_case_id)
+	if (examples.find(g_case_id) != examples.end())
 	{
-	case Demo::SMOKE_EMPTY:
-		break;
-	case Demo::SMOKE_SPHERE:
-		drawVexel(occupied_voxels_sphere, viewMatrix, projectionMatrix, cubeModel);
-		break;
-	case Demo::SMOKE_CUBE:
-		drawVexel(occupied_voxels_cube, viewMatrix, projectionMatrix, cubeModel);
-		break;
-	case Demo::SMOKE_TREE:
-		drawVexel(occupied_voxels_tree, viewMatrix, projectionMatrix, cubeModel);
-		break;
-
-	default:
-		break;
+		auto &exp = examples[g_case_id];
+		drawVexel(exp->obj_vexels, viewMatrix, projectionMatrix, cubeModel);
 	}
-
+	else
 	{
-		static int current_case = -1;
-		if (current_case != g_case_id)
-		{
-			current_case = g_case_id;
-			switch (g_case_id)
-			{
-			case Demo::SMOKE_EMPTY:
-				mmRender->set_occupied_texture(empty_voxels);
-				break;
-			case Demo::SMOKE_SPHERE:
-				mmRender->set_occupied_texture(occupied_voxels_sphere);
-				break;
-			case Demo::SMOKE_CUBE:
-				mmRender->set_occupied_texture(occupied_voxels_cube);
-				break;
-			case Demo::SMOKE_TREE:
-				mmRender->set_occupied_texture(occupied_voxels_tree);
-				break;
-			default:
-				break;
-			}
-		}
+		DEBUG_PRINT("Undefined case id");
 	}
 
 	{
 		labhelper::perf::Scope s("render smoke");
+
+		static Demo current_case = Demo::UNDEFINED;
+		if (current_case != g_case_id)
+		{
+			current_case = g_case_id;
+			if (examples.find(g_case_id) != examples.end())
+			{
+				auto &exp = examples[g_case_id];
+				mmRender->set_occupied_texture(exp->obj_vexels);
+			}
+			else
+			{
+				DEBUG_PRINT("Undefined case id");
+			}
+		}
 
 		glUseProgram(smokeProgram);
 		labhelper::setUniformSlow(smokeProgram, "modelViewProjectionMatrix",
@@ -218,8 +168,6 @@ void drawScene(GLuint currentShaderProgram,
 		labhelper::setUniformSlow(smokeProgram, "factor", g_smoke_factor);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		// mmRender->render(generateSphereDensity());
-		// mmRender->render(generateCubeDensity());
 		// try to lock the simulator
 		{
 			std::lock_guard<std::mutex> lock(g_sim_lock);
@@ -278,9 +226,6 @@ void display(void)
 int main(int argc, char *argv[])
 {
 	// DEBUG_PRINT("MAIN cuda");
-	simulator = std::make_unique<Simulator>(ttime);
-	cudaRender = std::make_unique<MCUDA::CudaRender>(SIZE, Nx, Ny, Nz);
-	cudaRender->init();
 
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
@@ -309,26 +254,20 @@ int main(int argc, char *argv[])
 			}
 
 			static int current_case = -1;
-			if(current_case != g_case_id){
+			if(current_case != g_case_id)
+			{
 				current_case = g_case_id;
-				switch (g_case_id)
+				
+				if (examples.find(g_case_id) != examples.end())
 				{
-				case Demo::SMOKE_EMPTY:
-					simulator->setOccupiedVoxels(empty_voxels);
-					break;
-				case Demo::SMOKE_SPHERE:
-					simulator->setOccupiedVoxels(occupied_voxels_sphere);
-					break;
-				case Demo::SMOKE_CUBE:
-					simulator->setOccupiedVoxels(occupied_voxels_cube);
-					break;
-				case Demo::SMOKE_TREE:
-					simulator->setOccupiedVoxels(occupied_voxels_tree);
-					break;
-				default:
-					break;
+					auto &exp = examples[g_case_id];
+					simulator->setOccupiedVoxels(exp->obj_vexels);
 				}
-				simulator->reset();
+				else
+				{
+					DEBUG_PRINT("Undefined case id");
+				}
+					simulator->reset();
 			}
 
 			simulator->update();
@@ -405,7 +344,8 @@ int main(int argc, char *argv[])
 	}
 	// Free Models
 	labhelper::freeModel(landingpadModel);
-	labhelper::freeModel(pointLight);
+	labhelper::freeModel(cubeModel);
+
 	// Shut down everything. This includes the window and all other subsystems.
 	labhelper::shutDown(g_window);
 	return 0;
