@@ -122,8 +122,19 @@ void Simulator::update()
 
     if (m_time < EMIT_DURATION)
     {
-        addSource();
-        setEmitterVelocity();
+        if (emitter == nullptr)
+        {
+            std::cerr << "emitter is not set" << std::endl;
+            return;
+        }
+        emitter(
+            u, v, w,
+            u0, v0, w0,
+            density,
+            density0,
+            temperature,
+            temperature0,
+            pressure);
     }
 
     m_time += dt_;
@@ -140,105 +151,6 @@ void Simulator::update()
     T_END
 
     T_END
-}
-
-/* private */
-void Simulator::addSource()
-{
-
-    std::random_device rnd;
-    std::mt19937 engine(rnd());
-    std::uniform_real_distribution<double> dist(800, 1000);
-
-    switch (EMITTER_POS)
-    {
-    case E_TOP:
-    {
-
-        for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
-        {
-            for (int j = SOURCE_Y_MERGIN; j < SOURCE_Y_MERGIN + SOURCE_SIZE_Y; ++j)
-            {
-                for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
-                // for (int i = 20; i < 20 + SOURCE_SIZE_X; ++i)
-                {
-                    density[ACC3D(i, j, k, Ny, Nx)] = INIT_DENSITY;
-                    temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
-                }
-            }
-        }
-        break;
-    }
-
-    case E_BOTTOM:
-    {
-        // (32-8) / 2 = 12, (32+8) / 2 = 20
-        for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
-        {
-            // 64-3-3 = 58, 64-3 = 61
-            for (int j = Ny - SOURCE_Y_MERGIN - SOURCE_SIZE_Y; j < Ny - SOURCE_Y_MERGIN; ++j)
-            {
-                // (32-8) / 2 = 12, (32+8) / 2 = 20
-                for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
-                {
-                    density[ACC3D(i, j, k, Ny, Nx)] = INIT_DENSITY;
-                    temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
-                }
-            }
-        }
-        break;
-    }
-    }
-}
-
-void Simulator::setEmitterVelocity()
-{
-    switch (EMITTER_POS)
-    {
-    case E_TOP:
-    {
-
-        for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
-        {
-            for (int j = SOURCE_Y_MERGIN; j < SOURCE_Y_MERGIN + SOURCE_SIZE_Y; ++j)
-            {
-                for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
-                {
-                    // v[ACC3D(i, j, k, Ny, Nx)] = INIT_VELOCITY;
-                    // v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
-                    // random velocity
-                    // v[ACC3D(i, j, k, Ny, Nx)] = INIT_VELOCITY * (rand() % 100) / 100.0;
-                    // v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
-
-                    // random velocity for x and z (-0.5, 0.5) * INIT_VELOCITY
-                    // u(i, j, k) = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // u0(i, j, k) = u(i, j, k);
-
-                    // w[ACC3D(i, j, k, Ny, Nx)] = (rand() % 100) / 100.0 - 0.5 * INIT_VELOCITY;
-                    // w0[ACC3D(i, j, k, Ny, Nx)] = w[ACC3D(i, j, k, Ny, Nx)];
-                }
-            }
-        }
-        break;
-    }
-
-    case E_BOTTOM:
-    {
-
-        for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
-        {
-            for (int j = Ny - SOURCE_Y_MERGIN - SOURCE_SIZE_Y; j < Ny - SOURCE_Y_MERGIN + 1; ++j)
-            {
-                for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
-                {
-                    v[ACC3D(i, j, k, Ny, Nx)] = -INIT_VELOCITY;
-                    v0[ACC3D(i, j, k, Ny, Nx)] = v[ACC3D(i, j, k, Ny, Nx)];
-                }
-            }
-        }
-        break;
-    }
-    }
 }
 
 void Simulator::applyOccupiedVoxels()

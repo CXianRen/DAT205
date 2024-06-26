@@ -1,24 +1,13 @@
 #pragma once
 #include <cassert>
 
-enum E_EMITTER_POS
-{
-    E_TOP = 0,
-    E_BOTTOM = 1
-};
 
 constexpr int N = 50;
 constexpr int ratio[3] = {1, 1, 1}; // X, Y, Z
 constexpr int Nx = ratio[0] * N, Ny = ratio[1] * N, Nz = ratio[2] * N;
 constexpr int SIZE = Nx * Ny * Nz;
 
-constexpr E_EMITTER_POS EMITTER_POS = E_TOP;
-
 // the size of te sorce box
-constexpr int SOURCE_SIZE_X = (int)(16);
-constexpr int SOURCE_SIZE_Y = (int)(3);
-constexpr int SOURCE_SIZE_Z = (int)(16);
-constexpr int SOURCE_Y_MERGIN = (int)(3);
 
 constexpr double DT = 0.01;
 

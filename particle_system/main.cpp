@@ -240,18 +240,26 @@ int main(int argc, char *argv[])
 		DEBUG_PRINT("Simulation thread started");
 		while (!stopRendering)
 		{	
+			if (g_simulator_rest)
+			{		
+				simulator->reset();
+				g_simulator_rest = false;
+			}
+
+			if (ttime > FINISH_TIME){
+				// DEBUG_PRINT("Simulation  finished");
+				// sleep for a while
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				continue;
+			}
+			
 			simulator->setAlpha(g_alpha);
 			simulator->setBeta(g_beta);
 			simulator->setVortEps(g_vort_eps);
 			simulator->setDecayFactor(g_decay_factor);
 			simulator->setDt(g_dt);
-			
-			if (g_simulator_rest)
-			{	
-				simulator->setEnvTemperature(g_env_temp);
-				simulator->reset();
-				g_simulator_rest = false;
-			}
+			simulator->setEnvTemperature(g_env_temp);
+		
 
 			static int current_case = -1;
 			if(current_case != g_case_id)
@@ -262,6 +270,7 @@ int main(int argc, char *argv[])
 				{
 					auto &exp = examples[g_case_id];
 					simulator->setOccupiedVoxels(exp->obj_vexels);
+					simulator->setEmitter(exp->emitter);
 				}
 				else
 				{
@@ -269,16 +278,8 @@ int main(int argc, char *argv[])
 				}
 					simulator->reset();
 			}
-
-			simulator->update();
 			// update the simulator
-			if (ttime > FINISH_TIME){
-				// DEBUG_PRINT("Simulation  finished");
-				// sleep for a while
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				continue;
-			}
-
+			simulator->update();
 			{
 				std::lock_guard<std::mutex> lock(g_sim_lock);
 				// copy the density

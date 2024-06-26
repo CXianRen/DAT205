@@ -7,7 +7,14 @@
 #include "CudaSimulator.h"
 #include "CpuSimulator.h"
 
-
+typedef void (*Emitter)(
+    double *u, double *v, double *w,
+    double *u0, double *v0, double *w0,
+    double *density,
+    double *density0,
+    double *temperature,
+    double *temperature0,
+    double *pressure);
 
 class Simulator
 {
@@ -73,6 +80,11 @@ public:
     CPUSim.setDt(dt);
   }
 
+  void setEmitter(Emitter emitter)
+  {
+    this->emitter = emitter;
+  }
+
   void reset()
   {
     for (int i = 0; i < SIZE; ++i)
@@ -102,8 +114,7 @@ private:
   double vort_eps_ = VORT_EPS;
   double decay_factor_ = 0.99;
 
-  void setEmitterVelocity();
-  void addSource();
+  Emitter emitter;
 
   void update_gpu();
   void update_cpu();
