@@ -71,6 +71,37 @@ void bottom_cubic_emitter(
     }
 }
 
+void top_cubic_emitter(
+    double *u, double *v, double *w,
+    double *u0, double *v0, double *w0,
+    double *density,
+    double *density0,
+    double *temperature,
+    double *temperature0,
+    double *pressure)
+{
+    constexpr int SOURCE_SIZE_X = (int)(16);
+    constexpr int SOURCE_SIZE_Y = (int)(3);
+    constexpr int SOURCE_SIZE_Z = (int)(16);
+    constexpr int SOURCE_Y_MERGIN = (int)(3);
+
+    std::random_device rnd;
+    std::mt19937 engine(rnd());
+    std::uniform_real_distribution<double> dist(800, 1000);
+
+    for (int k = (Nz - SOURCE_SIZE_Z) / 2; k < (Nz + SOURCE_SIZE_Z) / 2; ++k)
+    {
+        for (int j = Ny - SOURCE_Y_MERGIN - SOURCE_SIZE_Y; j < Ny - SOURCE_Y_MERGIN; ++j)
+        {
+            for (int i = (Nx - SOURCE_SIZE_X) / 2; i < (Nx + SOURCE_SIZE_X) / 2; ++i)
+            {
+                density[ACC3D(i, j, k, Ny, Nx)] = INIT_DENSITY;
+                temperature[ACC3D(i, j, k, Ny, Nx)] = dist(engine);
+            }
+        }
+    }
+}
+
 void center_sphere_emiiter(
     double *u, double *v, double *w,
     double *u0, double *v0, double *w0,
@@ -79,7 +110,7 @@ void center_sphere_emiiter(
     double *temperature,
     double *temperature0,
     double *pressure)
-{   
+{
     int radius = 5;
     int x0 = Nx / 2 - radius;
     int x1 = Nx / 2 + radius;
@@ -145,7 +176,7 @@ void init_examples()
             generate_vexel(
                 tree_exp->model->m_positions,
                 tree_max_length);
-        tree_exp->emitter = bottom_cubic_emitter;
+        tree_exp->emitter = top_cubic_emitter;
     }
 }
 
