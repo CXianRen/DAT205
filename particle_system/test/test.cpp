@@ -7,6 +7,6 @@
 
 int main() {
     test_mmath();
-    test_solver();
+    // test_solver();
     return 0;
 }

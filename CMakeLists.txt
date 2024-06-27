@@ -1,46 +1,47 @@
 cmake_minimum_required ( VERSION 3.0.2 )
 
-project ( opengl-base-project )
+project ( OpenGL_SmokeSimulator )
+
+# For windows we use our bundled binaries.
+if(WIN32)
+    # info
+    message(STATUS "It's not supported to build this project on Windows.")
+    return()
+endif(WIN32)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "" FORCE)
 
 if(UNIX)
     set(OpenGL_GL_PREFERENCE "GLVND")
-endif(UNIX)
-
-# For windows we use our bundled binaries.
-if(WIN32)
-    # info
-    message(STATUS "It's not supported to build this project on Windows.")
-endif(WIN32)
-
-if(UNIX)
     list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external/embree2")
     list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_src/glm")
     list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_linux/sdl2")
     list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/external_linux/glew")
+    list(APPEND CMAKE_PREFIX_PATH "/chalmers/sw/sup64/cuda_toolkit-12.1.1")
+
 endif(UNIX)
+# EIGEN
+set(EIGEN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external_src/Eigen")
 
-macro(config_build_output)
-    if(MSVC)
-        set(DLL_DIRECTORIES "${CMAKE_SOURCE_DIR}/external/bin")
-        set(MSVC_RUNTIME_DIR "${CMAKE_SOURCE_DIR}/bin")
-        set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY                "${MSVC_RUNTIME_DIR}" )
-        set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${MSVC_RUNTIME_DIR}" )
-        set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${MSVC_RUNTIME_DIR}" )
-        set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${MSVC_RUNTIME_DIR}" )
-        set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${MSVC_RUNTIME_DIR}" )
-        set(vs_user_file "${PROJECT_BINARY_DIR}/${PROJECT_NAME}.vcxproj.user")
-        string(REGEX REPLACE "v([0-9][0-9])([0-9])" "\\1.\\2" "VS_TOOLSET_VERSION" "${CMAKE_VS_PLATFORM_TOOLSET}")
-        configure_file("${CMAKE_SOURCE_DIR}/VSUserTemplate.user" "${vs_user_file}" @ONLY)
-    endif(MSVC)
-endmacro(config_build_output)
+# openMP
+find_package(OpenMP REQUIRED)
 
+# CUDA
+find_package(CUDA REQUIRED)
+set(CMAKE_CUDA_ARCHITECTURES 61 75)
+enable_language(CUDA)
+message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
+message(STATUS "CUDA_LIBRARIES: ${CUDA_LIBRARIES}")
+message(STATUS "CUDA_cusolver_LIBRARY: ${CUDA_cusolver_LIBRARY}")
+message(STATUS "CUDA_cusparse_LIBRARY: ${CUDA_cusparse_LIBRARY}")
+message(STATUS "CUDA_cublas_LIBRARY: ${CUDA_cublas_LIBRARY}")
 
-
+# OpenGL
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
 set ( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 set ( CMAKE_CXX_STANDARD 14 )
 if( NOT CMAKE_BUILD_TYPE )
@@ -48,7 +49,6 @@ if( NOT CMAKE_BUILD_TYPE )
 endif()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
 
 add_subdirectory ( labhelper )
 add_subdirectory( particle_system )
