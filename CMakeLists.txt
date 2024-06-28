@@ -51,4 +51,4 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_subdirectory ( labhelper )
-add_subdirectory( particle_system )
+add_subdirectory( src )
